@@ -1,0 +1,6 @@
+# Cấu hình cho module phát hiện YOLOv8
+yolov8:
+  model_path: "Models/yolov8s_openvino_model" # Đường dẫn đến mô hình YOLOv8 đã chuyển đổi sang OpenVINO
+  confidence_threshold: 0.4 # ngưỡng tin cậy
+  iou_threshold: 0.45 
+  classes: 0 

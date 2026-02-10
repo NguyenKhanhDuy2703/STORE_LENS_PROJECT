@@ -1,0 +1,7 @@
+# Cấu hình cho module theo dõi DeepSORT
+deepsort:
+  max_cosine_distance: 0.45 # ngưỡng khoảng cách cosine(ngoại hình)
+  max_iou_distance: 0.5 # ngưỡng khoảng cách iou
+  max_age: 250 # tuổi thọ của đấu vết 
+  n_init: 3 # số khung hình đầu để khởi tạo một đối tượng mới
+  nn_budget: 150 # ngân sách bộ nhớ cho mô hình sách neareast neighbor

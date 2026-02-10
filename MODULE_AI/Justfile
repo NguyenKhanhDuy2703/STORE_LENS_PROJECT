@@ -1,0 +1,16 @@
+set shell := ["powershell.exe", "-c"]
+
+install :
+    @echo "Building the project..."
+    # Add your build commands here
+    pip install -r requirements.txt
+optimize-model :
+    @echo "Optimizing YOLOv8 model..."
+    yolo export model=yolov8m.pt format=onnx
+
+run-app:
+    @echo "Running the application..."
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+    
