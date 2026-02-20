@@ -1,4 +1,5 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
+import yaml
 class settings(BaseSettings):
     MODULE_NAME: str = "Module AI " 
     VERSION: str = "1.1.2"
@@ -10,10 +11,17 @@ class settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: str = ""
     REDIS_EXPIRE_TIME: int = 3600  
+    def read_yaml_config (self , path):       
+        with open (path, 'r' , encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+        return config
 class settings_dev(settings):
     MODULE_NAME: str = "Module AI Dev"
     VERSION: str = "1.1.2-dev"
-    VIDEO_SOURCE: str = "D:\NCKH_2\MODULE_AI\storage\videos\video_1.mp4"
+    VIDEO_SOURCE: str="D:/NCKH_2/MODULE_AI/storage/videos/video_1.mp4"
+    
+
+
 settings_dev = settings_dev()
 
 
