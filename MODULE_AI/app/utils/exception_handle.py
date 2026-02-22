@@ -1,36 +1,42 @@
-from fastapi import HTTPException, status 
+from fastapi import status
 from fastapi.responses import JSONResponse
-from fastapi.requests import Request
-from fastapi.exceptions import RequestValidationError
-from typing import Any  , Optional
-
+import logging
+from typing import Any, Optional
+from fastapi import Request, HTTPException
 class CustomException:
-    def __init__(self , message : str , status_code : int  ,  details : Optional[Any] = None):
+    def __init__(self, message: str, status_code: Any, details: Optional[Any] = None):
         self.status_code = status_code
         self.message = message
         self.details = details
-    def to_response(self) -> JSONResponse:
+
+    def to_dict(self) -> dict:
         return {
             "status_code": self.status_code,
             "message": self.message,
             "details": self.details
         }
 
+# Handler cho lỗi HTTP (404, 401, v.v.)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content=CustomException(
             message=str(exc.detail),
-            status_code=f"HTTP_{exc.status_code}",
+            status_code=exc.status_code,
             details=None
-        ).to_response(),
+        ).to_dict(),
     )
-async def global_exception_handler(request: Request, exc: Exception):  
+
+# Handler cho mọi lỗi crash code (500)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log lỗi ra terminal kèm traceback để debug
+    logging.exception("Global Exception Caught")
+    
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=CustomException(
-            message="internal server error",
-            status_code ="INTERNAL_SERVER_ERROR",
-            details=str(exc) 
-        ).to_response(),
+            message="Internal Server Error",
+            status_code="INTERNAL_SERVER_ERROR",
+            details=str(exc)
+        ).to_dict(),
     )
