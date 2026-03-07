@@ -3,7 +3,7 @@ const logger = require("../utils/logging");
 const handleException = (err, req, res, next) => {
   const statusCode = err.status || err.statusCode || 500;
   const isProd = process.env.NODE_ENV === 'production';
-
+  
   logger.error({
     message: err.message,
     statusCode,

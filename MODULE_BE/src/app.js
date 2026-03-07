@@ -18,6 +18,5 @@ app.use(cookieParser());
 
 routes(app);
 app.use(handleException)
-app.listen(port, () => {
-  logger.info(`${name} is running on port ${port}`);
-});
+
+module.exports = app

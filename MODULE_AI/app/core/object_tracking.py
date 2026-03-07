@@ -17,9 +17,10 @@ class ObjectTracking :
                 h = y2 - y1
                 detections.append(([x1, y1, w, h], conf, cls))
         return detections
-    def process_signle_frame(self , frame):
+    def process_single_frame(self , frame):
         results = self.yolo_model.predict_frame(frame)
         detections = self.tranform_detections(results)
         tracks = self.deepsort_model.tracker_predict(detections, frame = frame)
+        
         return tracks
     
