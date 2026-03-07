@@ -55,5 +55,7 @@ env/
 venv/
 
 # weights and datasets
-.weights/
-.datasets/
+MODULE_AI/datasets/
+
+# Chặn toàn bộ thư mục weights
+MODULE_AI/weights/
