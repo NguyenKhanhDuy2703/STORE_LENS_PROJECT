@@ -2,12 +2,21 @@ const {version} = require("../config").getConfig().api;
 const {error , success} =  require("../utils/response")
 const {StatusCodes } = require("http-status-codes")
 const routes = (app) => {
-app.use(`${version}` , (req , res) => {
+  app.get(`${version}/healthy`, (req, res) => {
    try {
-    success(res , null , "API is working" , StatusCodes.OK)
+      success({
+         res , 
+         message : "API is healthy" , 
+         code : StatusCodes.OK
+      })
    } catch (e) {
-    error(e.message ,  StatusCodes.INTERNAL_SERVER_ERROR)
+      error({
+         message : "Health check failed" , 
+         code : StatusCodes.INTERNAL_SERVER_ERROR , 
+         errors : [e.message]
+      })
    }
-})
+  });
+
 }
 module.exports = routes;

@@ -16,7 +16,7 @@ class CustomException:
             "details": self.details
         }
 
-# Handler cho lỗi HTTP (404, 401, v.v.)
+
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
@@ -27,9 +27,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         ).to_dict(),
     )
 
-# Handler cho mọi lỗi crash code (500)
 async def global_exception_handler(request: Request, exc: Exception):
-    # Log lỗi ra terminal kèm traceback để debug
     logging.exception("Global Exception Caught")
     
     return JSONResponse(

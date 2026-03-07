@@ -1,4 +1,4 @@
-const success = ( res , data = null , message  , code  , meta = {}) => {
+const success = ( {res , data = null , message  , code  , meta = {}}) => {
     if (!res || typeof res.status !== 'function' || typeof res.json !== 'function') {
         throw new Error("Response object is invalid");
     }
@@ -11,10 +11,11 @@ const success = ( res , data = null , message  , code  , meta = {}) => {
         meta
     });
 }
-const error = ( message = "Error" , code = 500 , errors = []) => {
+const error = ( {message = "Error" , code = 500 , errors = []}) => {
 const err = new Error(message);
   err.statusCode = code;
   err.errors = errors;
+  
   throw err;
 }
 module.exports = {

@@ -12,7 +12,7 @@ executor = ThreadPoolExecutor(max_workers=5)
 active_futures: dict[str, Future] = {}
 stream_lock = threading.Lock()
 active_processors: dict[str, StreamProcessor] = {}
-# khởi tạo StreamProcessor một lần duy nhất 
+
 def get_stream_processor(url_rtsp: str) -> StreamProcessor:
     if url_rtsp not in active_processors:
         active_processors[url_rtsp] = StreamProcessor()
@@ -39,10 +39,19 @@ async def process_tracking(url_rtsp: str):
         processor = get_stream_processor(url_rtsp=clean_url)
         active_futures[clean_url] = executor.submit(processor.process_stream, clean_url)
         return {
-                "status": "started", 
+                "status_code":status.HTTP_200_OK,  
                 "message": f"AI Consumer triggered for {clean_url}",
                 "active_streams": list(active_futures.keys())
             }
+    except ValueError as ve:
+        
+        error_data = CustomException(
+            message=str(ve),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details=None
+        ).to_dict()
+        logging.error(error_data)
+        return error_data
     except Exception as e:
         error_data = CustomException(
             message="Failed to start processing stream",
@@ -50,22 +59,21 @@ async def process_tracking(url_rtsp: str):
             details=str(e)
         ).to_dict()
         logging.exception(error_data)
+        return error_data
+       
 
 @router_tracking.get("/stopped")
 def stop_tracking(url_rtsp: str):
     clear_url = str(url_rtsp).strip().strip('"').strip("'")
-    
-    # Tìm processor mà không giữ Lock quá lâu
+
     processor_to_stop = None
     with stream_lock:
         if clear_url in active_processors:
             processor_to_stop = active_processors[clear_url]
-            # Xóa khỏi danh sách để các request mới không đụng vào nó nữa
             del active_processors[clear_url] 
             if clear_url in active_futures:
                 del active_futures[clear_url]
 
-    # Thực hiện lệnh dừng NGOÀI khối Lock
     if processor_to_stop:
         processor_to_stop.stop()
         return {"status": "stopped", "url": clear_url}
