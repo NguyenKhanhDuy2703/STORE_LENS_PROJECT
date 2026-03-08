@@ -1,57 +1,52 @@
 from fastapi import APIRouter, status
-from concurrent.futures import ThreadPoolExecutor, Future
+from multiprocessing import Process, Event
 import threading
 import logging
 from app.utils.exception_handle import CustomException
 from app.processing.stream_processing import StreamProcessor
+
 router_tracking = APIRouter(
     prefix="/api/v1/tracking",
     tags=["tracking"],
 )
-executor = ThreadPoolExecutor(max_workers=5)
-active_futures: dict[str, Future] = {}
-stream_lock = threading.Lock()
-active_processors: dict[str, StreamProcessor] = {}
 
-def get_stream_processor(url_rtsp: str) -> StreamProcessor:
-    if url_rtsp not in active_processors:
-        active_processors[url_rtsp] = StreamProcessor()
-        return active_processors[url_rtsp]
-    else:
-        return active_processors[url_rtsp]
+active_processes: dict[str, Process] = {} #save url_rtsp and process
+stop_signals: dict[str, Event] = {} # save url_rtsp and stop event
+stream_lock = threading.Lock() 
 
-        
 @router_tracking.get("/process", status_code=status.HTTP_200_OK)
 async def process_tracking(url_rtsp: str):
     try:   
         clean_url = str(url_rtsp).strip().strip('"').strip("'")
-        with stream_lock:
-            if clean_url in active_futures:
-                future = active_futures[clean_url]
-                if not future.done():
-                    logging.info(f"Stream {clean_url} is already being processed.")
-                    return {"status": "already processing"}
-                else:
-                    logging.info(f"Stream {clean_url} has finished processing. Restarting...")
-                    del active_futures[clean_url]
-                    if clean_url in active_processors:
-                        del active_processors[clean_url]
-        processor = get_stream_processor(url_rtsp=clean_url)
-        active_futures[clean_url] = executor.submit(processor.process_stream, clean_url)
-        return {
-                "status_code":status.HTTP_200_OK,  
-                "message": f"AI Consumer triggered for {clean_url}",
-                "active_streams": list(active_futures.keys())
-            }
-    except ValueError as ve:
         
-        error_data = CustomException(
-            message=str(ve),
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details=None
-        ).to_dict()
-        logging.error(error_data)
-        return error_data
+        with stream_lock:
+            if clean_url in active_processes:
+                if active_processes[clean_url].is_alive(): 
+                    return {
+                        "status_code": status.HTTP_200_OK,  
+                        "message": f"Stream already being processed for {clean_url}",
+                    }
+                else:
+                    del active_processes[clean_url] 
+                    if clean_url in stop_signals:
+                        del stop_signals[clean_url]
+            
+       
+            stop_event = Event()
+            processor = StreamProcessor()
+            
+          
+            process = Process(target=processor.process_stream, args=(clean_url, stop_event))
+            process.start()
+            
+            active_processes[clean_url] = process
+            stop_signals[clean_url] = stop_event
+
+        return {
+            "status_code": status.HTTP_200_OK,  
+            "message": f"AI Consumer triggered for {clean_url}",
+            "active_streams": list(active_processes.keys())
+        }
     except Exception as e:
         error_data = CustomException(
             message="Failed to start processing stream",
@@ -60,22 +55,30 @@ async def process_tracking(url_rtsp: str):
         ).to_dict()
         logging.exception(error_data)
         return error_data
-       
 
 @router_tracking.get("/stopped")
 def stop_tracking(url_rtsp: str):
-    clear_url = str(url_rtsp).strip().strip('"').strip("'")
-
-    processor_to_stop = None
-    with stream_lock:
-        if clear_url in active_processors:
-            processor_to_stop = active_processors[clear_url]
-            del active_processors[clear_url] 
-            if clear_url in active_futures:
-                del active_futures[clear_url]
-
-    if processor_to_stop:
-        processor_to_stop.stop()
-        return {"status": "stopped", "url": clear_url}
+    clean_url = str(url_rtsp).strip().strip('"').strip("'")
     
-    return {"status": "not found"}
+    with stream_lock:
+        if clean_url in active_processes:
+            p = active_processes[clean_url]
+            
+            if p.is_alive():
+                stop_signals[clean_url].set()
+                p.join(timeout=5)
+                if p.is_alive():
+                    logging.warning(f"Process {clean_url} hung. Terminating forcibly.")
+                    p.terminate()
+        
+            del active_processes[clean_url]
+            if clean_url in stop_signals:
+                del stop_signals[clean_url]
+                
+            return {
+                "status_code": status.HTTP_200_OK,  
+                "message": f"Stream processing stopped for {clean_url}",
+                "active_streams": list(active_processes.keys())
+            }
+    
+    return {"status": "not found", "url": clean_url}
