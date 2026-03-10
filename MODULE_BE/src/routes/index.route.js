@@ -1,13 +1,26 @@
+const express = require('express'); 
+const router = express.Router();
 const {version} = require("../config").getConfig().api;
 const {error , success} =  require("../utils/response")
 const {StatusCodes } = require("http-status-codes")
+const authRoutes = require("./auth.routes");
+const { authenticationToken, authenticationRole } = require("../middlewares/auth.middleware");
 const routes = (app) => {
-app.use(`${version}` , (req , res) => {
-   try {
-    success(res , null , "API is working" , StatusCodes.OK)
-   } catch (e) {
-    error(e.message ,  StatusCodes.INTERNAL_SERVER_ERROR)
-   }
-})
+
+     router.get("/", (req, res) => {
+        return success(res, null, "StoreLens API is working perfectly", StatusCodes.OK);
+    });
+    router.use("/auth", authRoutes);
+    router.get(
+        "/getToken",
+        authenticationToken,
+        authenticationRole(["admin", "manager"]),
+        (req, res) => {
+            return success(res, { user: req.user }, "Lấy thông tin người dùng từ Token thành công");
+        }
+    );
+   
+
+    app.use(version, router);
 }
 module.exports = routes;

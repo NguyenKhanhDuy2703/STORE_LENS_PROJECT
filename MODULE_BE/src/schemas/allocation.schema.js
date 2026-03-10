@@ -25,10 +25,8 @@ const LocationSchema = new Schema({
         enum: ['RETAIL', 'GYM', 'OFFICE'], 
         default: 'RETAIL' 
     },
-    
     manager_info: ManagerInfoSchema,
     business_hours: BusinessHoursSchema,
-    
     // Thuộc tính mở rộng dạng JSON tự do (Flexible)
     settings: { type: Schema.Types.Mixed, default: {} } 
 }, { 
