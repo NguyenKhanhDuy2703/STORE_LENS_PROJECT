@@ -24,6 +24,7 @@ const routes = (app) => {
     app.use(version, router);
   app.get(`${version}/healthy`, (req, res) => {
    try {
+      
       success({
          res , 
          message : "API is healthy" , 
