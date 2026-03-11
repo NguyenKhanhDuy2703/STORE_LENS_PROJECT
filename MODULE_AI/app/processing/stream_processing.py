@@ -7,6 +7,8 @@ import logging
 import time
 from app.analytics import heatmap_analysis 
 from app.utils import heatmap_visualizer
+from app.analytics.dwelltime_analysis import DwellTimeAnalysis
+from app.communication.redis_publish import RedisPublisher
 yolo_model_path = settings_dev.read_yaml_config(settings_dev.YOLOV8_CONFIG_PATH)
 deepsort_model_path = settings_dev.read_yaml_config(settings_dev.DEEPSORT_CONFIG_PATH)
 source_video = settings_dev.VIDEO_SOURCE
@@ -60,8 +62,9 @@ class StreamProcessor:
             "yolov8_config_path": yolo_model_path,
             "deepsort_config_path": deepsort_model_path
                })
+            self.dwell_time_analyzer = DwellTimeAnalysis(iou_threshold=0.5)
             self.frame_queue.clear()
-
+            self.redis_publisher = RedisPublisher()
             cap = cv2.VideoCapture(url_rtsp)
             if not cap.isOpened():
                raise ValueError(f"Failed to open stream: {url_rtsp}")
@@ -88,12 +91,19 @@ class StreamProcessor:
                 for track in tracks:
                     if track.is_confirmed():
                         x1, y1, x2, y2 = map(int, track.to_ltrb())
+                        self.dwell_time_analyzer.update_dwell_time(track.track_id, current_pos = [x1, y1, x2, y2])
                         center = (x1 + x2) // 2
                         foot = y2
+                        self.redis_publisher.publish("tracking_data", {
+                            "track_id": track.track_id,
+                            "x": center,
+                            "y": foot,
+                        })
                         self.heatmap_analysis.update_grid_cell(center, foot)
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
-
+                if self.dwell_time_analyzer.finished_events:
+                    print("New stop events:", self.dwell_time_analyzer.get_new_events())
                 cv2.imshow(windown_name, heatmap_overlay)
                 
                 if cv2.waitKey(25) & 0xFF == ord('q'):

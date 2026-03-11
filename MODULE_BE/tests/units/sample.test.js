@@ -1,6 +1,7 @@
 const app = require("../../src/app");
 const request = require("supertest");
 const {StatusCodes} = require("http-status-codes");
+const { error } = require("../../src/utils/response");
 const {version} = require("../../src/config").getConfig().api;
 
 describe("Health Check", () => {
@@ -10,5 +11,4 @@ describe("Health Check", () => {
         expect(response.body).toHaveProperty("message", "API is healthy");
         expect(response.body).toHaveProperty("status", "success");
     })
- 
 });
