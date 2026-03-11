@@ -18,6 +18,14 @@ class setting {
     this.redis = {
       host: process.env.REDIS_HOST,
     };
+
+    this.cookie = {
+      httpOnly: true,
+      secure: process.env.COOKIE_SECURE === 'true' || this.app.env === 'production',
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, 
+    };
+    
     this.apiAI = {
       port: process.env.PORT_AI,
     };
