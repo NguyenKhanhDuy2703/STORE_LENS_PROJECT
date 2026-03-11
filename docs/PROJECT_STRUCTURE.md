@@ -1,8 +1,14 @@
-🏗️ Kiến Trúc Tổng Thể Dự Án Store Lens
-Dự án được chia làm 3 phân hệ (Modules) hoạt động độc lập, giao tiếp với nhau qua API (HTTP/REST) và Message Broker (Redis). Kiến trúc này giúp hệ thống dễ dàng mở rộng (scale), bảo trì và triển khai linh hoạt theo hướng Microservices.
+# 🏗️ Kiến Trúc Tổng Thể Dự Án Store Lens
 
-🤖 1. MODULE_AI — Hệ Thống Phân Tích AI & Computer Vision
-Vai trò: Đọc luồng video (RTSP từ camera), sử dụng các mô hình AI (YOLO, DeepSORT) để nhận diện người, theo dõi quỹ đạo, và phân tích các chỉ số (Heatmap, Dwell time). Kết quả được đẩy lên Redis.
+Dự án được chia làm **3 phân hệ (Modules)** hoạt động độc lập, giao tiếp với nhau qua **API (HTTP/REST)** và **Message Broker (Redis)**. Kiến trúc này giúp hệ thống dễ dàng mở rộng (scale), bảo trì và triển khai linh hoạt theo hướng **Microservices**.
+
+---
+
+## 🤖 1. MODULE\_AI — Hệ Thống Phân Tích AI & Computer Vision
+
+**Vai trò:** Đọc luồng video (RTSP từ camera), sử dụng các mô hình AI (YOLO, DeepSORT) để nhận diện người, theo dõi quỹ đạo, và phân tích các chỉ số (Heatmap, Dwell time). Kết quả được đẩy lên Redis.
+
+```
 MODULE_AI/
 ├── config/                     # Cấu hình AI (không chứa mã nguồn)
 │   ├── app_config.yaml         # Cài đặt FPS, độ phân giải, ngưỡng AI (Confidence, NMS)
@@ -39,10 +45,17 @@ MODULE_AI/
 ├── .env                        # Biến môi trường (RTSP Camera, Redis URL)
 ├── config.py                   # Class load cấu hình toàn cục
 └── main.py                     # Entry Point: vòng lặp đọc Camera và chạy Pipeline AI
+```
 
-⚙️ 2. MODULE_BE — Hệ Thống Backend API (Node.js/Express)
-Vai trò: Là cầu nối trung tâm. Lắng nghe dữ liệu từ Redis (do AI đẩy lên), lưu trữ vào Database (MongoDB), và cung cấp các RESTful APIs cho Frontend hiển thị biểu đồ, quản lý Camera, User, v.v.
-Kiến trúc: Layered Architecture — Controller → Service → Model/Schema
+---
+
+## ⚙️ 2. MODULE\_BE — Hệ Thống Backend API (Node.js/Express)
+
+**Vai trò:** Là cầu nối trung tâm. Lắng nghe dữ liệu từ Redis (do AI đẩy lên), lưu trữ vào Database (MongoDB), và cung cấp các RESTful APIs cho Frontend hiển thị biểu đồ, quản lý Camera, User, v.v.
+
+**Kiến trúc:** Layered Architecture — `Controller → Service → Model/Schema`
+
+```
 MODULE_BE/
 ├── src/
 │   ├── api/
@@ -89,10 +102,17 @@ MODULE_BE/
 ├── src/server.js                       # Entry point: start server lắng nghe trên Port
 ├── docker-compose.yml                  # Triển khai đồng thời BE, DB, Redis
 └── package.json                        # Danh sách thư viện Node.js
+```
 
-💻 3. MODULE_FE — Hệ Thống Frontend (React.js/Vite)
-Vai trò: Giao diện tương tác cho người dùng cuối (chủ cửa hàng, quản lý). Hiển thị Dashboard trực quan, bản đồ Heatmap, quản lý danh sách Camera, cho phép vẽ Zone (ROI) trực tiếp trên trình duyệt.
-Kiến trúc: Feature-based Structure kết hợp Redux Toolkit.
+---
+
+## 💻 3. MODULE\_FE — Hệ Thống Frontend (React.js/Vite)
+
+**Vai trò:** Giao diện tương tác cho người dùng cuối (chủ cửa hàng, quản lý). Hiển thị Dashboard trực quan, bản đồ Heatmap, quản lý danh sách Camera, cho phép vẽ Zone (ROI) trực tiếp trên trình duyệt.
+
+**Kiến trúc:** Feature-based Structure kết hợp Redux Toolkit.
+
+```
 MODULE_FE/
 ├── src/
 │   ├── assets/
@@ -145,12 +165,17 @@ MODULE_FE/
 ├── eslint.config.js                        # Cấu hình Linting
 ├── vite.config.js                          # Cấu hình Vite (Bundler)
 └── package.json                            # Thư viện Frontend (React, Redux, Axios, React-Router)
+```
 
-🚀 Luồng Dữ Liệu Tổng Thể (Data Flow)
+---
+
+## 🚀 Luồng Dữ Liệu Tổng Thể (Data Flow)
+
+```
 Camera (RTSP)
     │
     ▼
-MODULE_AI          ← Detect & Track (YOLO + DeepSORT), sinh Heatmap, Dwell Time
+MODULE_AI     ← Detect & Track (YOLO + DeepSORT), sinh Heatmap, Dwell Time
     │
     │  Publish JSON
     ▼
@@ -158,9 +183,19 @@ Redis
     │
     │  Subscribe
     ▼
-MODULE_BE          ← Xử lý logic, lưu vào MongoDB theo Schema
+MODULE_BE     ← Xử lý logic, lưu vào MongoDB theo Schema
     │
     │  REST API (JWT)
     ▼
-MODULE_FE          ← Axios → Redux State → Render biểu đồ cho người dùng
-BướcMô tả1Camera Stream đẩy RTSP vào MODULE_AI2MODULE_AI phát hiện khách hàng, tạo dữ liệu Heatmap3Dữ liệu được Publish dạng JSON lên Redis4MODULE_BE Subscribe Redis, xử lý và nạp vào MongoDB5Người dùng truy cập MODULE_FE, gửi request kèm JWT Token6MODULE_BE query MongoDB, trả về JSON qua REST API7MODULE_FE cập nhật Redux state và render biểu đồ
+MODULE_FE     ← Axios → Redux State → Render biểu đồ cho người dùng
+```
+
+| Bước | Mô tả |
+|------|-------|
+| 1 | Camera Stream đẩy RTSP vào MODULE\_AI |
+| 2 | MODULE\_AI phát hiện khách hàng, tạo dữ liệu Heatmap |
+| 3 | Dữ liệu được Publish dạng JSON lên Redis |
+| 4 | MODULE\_BE Subscribe Redis, xử lý và nạp vào MongoDB |
+| 5 | Người dùng truy cập MODULE\_FE, gửi request kèm JWT Token |
+| 6 | MODULE\_BE query MongoDB, trả về JSON qua REST API |
+| 7 | MODULE\_FE cập nhật Redux state và render biểu đồ |
