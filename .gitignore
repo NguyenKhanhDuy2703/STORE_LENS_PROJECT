@@ -53,3 +53,9 @@ __pycache__/
 env/
 .venv/
 venv/
+
+# weights and datasets
+MODULE_AI/datasets/
+
+# Chặn toàn bộ thư mục weights
+MODULE_AI/weights/

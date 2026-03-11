@@ -22,5 +22,21 @@ const routes = (app) => {
    
 
     app.use(version, router);
+  app.get(`${version}/healthy`, (req, res) => {
+   try {
+      success({
+         res , 
+         message : "API is healthy" , 
+         code : StatusCodes.OK
+      })
+   } catch (e) {
+      error({
+         message : "Health check failed" , 
+         code : StatusCodes.INTERNAL_SERVER_ERROR , 
+         errors : [e.message]
+      })
+   }
+  });
+
 }
 module.exports = routes;
