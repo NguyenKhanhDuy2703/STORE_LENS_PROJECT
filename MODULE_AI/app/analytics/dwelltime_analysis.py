@@ -19,9 +19,9 @@ def calculate_iou(boxA, boxB):
     return iou
 
 class DwellTimeAnalysis:
-    def __init__(self, iou_threshold=0.7):
+    def __init__(self, iou_threshold=0.7 , time_threshold=2.0):
         self.iou_threshold = iou_threshold
-        self.time_threshold = 2.0
+        self.time_threshold = time_threshold
         self.dwell_times = {}
         self.finished_events = [] 
 

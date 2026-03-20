@@ -8,6 +8,7 @@ class HeatmapAnalysis:
         self.grid_height = int(np.ceil(frame_height / grid_size))
         self.decay = decay
         self.heatmap_matrix = np.zeros((self.grid_height , self.grid_width) ,dtype=np.float32) 
+        
     def _get_grid_cell (self , x , y):
         grid_x = int(x / self.grid_size)
         grid_y = int(y / self.grid_size)
