@@ -4,18 +4,37 @@ import threading
 import logging
 from app.utils.exception_handle import CustomException
 from app.processing.stream_processing import StreamProcessor
-
+from typing import Optional
 router_tracking = APIRouter(
     prefix="/api/v1/tracking",
     tags=["tracking"],
 )
 
+
+def run_stream_process(url_rtsp: str, list_zone, stop_event: Event) -> None:
+    processor = StreamProcessor()
+    processor.process_stream(url_rtsp, list_zone, stop_event)
+
 active_processes: dict[str, Process] = {} #save url_rtsp and process
 stop_signals: dict[str, Event] = {} # save url_rtsp and stop event
 stream_lock = threading.Lock() 
+mock_zones = [
+    {
+        "name": "ZONE_A_TREADMILL",
+        "points": [[100, 100], [500, 100], [500, 500], [100, 500]]
+    },
+    {
+        "name": "ZONE_B_WEIGHT",
 
-@router_tracking.get("/process", status_code=status.HTTP_200_OK)
-async def process_tracking(url_rtsp: str):
+        "points": [[700, 100], [1100, 100], [1100, 500], [700, 500]]
+    },
+    {
+        "name": "ZONE_C_OVERLAP",
+        "points": [[400, 300], [800, 300], [800, 700], [400, 700]]
+    }
+]
+@router_tracking.get("/process", status_code=status.HTTP_200_OK )
+async def process_tracking(url_rtsp: str , list_zone: Optional[dict] = None):
     try:   
         clean_url = str(url_rtsp).strip().strip('"').strip("'")
         
@@ -33,10 +52,9 @@ async def process_tracking(url_rtsp: str):
             
        
             stop_event = Event()
-            processor = StreamProcessor()
             
-          
-            process = Process(target=processor.process_stream, args=(clean_url, stop_event))
+            print(mock_zones)
+            process = Process(target=run_stream_process, args=(clean_url, mock_zones, stop_event))
             process.start()
             
             active_processes[clean_url] = process

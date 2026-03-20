@@ -9,6 +9,8 @@ from app.analytics import heatmap_analysis
 from app.utils import heatmap_visualizer
 from app.analytics.dwelltime_analysis import DwellTimeAnalysis
 from app.communication.redis_publish import RedisPublisher
+from app.analytics.zone_analysis import ZoneAnalysis
+from app.communication.pack_communication import PackCommunication
 yolo_model_path = settings_dev.read_yaml_config(settings_dev.YOLOV8_CONFIG_PATH)
 deepsort_model_path = settings_dev.read_yaml_config(settings_dev.DEEPSORT_CONFIG_PATH)
 source_video = settings_dev.VIDEO_SOURCE
@@ -17,6 +19,9 @@ class StreamProcessor:
     def __init__(self):
         self.frame_queue = deque(maxlen=50)
         self.heatmap_analysis = None
+        self.zone_analyzer = ZoneAnalysis()
+        self.pack_communication = PackCommunication()
+        self.old_current_frame_counts = {}
     def _read_frames(self, url_rtsp , stop_event : threading.Event):
 
         input_source = source_video if url_rtsp.split("-")[0] == 'test' else url_rtsp
@@ -56,13 +61,13 @@ class StreamProcessor:
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, f"ID: {track_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         return frame
-    def process_stream(self, url_rtsp , stop_event : threading.Event): 
+    def process_stream(self, url_rtsp , list_zone , stop_event : threading.Event ): 
         try:
             self.object_tracker = object_tracking.ObjectTracking({
             "yolov8_config_path": yolo_model_path,
             "deepsort_config_path": deepsort_model_path
                })
-            self.dwell_time_analyzer = DwellTimeAnalysis(iou_threshold=0.5)
+            self.dwell_time_analyzer = DwellTimeAnalysis(iou_threshold=0.7 , time_threshold=3.0)
             self.frame_queue.clear()
             self.redis_publisher = RedisPublisher()
             cap = cv2.VideoCapture(url_rtsp)
@@ -70,6 +75,7 @@ class StreamProcessor:
                raise ValueError(f"Failed to open stream: {url_rtsp}")
             
             ret_first, frame_first = cap.read()
+            
             self.heatmap_analysis = heatmap_analysis.HeatmapAnalysis(frame_first.shape[1], frame_first.shape[0])
 
             windown_name = f"AI Tracking - {url_rtsp}"
@@ -77,7 +83,6 @@ class StreamProcessor:
             read_thread.daemon = True
             read_thread.start()
            
-
             time.sleep(1) 
             while not stop_event.is_set():
                 if len(self.frame_queue) == 0:
@@ -88,22 +93,48 @@ class StreamProcessor:
                 tracks = self.object_tracker.process_single_frame(frame)
                 
                 frame = self.draw_tracks(frame, tracks)
+                current_frame_counts = {}
+                if list_zone:
+                    for z in list_zone:
+                        z_name = z.get("name") if isinstance(z, dict) else getattr(z, "name", "unknown")
+                        current_frame_counts[z_name] = 0
                 for track in tracks:
                     if track.is_confirmed():
                         x1, y1, x2, y2 = map(int, track.to_ltrb())
                         self.dwell_time_analyzer.update_dwell_time(track.track_id, current_pos = [x1, y1, x2, y2])
                         center = (x1 + x2) // 2
                         foot = y2
-                        self.redis_publisher.publish("tracking_data", {
-                            "track_id": track.track_id,
-                            "x": center,
-                            "y": foot,
-                        })
+                        hit_zone = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone)
+                        for zone in current_frame_counts.keys():
+                            if zone in hit_zone:
+                                current_frame_counts[zone] += 1
                         self.heatmap_analysis.update_grid_cell(center, foot)
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
-                if self.dwell_time_analyzer.finished_events:
-                    print("New stop events:", self.dwell_time_analyzer.get_new_events())
+                if self.old_current_frame_counts != current_frame_counts:
+                    self.old_current_frame_counts = current_frame_counts
+                    self.pack_communication.dispatch_payload(
+                        [
+                            {
+                                "type":"zone_analysis",
+                                "data": current_frame_counts
+                            }
+                        ]
+                    )
+                self.pack_communication.dispatch_payload(
+                    [
+                        {
+                            "type":"dwell_time",
+                            "data": self.dwell_time_analyzer.finished_events
+                        },
+                        {
+                            "type":"heatmap",
+                            "data": self.heatmap_analysis.get_payload_heatmap
+                        }
+                    ]
+                )
+                if list_zone is not None:
+                    heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone)
                 cv2.imshow(windown_name, heatmap_overlay)
                 
                 if cv2.waitKey(25) & 0xFF == ord('q'):
