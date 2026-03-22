@@ -61,6 +61,8 @@ class StreamProcessor:
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, f"ID: {track_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         return frame
+    
+   
     def process_stream(self, url_rtsp , list_zone , stop_event : threading.Event ): 
         try:
             self.object_tracker = object_tracking.ObjectTracking({
@@ -104,14 +106,35 @@ class StreamProcessor:
                         self.dwell_time_analyzer.update_dwell_time(track.track_id, current_pos = [x1, y1, x2, y2])
                         center = (x1 + x2) // 2
                         foot = y2
-                        hit_zone = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone)
+                        hit_zone , zone_event = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone , track_id = track.track_id)
                         for zone in current_frame_counts.keys():
                             if zone in hit_zone:
                                 current_frame_counts[zone] += 1
+                        if zone_event:
+                            for event in zone_event:
+                                self.pack_communication.dispatch_payload(
+                                    [
+                                        {
+                                            "type":"zone_analysis_event",
+                                            "data": event
+                                        }
+                                    ]
+                                )
                         self.heatmap_analysis.update_grid_cell(center, foot)
+                        real_time_dwell_events = self.dwell_time_analyzer.alert_stopped_objects(track.track_id)
+                        if real_time_dwell_events:
+                            self.pack_communication.dispatch_payload(
+                                [
+                                    {
+                                        "type":"dwell_time_realtime",
+                                        "data": real_time_dwell_events
+                                    }
+                                ]
+                            )
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
                 if self.old_current_frame_counts != current_frame_counts:
+                    
                     self.old_current_frame_counts = current_frame_counts
                     self.pack_communication.dispatch_payload(
                         [
@@ -121,17 +144,22 @@ class StreamProcessor:
                             }
                         ]
                     )
-                self.pack_communication.dispatch_payload(
+                if len(self.dwell_time_analyzer.finished_events) > 0:
+                    self.pack_communication.dispatch_payload(
                     [
                         {
                             "type":"dwell_time",
                             "data": self.dwell_time_analyzer.finished_events
-                        },
-                        {
-                            "type":"heatmap",
-                            "data": self.heatmap_analysis.get_payload_heatmap
                         }
                     ]
+                )
+                self.dwell_time_analyzer.cleanup_old_tracks()
+                
+                self.pack_communication.dispatch_payload(
+                    [ {
+                            "type":"heatmap",
+                            "data": self.heatmap_analysis.get_payload_heatmap
+                        }]
                 )
                 if list_zone is not None:
                     heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone)

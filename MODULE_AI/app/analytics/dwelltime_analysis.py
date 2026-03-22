@@ -2,6 +2,7 @@ import math
 import time
 from numba import jit
 import numpy as np
+from app.analytics.zone_analysis import ZoneAnalysis
 @jit(nopython=True)
 def calculate_iou(boxA, boxB):
     xA = max(boxA[0], boxB[0])
@@ -76,6 +77,8 @@ class DwellTimeAnalysis:
 
     def alert_stopped_objects(self, track_id):
         obj=self.dwell_times.get(track_id)
+        if not obj or obj["dwell_time"] < self.time_threshold:
+            return None
         ping_payload = {
             "event_type": "ping",
             "track_id": track_id,
@@ -86,3 +89,12 @@ class DwellTimeAnalysis:
         events = self.finished_events[:]
         self.finished_events = [] 
         return events
+    def cleanup_old_tracks(self , max_age = 300):
+        current_time = time.time()
+        to_delete = []
+        for track_id , data in self.dwell_times.items():
+            if current_time - data["last_update"] > max_age:
+                to_delete.append(track_id)
+        for track_id in to_delete:
+            del self.dwell_times[track_id]
+            ZoneAnalysis().cleanup_event_person_zone(track_id)

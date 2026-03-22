@@ -20,18 +20,10 @@ stop_signals: dict[str, Event] = {} # save url_rtsp and stop event
 stream_lock = threading.Lock() 
 mock_zones = [
     {
-        "name": "ZONE_A_TREADMILL",
-        "points": [[100, 100], [500, 100], [500, 500], [100, 500]]
-    },
-    {
-        "name": "ZONE_B_WEIGHT",
-
-        "points": [[700, 100], [1100, 100], [1100, 500], [700, 500]]
-    },
-    {
-        "name": "ZONE_C_OVERLAP",
-        "points": [[400, 300], [800, 300], [800, 700], [400, 700]]
+        "name": "Zone A",
+        "points": [(100, 100), (500, 100), (500, 500), (100, 500)]
     }
+
 ]
 @router_tracking.get("/process", status_code=status.HTTP_200_OK )
 async def process_tracking(url_rtsp: str , list_zone: Optional[dict] = None):
