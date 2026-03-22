@@ -12,7 +12,7 @@ class RedisPublisher:
     def publish(self, channel: str, message: dict):
         try:
             self.redis_client.publish(channel, str(message))
-            if channel == "zone_analysis_channel":
+            if channel == "dwell_time_realtime_channel" :
                 print(f"Published to Redis channel '{channel}': {message}")
         except Exception as e:
             print(f"Error publishing to Redis: {str(e)}")
