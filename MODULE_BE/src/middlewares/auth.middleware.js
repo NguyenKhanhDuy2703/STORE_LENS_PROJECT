@@ -1,27 +1,30 @@
-const  handleException  = require('../utils/exceptions');
+const { verifyToken } = require('./security.middleware');
 const { error } = require('../utils/response');
-
+const {StatusCodes } = require("http-status-codes")
 const authenticationToken = (req, res, next) => {
     const token = req.cookies.sessionToken;
     
     if (!token) {
-        return error("Bạn chưa đăng nhập", 401);
+        return error({ message: "You are not authenticated", code: StatusCodes.UNAUTHORIZED });
     }
-    //  Giải mã token
-    const decoded = handleException(token);
+
+    const decoded = verifyToken(token);
     if (!decoded) {
-        return error(" đăng nhập hết hạn hoặc không hợp lệ", 401);
+        return error({ message: "Session expired or invalid token", code: StatusCodes.UNAUTHORIZED });
     }
+
     req.user = decoded; 
     next();
 };
 const authenticationRole = (roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role.toUpperCase())) {
-            return error("Bạn không có quyền truy cập chức năng này", 403);
+            return error({ message: "You do not have permission to access this resource", code: StatusCodes.FORBIDDEN });
         }
         next();
     };
 };
-
-module.exports = { authenticationToken, authenticationRole };
+const ALLOWED_ADMIN = authenticationRole(["ADMIN"]);
+const ALLOWED_MANAGER = authenticationRole(["ADMIN", "MANAGER"]);
+const ALLOWED_ALL = authenticationRole(["ADMIN", "MANAGER", "STAFF"]);
+module.exports = { authenticationToken, authenticationRole, ALLOWED_ADMIN, ALLOWED_MANAGER, ALLOWED_ALL };

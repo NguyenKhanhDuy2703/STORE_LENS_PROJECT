@@ -3,5 +3,5 @@ redis:
   port: 6379
   db: 0
   password: null
-  decode_responses: true
+  decode_responses: False
   queue_name: "storelens"

@@ -5,12 +5,14 @@ import cv2
 import threading
 import logging
 import time
+import numpy as np
 from app.analytics import heatmap_analysis 
 from app.utils import heatmap_visualizer
 from app.analytics.dwelltime_analysis import DwellTimeAnalysis
 from app.communication.redis_publish import RedisPublisher
 from app.analytics.zone_analysis import ZoneAnalysis
 from app.communication.pack_communication import PackCommunication
+from app.core.re_id import Re_ID
 yolo_model_path = settings_dev.read_yaml_config(settings_dev.YOLOV8_CONFIG_PATH)
 deepsort_model_path = settings_dev.read_yaml_config(settings_dev.DEEPSORT_CONFIG_PATH)
 source_video = settings_dev.VIDEO_SOURCE
@@ -22,6 +24,8 @@ class StreamProcessor:
         self.zone_analyzer = ZoneAnalysis()
         self.pack_communication = PackCommunication()
         self.old_current_frame_counts = {}
+        self.re_id = Re_ID()
+        self.his_re_id_features = {}
     def _read_frames(self, url_rtsp , stop_event : threading.Event):
 
         input_source = source_video if url_rtsp.split("-")[0] == 'test' else url_rtsp
@@ -40,6 +44,7 @@ class StreamProcessor:
                     break
                 
                 self.frame_queue.append(frame)
+
         except Exception as e:
             raise Exception(f"Error reading stream {input_source}: {str(e)}")
         finally:
@@ -61,7 +66,8 @@ class StreamProcessor:
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             cv2.putText(frame, f"ID: {track_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
         return frame
-    
+
+
    
     def process_stream(self, url_rtsp , list_zone , stop_event : threading.Event ): 
         try:
@@ -100,13 +106,31 @@ class StreamProcessor:
                     for z in list_zone:
                         z_name = z.get("name") if isinstance(z, dict) else getattr(z, "name", "unknown")
                         current_frame_counts[z_name] = 0
+
                 for track in tracks:
                     if track.is_confirmed():
                         x1, y1, x2, y2 = map(int, track.to_ltrb())
-                        self.dwell_time_analyzer.update_dwell_time(track.track_id, current_pos = [x1, y1, x2, y2])
+                        deepsort_track_id = str(track.track_id)
+                        re_id_feature_info = []
+                        # kiem ta co feature trong dpsort ko
+                        if hasattr(track , "features") and track.features is not None:
+                            re_id_feature_info = np.mean(track.features, axis=0).tolist()
+                            check_re_id , existing_track_id = self.re_id.check_mapping_re_id(re_id_feature_info)
+                            
+                            if deepsort_track_id not in self.his_re_id_features:
+                                if check_re_id:
+                                    self.his_re_id_features[existing_track_id] = str(deepsort_track_id) # them vao ban mapping
+
+                                else:
+                                    self.re_id.store_re_id_feature(deepsort_track_id, re_id_feature_info)
+                                    self.his_re_id_features[deepsort_track_id] = deepsort_track_id
+                        
+                        final_track_id = self.his_re_id_features.get(deepsort_track_id, deepsort_track_id)
+                        self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] , re_id_feature = re_id_feature_info)
+                        print(self.his_re_id_features)
                         center = (x1 + x2) // 2
                         foot = y2
-                        hit_zone , zone_event = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone , track_id = track.track_id)
+                        hit_zone , zone_event = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone , track_id = final_track_id)
                         for zone in current_frame_counts.keys():
                             if zone in hit_zone:
                                 current_frame_counts[zone] += 1
@@ -134,7 +158,6 @@ class StreamProcessor:
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
                 if self.old_current_frame_counts != current_frame_counts:
-                    
                     self.old_current_frame_counts = current_frame_counts
                     self.pack_communication.dispatch_payload(
                         [
