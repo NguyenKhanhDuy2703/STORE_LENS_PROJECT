@@ -2,62 +2,61 @@ from app.core.redis import redis_client
 import numpy as np
 from scipy.spatial.distance import cosine
 
-
 class Re_ID:
     def __init__(self):
         self.redis_client = redis_client
-        self.threshold = 0.12
-
-    def store_re_id_feature(self, track_id, re_id_feature):
+        self.threshold = 0.2
+    # ham chuan hoa vector và kiêm tra kiểu dữ liệu, đảm bảo là numpy array có dtype float32
+    def _prepare_vector(self, feature):
+        if not isinstance(feature, np.ndarray):
+            feature = np.array(feature, dtype=np.float32)
+        return feature.astype(np.float32) if feature.dtype != np.float32 else feature
+    # hàm lưu trữ feature vào redis 
+    def store_re_id_feature(self, final_id, feature_vector, camera_id=None):
         try:
-            if isinstance(re_id_feature, list):
-                re_id_feature = np.array(re_id_feature, dtype=np.float32)
-            elif not isinstance(re_id_feature, np.ndarray):
-                re_id_feature = np.array(re_id_feature, dtype=np.float32)
+            feature_vector = self._prepare_vector(feature_vector)
+            hash_name = f"re_id_feature:{camera_id}" if camera_id else "re_id_feature"
             
-            if re_id_feature.dtype != np.float32:
-                re_id_feature = re_id_feature.astype(np.float32)
-            
-            self.redis_client.set(
-                f"re_id_feature:{track_id}",
-                re_id_feature.tobytes()
+            self.redis_client.hset(
+                name=hash_name,
+                key=str(final_id),
+                value=feature_vector.tobytes()
             )
-   
+            self.redis_client.expire(hash_name, 3600) 
         except Exception as e:
-            raise Exception(f"Error storing re-ID feature in Redis: {str(e)}")
-
-    def check_mapping_re_id(self, current_re_id_feature):
+            raise Exception(f"Error storing feature: {str(e)}")
+    #ham tao mapping giữa deepsort_id và final_id, 
+    def check_mapping_re_id(self, current_feature, camera_id=None):
         try:
-            if isinstance(current_re_id_feature, list):
-                current_re_id_feature = np.array(current_re_id_feature, dtype=np.float32)
-            elif not isinstance(current_re_id_feature, np.ndarray):
-                current_re_id_feature = np.array(current_re_id_feature, dtype=np.float32)
+            current_feature = self._prepare_vector(current_feature)
+            hash_name = f"re_id_feature:{camera_id}" if camera_id else "re_id_feature"
             
-            if current_re_id_feature.dtype != np.float32:
-                current_re_id_feature = current_re_id_feature.astype(np.float32)
-            
-            all_re_id_keys = self.redis_client.keys("re_id_feature:*")
-            print(f"Checking re-ID features against {len(all_re_id_keys)} stored features.")
-            
-            for key in all_re_id_keys:
-                store_feature_bytes = self.redis_client.get(key)
+            all_features = self.redis_client.hgetall(hash_name)
+            if not all_features:
+                return False, None
+
+            for tid_bytes, vec_bytes in all_features.items():
+                store_vec = np.frombuffer(vec_bytes, dtype=np.float32)
+                distance = cosine(current_feature, store_vec)
                 
-                if store_feature_bytes is not None:
-                    # Convert raw bytes back to numpy array
-                    store_feature = np.frombuffer(store_feature_bytes, dtype=np.float32)
-                    
-                    # Validate shape compatibility before distance calculation
-                    if current_re_id_feature.shape != store_feature.shape:
-                        print(f"Shape mismatch for key {key}: expected {current_re_id_feature.shape}, got {store_feature.shape}. Skipping.")
-                        continue
-                    
-                    # Calculate cosine distance
-                    distance = cosine(current_re_id_feature, store_feature)
-                    if distance < self.threshold:
-                        track_id = key.decode('utf-8').split(":")[1]
-                        return True, track_id
-            
+                if distance < self.threshold:
+                    return True, tid_bytes.decode('utf-8')
             return False, None
-            
         except Exception as e:
-            raise Exception(f"Error retrieving re-ID feature from Redis: {str(e)}")
+            raise Exception(f"Error checking re-ID: {str(e)}")
+    # ham thêm mapping giữa deepsort_id và final_id vào redis, với key là "mapping:camera_id" và giá trị là một hash chứa deepsort_id và final_id, thời gian hết hạn là 10 phút
+    def set_id_mapping(self, camera_id, deepsort_id, final_id):
+        try:
+            hash_name = f"mapping:{camera_id}"
+            self.redis_client.hset(hash_name, str(deepsort_id), str(final_id))
+            self.redis_client.expire(hash_name, 600) 
+        except Exception as e:
+            raise Exception(f"Error setting mapping: {str(e)}")
+    # ham lấy final_id tù redis bằng deepsort_id và camera_id,
+    def get_id_mapping(self, camera_id, deepsort_id):
+        try:
+            hash_name = f"mapping:{camera_id}"
+            val = self.redis_client.hget(hash_name, str(deepsort_id))
+            return val.decode('utf-8') if val else None
+        except Exception as e:
+            raise Exception(f"Error getting mapping: {str(e)}")
