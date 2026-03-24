@@ -16,9 +16,5 @@ class RedisPublisher:
             #     print(f"Published to Redis channel '{channel}': {message}")
         except Exception as e:
             raise Exception(f"Error publishing to Redis: {str(e)}")
-    def redis_storage(self , vaule: dict ):
-        try:
-            self.redis_client.setex(vaule["key"],  settings_dev.REDIS_EXPIRE_TIME, str(vaule["value"]))
-        except Exception as e:
-            raise Exception(f"Error storing data in Redis: {str(e)}")
+   
     

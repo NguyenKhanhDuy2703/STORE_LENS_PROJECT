@@ -25,12 +25,11 @@ class StreamProcessor:
         self.pack_communication = PackCommunication()
         self.old_current_frame_counts = {}
         self.re_id = Re_ID()
-        self.his_re_id_features = {}
     def _read_frames(self, url_rtsp , stop_event : threading.Event):
 
         input_source = source_video if url_rtsp.split("-")[0] == 'test' else url_rtsp
         cap = cv2.VideoCapture(input_source)
-        
+
         if not cap.isOpened():
             raise ValueError(f"Failed to open stream: {input_source}")      
         try:
@@ -78,6 +77,7 @@ class StreamProcessor:
             self.dwell_time_analyzer = DwellTimeAnalysis(iou_threshold=0.7 , time_threshold=3.0)
             self.frame_queue.clear()
             self.redis_publisher = RedisPublisher()
+            self.camera_id = url_rtsp.split("-")[1] if url_rtsp.split("-")[0] == 'test' else url_rtsp
             cap = cv2.VideoCapture(url_rtsp)
             if not cap.isOpened():
                raise ValueError(f"Failed to open stream: {url_rtsp}")
@@ -100,7 +100,7 @@ class StreamProcessor:
                 frame = self.frame_queue.popleft()
                 tracks = self.object_tracker.process_single_frame(frame)
                 
-                frame = self.draw_tracks(frame, tracks)
+                
                 current_frame_counts = {}
                 if list_zone:
                     for z in list_zone:
@@ -112,22 +112,27 @@ class StreamProcessor:
                         x1, y1, x2, y2 = map(int, track.to_ltrb())
                         deepsort_track_id = str(track.track_id)
                         re_id_feature_info = []
+                        final_track_id = self.re_id.get_id_mapping(camera_id=self.camera_id, deepsort_id=deepsort_track_id)
+                        if final_track_id is None:
                         # kiem ta co feature trong dpsort ko
-                        if hasattr(track , "features") and track.features is not None:
-                            re_id_feature_info = np.mean(track.features, axis=0).tolist()
-                            check_re_id , existing_track_id = self.re_id.check_mapping_re_id(re_id_feature_info)
-                            
-                            if deepsort_track_id not in self.his_re_id_features:
-                                if check_re_id:
-                                    self.his_re_id_features[existing_track_id] = str(deepsort_track_id) # them vao ban mapping
-
+                            if hasattr(track , "features") and track.features is not None:
+                                re_id_feature_info = np.mean(track.features, axis=0).tolist()
+                                status_check , matched_id  = self.re_id.check_mapping_re_id(re_id_feature_info, camera_id=self.camera_id)
+                                if status_check :
+                                    final_track_id = matched_id
+                                    self.re_id.set_id_mapping(camera_id=self.camera_id , deepsort_id=deepsort_track_id, final_id=final_track_id)
                                 else:
-                                    self.re_id.store_re_id_feature(deepsort_track_id, re_id_feature_info)
-                                    self.his_re_id_features[deepsort_track_id] = deepsort_track_id
-                        
-                        final_track_id = self.his_re_id_features.get(deepsort_track_id, deepsort_track_id)
+                                    final_track_id = deepsort_track_id
+                                    self.re_id.store_re_id_feature(final_id=deepsort_track_id, feature_vector=re_id_feature_info, camera_id=self.camera_id)
+                                    self.re_id.set_id_mapping(camera_id=self.camera_id , deepsort_id=deepsort_track_id, final_id=final_track_id)
+                            else:
+                                final_track_id = deepsort_track_id
+                                self.re_id.set_id_mapping(camera_id=self.camera_id, deepsort_id=deepsort_track_id, final_id=final_track_id)
+                                               
+                        final_track_id = final_track_id or deepsort_track_id
+                        track.track_id = final_track_id
                         self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] , re_id_feature = re_id_feature_info)
-                        print(self.his_re_id_features)
+                        
                         center = (x1 + x2) // 2
                         foot = y2
                         hit_zone , zone_event = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone , track_id = final_track_id)
@@ -145,7 +150,7 @@ class StreamProcessor:
                                     ]
                                 )
                         self.heatmap_analysis.update_grid_cell(center, foot)
-                        real_time_dwell_events = self.dwell_time_analyzer.alert_stopped_objects(track.track_id)
+                        real_time_dwell_events = self.dwell_time_analyzer.alert_stopped_objects(final_track_id)
                         if real_time_dwell_events:
                             self.pack_communication.dispatch_payload(
                                 [
@@ -155,6 +160,7 @@ class StreamProcessor:
                                     }
                                 ]
                             )
+                frame = self.draw_tracks(frame, tracks)
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
                 if self.old_current_frame_counts != current_frame_counts:
