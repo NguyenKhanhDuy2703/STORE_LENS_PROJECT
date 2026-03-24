@@ -3,42 +3,43 @@ const catchAsync = require("../utils/catchAsync");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logging");
 const config = require("../config");
+const { StatusCodes } = require("http-status-codes");
 
+const _CheckRequiredFields = ( fields , types ) =>{
+    switch (types) {
+        case "register":
+            if (!fields.account || !fields.password || !fields.email || !fields.location_id) {
+                error({message: "Missing values", code: StatusCodes.BAD_REQUEST});
+            }
+        case "login":
+            if (!fields.account || !fields.password) {
+                error({message: "Missing values", code: StatusCodes.BAD_REQUEST});
+            }
+}
+}
 const registerController = catchAsync(async (req, res) => {
     const { account, password, email, location_id } = req.body;
-    if (!account || !password || !email || !location_id) {
-        error("Vui lòng nhập đầy đủ thông tin", 400);
-    }
-
+    _CheckRequiredFields({ account, password, email, location_id }, "register");
     const result = await authService.register(req.body);
-
-    logger.info(`[Auth] Đăng ký mới thành công: ${result.account}`);
-
-    return success(res, result, "Đăng ký thành công", 201);
+    return success({ res, data: { id: result.id, account: result.account, location: result.location }, message: "register successfully", code: StatusCodes.CREATED });
 });
 
 const loginController = catchAsync(async (req, res) => {
     const { account, password } = req.body;
-    if (!account || !password) error("Thiếu tài khoản hoặc mật khẩu", 400);
+    _CheckRequiredFields({ account, password }, "login");
     const result = await authService.login(account, password);
   res.cookie("sessionToken", result.token, {
         httpOnly: config.cookie.httpOnly,
-        secure: config.cookie.secure,   // Tự động nhận diện dev/prod từ config
+        secure: config.cookie.secure, 
         sameSite: config.cookie.sameSite,
         maxAge: config.cookie.maxAge,
     });
-
-    logger.info(`[Auth] User đăng nhập: ${account}`);
-    
-    // 3. Trả về thông tin user cho Frontend (Không cần trả token vì đã có trong Cookie)
-    return success(res, { user: result.user }, "Đăng nhập thành công");
+    return success({ res, data: { user: result.user }, message: "signin successfully", code: StatusCodes.OK }); 
 });
 
 const logoutController = catchAsync(async (req, res) => {
     res.clearCookie("sessionToken");
-    
-    logger.info(`[Auth] User đã đăng xuất`);
-    return success(res, null, "Đăng xuất thành công");
+    return success({ res, message: "logout successfully", code: StatusCodes.OK });
 });
 
-module.exports = { registerController, loginController, logoutController };
+module.exports = { registerController, loginController, logoutController }
