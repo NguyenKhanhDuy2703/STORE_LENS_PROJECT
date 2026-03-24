@@ -1,43 +1,24 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
-const InteractionLogSchema = new Schema({
+const interactionLogSchema = new Schema({
     session_id: { type: Schema.Types.ObjectId, ref: 'Session', required: true },
     location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
     zone_id: { type: Schema.Types.ObjectId, ref: 'Zone' },
-    asset_id: { type: Schema.Types.ObjectId, ref: 'Asset' }, // Có thể null nếu chỉ đứng trong Zone
-    
-    event_type: { 
-        type: String, 
-        enum: ['ZONE_DWELL', 'FALL', 'PICK_UP', 'MACHINE_USE'], 
-        required: true 
-    },
-    
-    // -- NHÓM HEARTBEAT & THỜI GIAN --
+    asset_id: { type: Schema.Types.ObjectId, ref: 'Asset' },
+    event_type: { type: String, required: true, trim: true },
     start_time: { type: Date, required: true },
     end_time: { type: Date },
-    last_heartbeat: { type: Date, required: true }, // Phục vụ Worker dọn rác
+    last_heartbeat: { type: Date },
     duration_seconds: { type: Number, default: 0 },
-    
-    // -- NHÓM TRẠNG THÁI --
-    status: { 
-        type: String, 
-        enum: ['ACTIVE', 'COMPLETED'], 
-        default: 'ACTIVE' 
-    },
-    interaction_class: { 
-        type: String, 
-        enum: ['PASS_THROUGH', 'GLANCE', 'ENGAGED', 'NONE'], 
-        default: 'NONE' 
-    }
-}, { 
-    // Không cần dùng timestamps tự động vì start_time/end_time mới là quan trọng
-    versionKey: false 
+    status: { type: String, trim: true },
+    interaction_class: { type: String, trim: true }
 });
 
-// INDEX cực kỳ quan trọng cho Worker dọn rác (Tìm các log ACTIVE nhưng heartbeat đã cũ)
-InteractionLogSchema.index({ status: 1, last_heartbeat: 1 });
-// INDEX để update heartbeat nhanh (Tìm đúng log của session đang đứng ở zone đó)
-InteractionLogSchema.index({ session_id: 1, zone_id: 1, status: 1 });
+interactionLogSchema.index({ session_id: 1 });
+interactionLogSchema.index({ location_id: 1 });
+interactionLogSchema.index({ zone_id: 1 });
+interactionLogSchema.index({ asset_id: 1 });
+interactionLogSchema.index({ status: 1, last_heartbeat: 1 });
 
-module.exports = mongoose.model('InteractionLog', InteractionLogSchema);
+module.exports = mongoose.model('InteractionLog', interactionLogSchema);

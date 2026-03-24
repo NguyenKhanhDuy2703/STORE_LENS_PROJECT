@@ -1,24 +1,19 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
-// Embedded Array Item: TẮT _id ĐỂ TIẾT KIỆM 60% DUNG LƯỢNG
-const PathDataSchema = new Schema({
+const pathDataSchema = new Schema({
     x: { type: Number, required: true },
     y: { type: Number, required: true },
-    timestamp: { type: Number, required: true } // Dùng Unix Timestamp (Number) cho nhẹ thay vì Date object
+    timestamp: { type: Number, required: true }
 }, { _id: false });
 
-const TrajectoriesSchema = new Schema({
-    session_id: { type: Schema.Types.ObjectId, ref: 'Session', required: true, unique: true },
+const trajectoriesSchema = new Schema({
+    session_id: { type: Schema.Types.ObjectId, ref: 'Session', required: true },
     camera_id: { type: Schema.Types.ObjectId, ref: 'Camera', required: true },
-    
-    // Mảng chứa hàng ngàn điểm tọa độ
-    path_data: [PathDataSchema]
-}, { 
-    timestamps: true 
+    path_data: [pathDataSchema]
 });
 
-// Index để load đường đi của 1 khách hàng cực nhanh
-TrajectoriesSchema.index({ session_id: 1 });
+trajectoriesSchema.index({ session_id: 1 });
+trajectoriesSchema.index({ camera_id: 1 });
 
-module.exports = mongoose.model('Trajectory', TrajectoriesSchema);
+module.exports = mongoose.model('Trajectory', trajectoriesSchema);
