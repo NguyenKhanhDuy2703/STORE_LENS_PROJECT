@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-
+// Thông tin thuộc tính đặc biệt của tài sản
 const assetAttributesSchema = new Schema({
     maintenance_date: { type: String, trim: true },
     color: { type: String, trim: true },
     custom_note: { type: String, trim: true }
 }, { _id: false });
-
+// Schema chính cho Asset
 const assetSchema = new Schema({
     location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
     category_name: { type: String, required: true, trim: true },

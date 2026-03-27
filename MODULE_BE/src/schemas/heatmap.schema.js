@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-
+// Schema cho Heatmap
 const heatmapSchema = new Schema({
     location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
     camera_id: { type: Schema.Types.ObjectId, ref: 'Camera', required: true },

@@ -3,10 +3,14 @@ const { Schema } = mongoose;
 
 const flowPatternsSchema = new Schema({
     location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
-    date_range: { type: String, required: true, trim: true },
-    source_zone_id: { type: Schema.Types.ObjectId, ref: 'Zone', required: true },
-    target_zone_id: { type: Schema.Types.ObjectId, ref: 'Zone', required: true },
-    probability: { type: Number, default: 0 }
+    pattern_type: { type: String, required: true },
+    consequent_zones: {type: [Schema.Types.ObjectId], ref: 'Zone' },  
+    antecedent_zones: {type: [Schema.Types.ObjectId], ref: 'Zone' }, 
+    confidence_score: { type: Number, default: 0 },
+    support_score: { type: Number, default: 0 }, // số lân xuất hiện của pattern trong tổng số session
+    lift_score: { type: Number, default: 0 }, // độ mạnh của pattern so với sự xuất hiện ngẫu nhiên
+    create_at: { type: Date, default: Date.now },
+    update_at: { type: Date, default: Date.now }
 });
 
 flowPatternsSchema.index({ location_id: 1 });
