@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-
+// Schema cho User
 const userSchema = new Schema({
     account: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
     email: { type: String, required: true, lowercase: true, trim: true },
-    role: { type: String, trim: true },
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true }
+    role: { type: String, trim: true  , Enum: ['ADMIN', 'USER', 'MANAGER'], default: 'USER' },
+    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: function(){return this.role !== 'ADMIN_SUPER';} }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

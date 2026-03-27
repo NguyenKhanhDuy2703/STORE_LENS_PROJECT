@@ -5,7 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "test": "jest --detectOpenHandles",
-    "start": "nodemon --inspect src/server.js"
+    "start": "nodemon --inspect src/server.js",
+    "setup_db": ""
   },
   "author": "khanhduy",
   "license": "ISC",
