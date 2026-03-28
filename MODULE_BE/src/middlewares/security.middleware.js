@@ -18,7 +18,6 @@ const renderToken =  (data) => {
 }
 const verifyToken =  (token) => {
    try{
-    console.log("JWT_SECRET:", JWT_SECRET);
     const decode = jwt.verify(token, JWT_SECRET);
     return decode;
    }catch(error){
