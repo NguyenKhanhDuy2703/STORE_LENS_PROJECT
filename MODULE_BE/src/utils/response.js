@@ -12,7 +12,7 @@ const success = ( {res , data = null , message  , code  , meta = {}}) => {
     });
 }
 const error = ( {message = "Error" , code = 500 , errors = []}) => {
-const err = new Error(message);
+    const err = new Error(message);
   err.statusCode = code;
   err.errors = errors;
   

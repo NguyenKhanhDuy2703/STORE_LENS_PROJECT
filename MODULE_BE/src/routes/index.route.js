@@ -1,32 +1,26 @@
-const express = require("express");
-const router = express.Router();
 const { version } = require("../config").getConfig().api;
 const { error, success } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
 const authRoutes = require("./auth.routes");
+const cameraAIRoutes = require("./cameraAI.routes");
+
 const {
   authenticationToken,
   ALLOWED_ALL,
 } = require("../middlewares/auth.middleware");
 const routes = (app) => {
-  router.get("/", (req, res) => {
-    return success(
-      res,
-      null,
-      "StoreLens API is working perfectly",
-      StatusCodes.OK,
-    );
-  });
-  router.use("/auth", authRoutes);
-  router.get("/getToken", authenticationToken, ALLOWED_ALL, (req, res) => {
+  
+  app.use(`${version}/auth`, authRoutes);
+  app.use(`${version}/camera`, cameraAIRoutes);
+
+
+  app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success(
       res,
       { user: req.user },
       "get token successfully",
     );
   });
-
-  app.use(version, router);
   app.get(`${version}/healthy`, (req, res) => {
     try {
       success({
