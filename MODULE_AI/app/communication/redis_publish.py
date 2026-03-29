@@ -1,3 +1,5 @@
+import json
+
 from app.config import settings_dev
 from redis import Redis
 class RedisPublisher:
@@ -11,9 +13,9 @@ class RedisPublisher:
         )
     def publish(self, channel: str, message: dict):
         try:
-            self.redis_client.publish(channel, str(message))
-            # if channel == "dwell_time_channel" :
-            #     print(f"Published to Redis channel '{channel}': {message}")
+            self.redis_client.lpush(channel, json.dumps(message, ensure_ascii=False))
+            if channel == "heatmap_channel" :
+                print(f"Published to Redis channel '{channel}': {message}")
         except Exception as e:
             raise Exception(f"Error publishing to Redis: {str(e)}")
    
