@@ -17,12 +17,12 @@ const turnOncameraController = catchAsync(async (req, res) => {
     const {
       cameraId = 1,
       urlRtsp = "D:\\NCKH_2\\MODULE_AI\\storage\\videos\\video_1.mp4",
-      allocationId = 1,
+      locationId = 1,
     } = req.body;
-    if (!cameraId || !urlRtsp || !allocationId) {
+    if (!cameraId || !urlRtsp || !locationId) {
         error({ message: "Missing values", code: StatusCodes.BAD_REQUEST });
     }
-    const result = await turnOnCamera({cameraId, urlRtsp, allocationId , listZone : mock_zones});
+    const result = await turnOnCamera({cameraId, urlRtsp, locationId , listZone : mock_zones});
     
     return success({
       res,

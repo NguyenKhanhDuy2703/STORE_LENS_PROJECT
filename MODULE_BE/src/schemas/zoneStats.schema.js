@@ -8,13 +8,13 @@ const performanceSchema = new Schema({
     conversion_rate: { type: Number, default: 0 },
     avg_dwell_time: { type: Number, default: 0 },
     total_stop_events: { type: Number, default: 0 },
-    top_asset_id: { type: Schema.Types.ObjectId, ref: 'Asset' },
+    top_asset_id: { type: String, ref: 'Asset' },
     peak_hour: { type: Number }
 }, { _id: false });
 
 const zoneStatsSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
-    zone_id: { type: Schema.Types.ObjectId, ref: 'Zone', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
+    zone_id: { type: String, ref: 'Zone', required: true },
     date: { type: Date, required: true },
     trend: { type: String, trim: true },
     performance: performanceSchema

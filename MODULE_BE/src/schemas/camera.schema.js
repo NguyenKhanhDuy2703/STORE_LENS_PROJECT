@@ -13,7 +13,7 @@ const cameraStateSchema = new Schema({
 
 // schema camera
 const cameraSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     camera_name: { type: String, required: true, trim: true },
     camera_code: { type: String, required: true, unique: true, trim: true },
     rtsp_url: { type: String, required: true, trim: true },

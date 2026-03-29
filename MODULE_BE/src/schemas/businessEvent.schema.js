@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const eventDetailSchema = new Schema({
-    item_id: { type: Schema.Types.ObjectId, ref: 'Asset' },
+    item_id: { type: String, ref: 'Asset' },
     item_name: { type: String, trim: true },
     quantity: { type: Number, default: 0 },
     unit_price: { type: Number, default: 0 },
@@ -10,7 +10,7 @@ const eventDetailSchema = new Schema({
 }, { _id: false });
 
 const businessEventSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     event_code: { type: String, required: true, unique: true, trim: true },
     type: { type: String, trim: true },
     total_amount: { type: Number, default: 0 },
