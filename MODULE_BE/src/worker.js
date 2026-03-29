@@ -8,6 +8,7 @@ const parseRedisPayload = (rawPayload) => {
         return { raw: rawPayload };
     }
 };
+
 const channels_pack = ["heatmap_channel" ,"dwell_time_channel","zone_analysis_event_channel"]
 const channels_realtime = ["dwell_time_realtime_channel" , "zone_analysis_channel"]
 const worker = {

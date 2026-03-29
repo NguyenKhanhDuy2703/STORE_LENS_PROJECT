@@ -37,14 +37,13 @@ class DwellTimeAnalysis:
             "dwell_time": round(obj_dwell_time["dwell_time"], 2),
             "pos_x": int(obj_dwell_time["last_pos"][0]), 
             "pos_y": int(obj_dwell_time["last_pos"][1]),
-            "re_id_feature": obj_dwell_time["re_id_feature"],
             "timestamp": time.time()
         }
         
         self.finished_events.append(event_stop_payload)
         obj_dwell_time["dwell_time"] = 0.0
 
-    def update_dwell_time(self, track_id, current_pos , re_id_feature = None):
+    def update_dwell_time(self, track_id, current_pos ):
         timestamp = time.time()
         
         current_pos = np.array(current_pos, dtype=np.float32)
@@ -55,7 +54,6 @@ class DwellTimeAnalysis:
                 "last_pos": current_pos, 
                 "last_update": timestamp,
                 "active": True,
-                "re_id_feature": re_id_feature
             }
             return 
 
