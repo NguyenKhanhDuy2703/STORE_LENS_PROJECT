@@ -33,6 +33,7 @@ class setting {
     this.api = {
         version: "/api/v1",
     }
+  
     setting.instance = this;
   }
   getConfig() {

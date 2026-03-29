@@ -6,7 +6,7 @@ const userSchema = new Schema({
     password: { type: String, required: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     role: { type: String, trim: true  , Enum: ['ADMIN', 'USER', 'MANAGER'], default: 'USER' },
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: function(){return this.role !== 'ADMIN_SUPER';} }
+    location_id: { type: String, ref: 'Location', required: function(){return this.role !== 'ADMIN_SUPER';} }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

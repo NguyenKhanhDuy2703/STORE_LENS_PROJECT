@@ -8,8 +8,8 @@ const chatMessageSchema = new Schema({
 }, { _id: false });
 
 const chatSessionSchema = new Schema({
-    user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    user_id: { type: String, ref: 'User', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     title: { type: String, trim: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
     chat_messages: [chatMessageSchema]

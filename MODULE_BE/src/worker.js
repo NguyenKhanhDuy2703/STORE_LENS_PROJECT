@@ -1,6 +1,6 @@
 const logger = require("./utils/logging");
 const { connectRedis, redisClient } = require("./config/redis");
-
+const heatmapWorker = require("./workers/heatmap.worker");
 const parseRedisPayload = (rawPayload) => {
     try {
         return JSON.parse(rawPayload);
@@ -43,16 +43,17 @@ const worker = {
         const payload = parseRedisPayload(element);
         switch(key){
             case "heatmap_channel":
-                logger.info(`Processing heatmap data: ${JSON.stringify(payload)}`);
+                heatmapWorker.save(payload);
+                // logger.info(`Processing heatmap data: ${JSON.stringify(payload)}`);
                 break;
             case "dwell_time_channel":
-                logger.info(`Processing dwell time data: ${JSON.stringify(payload)}`);
+                // logger.info(`Processing dwell time data: ${JSON.stringify(payload)}`);
                 break;
             case "zone_analysis_event_channel":
-                logger.info(`Processing zone analysis event data: ${JSON.stringify(payload)}`);
+                // logger.info(`Processing zone analysis event data: ${JSON.stringify(payload)}`);
                 break;
              default:
-                logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
+                // logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
         }
     },
     rtprocessor: async (data) => {
@@ -60,13 +61,13 @@ const worker = {
         const payload = parseRedisPayload(element);
         switch(key){
             case "dwell_time_realtime_channel":
-                logger.info(`Processing dwell time realtime data: ${JSON.stringify(payload)}`);
+                // logger.info(`Processing dwell time realtime data: ${JSON.stringify(payload)}`);
                 break;
              case "zone_analysis_channel":
-                logger.info(`Processing zone analysis realtime data: ${JSON.stringify(payload)}`);
+                // logger.info(`Processing zone analysis realtime data: ${JSON.stringify(payload)}`);
                 break;
              default:
-                logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
+                // logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
         }
     },
     realtime: async (rtClient) => {

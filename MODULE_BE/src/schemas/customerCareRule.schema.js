@@ -1,5 +1,5 @@
 const customerCareRuleSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     // Phân loại lớn (Retention/Zone/Revenue) 
     category: { type: String, enum: ['retention', 'zone', 'revenue'], required: true },
     rule_name: { type: String, required: true }, 

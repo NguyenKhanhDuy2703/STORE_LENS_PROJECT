@@ -22,7 +22,7 @@ const chartDataSchema = new Schema({
 }, { _id: false });
 
 const topAssetSchema = new Schema({
-    asset_id: { type: Schema.Types.ObjectId, ref: 'Asset' },
+    asset_id: { type: String, ref: 'Asset' },
     asset_name: { type: String, trim: true },
     total_quantity: { type: Number, default: 0 },
     total_revenue: { type: Number, default: 0 },
@@ -30,7 +30,7 @@ const topAssetSchema = new Schema({
 }, { _id: false });
 
 const locationStatsSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     date: { type: Date, required: true },
     kpis: kpisSchema,
     realtime: realtimeSchema,
