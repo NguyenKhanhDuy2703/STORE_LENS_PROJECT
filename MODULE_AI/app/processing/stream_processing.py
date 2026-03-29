@@ -131,7 +131,7 @@ class StreamProcessor:
                                                
                         final_track_id = final_track_id or deepsort_track_id
                         track.track_id = final_track_id
-                        self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] , re_id_feature = re_id_feature_info)
+                        self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] )
                         
                         center = (x1 + x2) // 2
                         foot = y2

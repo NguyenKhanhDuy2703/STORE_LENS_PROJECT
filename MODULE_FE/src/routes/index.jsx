@@ -7,6 +7,12 @@ const AppRouter = () => {
     <Routes>
       <Route path="/" element={<Dashboard />} />
       <Route path="/analyticsArea" element={<AnalyticsArea/>}/>
+import AnalyticsRules from "../features/AnalyticsRules/AnalyticsRules";
+const AppRouter = () => {
+  return (
+    <Routes>
+      <Route path="*" element={<NotFound />} />
+      <Route path="/analytics-rules" element={<AnalyticsRules />} />
     </Routes>
   );
 };
