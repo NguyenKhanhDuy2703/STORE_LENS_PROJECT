@@ -11,7 +11,7 @@ const AppRouter = () => {
     <Routes>
       <Route path="/" element={<Dashboard />} />
 
-      <Route path="/phan-tich-thanh-vien" element={<MemberSegmentation />} />
+      <Route path="/analytics/member-segmentation" element={<MemberSegmentation />} />
 
       <Route path="/analytics/area" element={<AnalyticsArea/>}/>
       <Route path="/analytics/rules" element={<AnalyticsRules />} />
