@@ -4,17 +4,19 @@ const { success, error } = require("../utils/response");
 const logger = require("../utils/logging");
 const config = require("../config");
 const { StatusCodes } = require("http-status-codes");
-const _CheckRequiredFields = ( fields , types ) =>{
+const _CheckRequiredFields = (fields, types) => {
     switch (types) {
         case "register":
             if (!fields.account || !fields.password || !fields.email || !fields.location_id) {
                 error({message: "Missing values", code: StatusCodes.BAD_REQUEST});
             }
+            break;
         case "login":
             if (!fields.account || !fields.password) {
                 error({message: "Missing values", code: StatusCodes.BAD_REQUEST});
             }
-}
+            break;
+    }
 }
 const registerController = catchAsync(async (req, res) => {
     const { account, password, email, location_id } = req.body;
