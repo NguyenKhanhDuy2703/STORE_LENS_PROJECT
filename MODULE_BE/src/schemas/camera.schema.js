@@ -1,24 +1,19 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
-
+// thông tin cấu hình camera
 const cameraSpecSchema = new Schema({
     max_resolution: { type: Schema.Types.Mixed },
     current_resolution: { type: Schema.Types.Mixed }
 }, { _id: false });
-
+// thông tin trạng thái camera
 const cameraStateSchema = new Schema({
     last_processed_time: { type: Date },
     last_stop_time: { type: Date }
 }, { _id: false });
 
-const aiConfigSchema = new Schema({
-    active_models: [Schema.Types.Mixed],
-    processing_fps: { type: Number, default: 0 },
-    confidence_threshold: { type: Number, default: 0 }
-}, { _id: false });
-
+// schema camera
 const cameraSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
     camera_name: { type: String, required: true, trim: true },
     camera_code: { type: String, required: true, unique: true, trim: true },
     rtsp_url: { type: String, required: true, trim: true },

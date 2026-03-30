@@ -1,18 +1,13 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const zoneThresholdsSchema = new Schema({
-    min_duration_sec: { type: Number, default: 0 },
-    engaged_duration_sec: { type: Number, default: 0 }
-}, { _id: false });
-
 const zoneSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
-    camera_id: { type: Schema.Types.ObjectId, ref: 'Camera', required: true },
+    location_id: { type: String, ref: 'Location', required: true },
+    camera_id: { type: String, ref: 'Camera', required: true },
     zone_name: { type: String, required: true, trim: true },
-    function_type: { type: String, trim: true },
+    zone_id: { type: String, required: true, uppercase: true, trim: true },
+    function_type: { type: String, trim: true }, // loại chức năng của zone (category_name)
     polygon_coordinates: { type: [[Number]], required: true },
-    zone_thresholds: zoneThresholdsSchema
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

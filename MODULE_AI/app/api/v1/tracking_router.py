@@ -4,36 +4,38 @@ import threading
 import logging
 from app.utils.exception_handle import CustomException
 from app.processing.stream_processing import StreamProcessor
-from typing import Optional
+from typing import Optional , List
+from pydantic import BaseModel
 router_tracking = APIRouter(
     prefix="/api/v1/tracking",
     tags=["tracking"],
 )
+class ZoneItem(BaseModel):
+    name: str
+    points: List[List[int]]  
 
+class TrackingRequest (BaseModel):
+    list_zone: List[ZoneItem]
+    url_rtsp: str
+    camera_id: Optional[str] = None
+    location_id: Optional[str] = None
 
-def run_stream_process(url_rtsp: str, list_zone, stop_event: Event) -> None:
+def run_stream_process(url_rtsp: str, list_zone, camera_id , location_id, stop_event: Event) -> None:
     processor = StreamProcessor()
-    processor.process_stream(url_rtsp, list_zone, stop_event)
+    processor.process_stream(url_rtsp, list_zone , camera_id, location_id , stop_event)
 
 active_processes: dict[str, Process] = {} #save url_rtsp and process
 stop_signals: dict[str, Event] = {} # save url_rtsp and stop event
 stream_lock = threading.Lock() 
-mock_zones = [
-    {
-        "name": "Zone A",
-        "points": [(100, 100), (500, 100), (500, 500), (100, 500)]
-    },
-    {
-        "name": "Zone B",
-        "points": [(600, 100), (1000, 100), (1000, 500), (600, 500)]
-    }
 
-]
-@router_tracking.get("/process", status_code=status.HTTP_200_OK )
-async def process_tracking(url_rtsp: str , list_zone: Optional[dict] = None):
-    try:   
-        clean_url = str(url_rtsp).strip().strip('"').strip("'")
-        
+@router_tracking.post("/process", status_code=status.HTTP_200_OK )
+async def process_tracking(request: TrackingRequest):
+    try:  
+        print(request)
+        clean_url = str(request.url_rtsp).strip().strip('"').strip("'")
+        list_zone = request.list_zone 
+        camera_id = request.camera_id
+        location_id = request.location_id
         with stream_lock:
             if clean_url in active_processes:
                 if active_processes[clean_url].is_alive(): 
@@ -49,8 +51,7 @@ async def process_tracking(url_rtsp: str , list_zone: Optional[dict] = None):
        
             stop_event = Event()
             
-            print(mock_zones)
-            process = Process(target=run_stream_process, args=(clean_url, mock_zones, stop_event))
+            process = Process(target=run_stream_process, args=(clean_url, list_zone, camera_id , location_id, stop_event))
             process.start()
             
             active_processes[clean_url] = process

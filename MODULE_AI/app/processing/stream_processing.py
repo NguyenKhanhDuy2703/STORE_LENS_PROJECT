@@ -68,7 +68,7 @@ class StreamProcessor:
 
 
    
-    def process_stream(self, url_rtsp , list_zone , stop_event : threading.Event ): 
+    def process_stream(self, url_rtsp , list_zone , camera_id , location_id , stop_event : threading.Event ): 
         try:
             self.object_tracker = object_tracking.ObjectTracking({
             "yolov8_config_path": yolo_model_path,
@@ -77,7 +77,7 @@ class StreamProcessor:
             self.dwell_time_analyzer = DwellTimeAnalysis(iou_threshold=0.7 , time_threshold=3.0)
             self.frame_queue.clear()
             self.redis_publisher = RedisPublisher()
-            self.camera_id = url_rtsp.split("-")[1] if url_rtsp.split("-")[0] == 'test' else url_rtsp
+            self.camera_id = camera_id
             cap = cv2.VideoCapture(url_rtsp)
             if not cap.isOpened():
                raise ValueError(f"Failed to open stream: {url_rtsp}")
@@ -131,7 +131,7 @@ class StreamProcessor:
                                                
                         final_track_id = final_track_id or deepsort_track_id
                         track.track_id = final_track_id
-                        self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] , re_id_feature = re_id_feature_info)
+                        self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] )
                         
                         center = (x1 + x2) // 2
                         foot = y2
@@ -145,7 +145,11 @@ class StreamProcessor:
                                     [
                                         {
                                             "type":"zone_analysis_event",
-                                            "data": event
+                                            "data": event,
+                                            "info":{
+                                                "camera_id": self.camera_id,
+                                                "location_id": location_id
+                                            }
                                         }
                                     ]
                                 )
@@ -156,7 +160,11 @@ class StreamProcessor:
                                 [
                                     {
                                         "type":"dwell_time_realtime",
-                                        "data": real_time_dwell_events
+                                        "data": real_time_dwell_events,
+                                        "info":{
+                                            "camera_id": self.camera_id,
+                                            "location_id": location_id
+                                        }
                                     }
                                 ]
                             )
@@ -169,7 +177,11 @@ class StreamProcessor:
                         [
                             {
                                 "type":"zone_analysis",
-                                "data": current_frame_counts
+                                "data": current_frame_counts,
+                                "info":{
+                                    "camera_id": self.camera_id,
+                                    "location_id": location_id
+                                }
                             }
                         ]
                     )
@@ -178,7 +190,11 @@ class StreamProcessor:
                     [
                         {
                             "type":"dwell_time",
-                            "data": self.dwell_time_analyzer.finished_events
+                            "data": self.dwell_time_analyzer.finished_events,
+                            "info":{
+                                "camera_id": self.camera_id,
+                                "location_id": location_id
+                            }
                         }
                     ]
                 )
@@ -187,7 +203,11 @@ class StreamProcessor:
                 self.pack_communication.dispatch_payload(
                     [ {
                             "type":"heatmap",
-                            "data": self.heatmap_analysis.get_payload_heatmap
+                            "data": self.heatmap_analysis.get_payload_heatmap,
+                            "info":{
+                                "camera_id": self.camera_id,
+                                "location_id": location_id
+                            }
                         }]
                 )
                 if list_zone is not None:
