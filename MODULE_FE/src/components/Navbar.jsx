@@ -4,6 +4,7 @@ const navItems = [
   { id: "tl", label: "Thống kê", path: "/" },
   { id: "hm", label: "Bản đồ nhiệt", path: "/heatmap" },
   { id: "td", label: "Thời gian", path: "/thoi-gian-dung" },
+  { id: "pt", label: "Phân tích thành viên", path: "/phan-tich-thanh-vien" },
   // { id: "ces", label: "Tương tác", path: "/diem-tuong-tac" },
   {
     id: "Thiết lập zone",

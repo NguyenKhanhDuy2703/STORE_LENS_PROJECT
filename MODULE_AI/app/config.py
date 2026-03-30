@@ -3,7 +3,7 @@ import yaml
 class settings(BaseSettings):
     MODULE_NAME: str = "Module AI " 
     VERSION: str = "1.1.2"
-    APP : str = "cpu"
+    APP : str = "gpu"
     YOLOV8_CONFIG_PATH: str = "app/configs/yolov8.config.yaml"
     DEEPSORT_CONFIG_PATH: str = "app/configs/deepsort.config.yaml"
     REDIS_HOST: str = "localhost"

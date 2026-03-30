@@ -2,6 +2,7 @@ import math
 import time
 from numba import jit
 import numpy as np
+from app.analytics.zone_analysis import ZoneAnalysis
 @jit(nopython=True)
 def calculate_iou(boxA, boxB):
     xA = max(boxA[0], boxB[0])
@@ -19,9 +20,9 @@ def calculate_iou(boxA, boxB):
     return iou
 
 class DwellTimeAnalysis:
-    def __init__(self, iou_threshold=0.7):
+    def __init__(self, iou_threshold=0.7 , time_threshold=2.0):
         self.iou_threshold = iou_threshold
-        self.time_threshold = 2.0
+        self.time_threshold = time_threshold
         self.dwell_times = {}
         self.finished_events = [] 
 
@@ -42,7 +43,7 @@ class DwellTimeAnalysis:
         self.finished_events.append(event_stop_payload)
         obj_dwell_time["dwell_time"] = 0.0
 
-    def update_dwell_time(self, track_id, current_pos):
+    def update_dwell_time(self, track_id, current_pos ):
         timestamp = time.time()
         
         current_pos = np.array(current_pos, dtype=np.float32)
@@ -52,7 +53,7 @@ class DwellTimeAnalysis:
                 "dwell_time": 0.0,
                 "last_pos": current_pos, 
                 "last_update": timestamp,
-                "active": True
+                "active": True,
             }
             return 
 
@@ -76,6 +77,8 @@ class DwellTimeAnalysis:
 
     def alert_stopped_objects(self, track_id):
         obj=self.dwell_times.get(track_id)
+        if not obj or obj["dwell_time"] < self.time_threshold:
+            return None
         ping_payload = {
             "event_type": "ping",
             "track_id": track_id,
@@ -86,3 +89,12 @@ class DwellTimeAnalysis:
         events = self.finished_events[:]
         self.finished_events = [] 
         return events
+    def cleanup_old_tracks(self , max_age = 300):
+        current_time = time.time()
+        to_delete = []
+        for track_id , data in self.dwell_times.items():
+            if current_time - data["last_update"] > max_age:
+                to_delete.append(track_id)
+        for track_id in to_delete:
+            del self.dwell_times[track_id]
+            ZoneAnalysis().cleanup_event_person_zone(track_id)

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 const bcrypt = require('bcrypt');
 const saltRounds = 10; 
 const  jwt = require('jsonwebtoken');
@@ -30,4 +28,4 @@ const verifyToken =  (token) => {
 module.exports = {
     renderToken , verifyToken , hashPassword, comparePassword
 };
->>>>>>> d9e048f ([MODULE_BE] feat : add testcase auth (login , logout , register ) , fix : auth.controller (use trim() remove space ))
+

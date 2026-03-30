@@ -5,6 +5,7 @@ install :
 optimize-model:
     @echo "Optimizing the model..."
     python export_model.py
+
 run-app:
     @echo "Running the application..."
     python run.py

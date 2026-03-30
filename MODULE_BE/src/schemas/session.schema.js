@@ -1,30 +1,27 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
-
-const SessionSchema = new Schema({
-    location_id: { type: Schema.Types.ObjectId, ref: 'Location', required: true },
-    
-    session_uuid: { type: String, required: true, unique: true }, // ID duy nhất cho mỗi luồng đi
-    person_id: { type: String }, // Track ID từ Camera trả về (Vd: "track_123")
-    
-    // Mảng Vector lưu đặc trưng khuôn mặt/dáng người (Phục vụ Re-ID)
-    reid_vector: { type: [Number], default: [] }, 
-    
-    customer_type: { 
-        type: String, 
-        enum: ['VISITOR', 'MEMBER', 'STAFF', 'UNKNOWN'], 
-        default: 'UNKNOWN' 
-    },
-    
-    entry_time: { type: Date, required: true, default: Date.now },
-    exit_time: { type: Date },
-    total_dwell_time_seconds: { type: Number, default: 0 }
-
-}, { 
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+const { Schema } = mongoose;
+// Session schema to track individual sessions at a location
+const sessionSchema = new Schema({
+    location_id: { type: String, ref: 'Location', required: true },
+    session_uuid: { type: String, required: true, unique: true, trim: true },
+    person_id: { type: String, trim: true },
+    reid_vector: [Number],
+    entry_time: { type: Date, required: true }, // thời gian vào location
+    exit_time: { type: Date }, // thời gian rời location
+    total_dwell_time_seconds: { type: Number, default: 0 },
+    zone_sequence:[
+        {
+            zone_id: { type: String, ref: 'Zone' },
+            entry_time: { type: Date }, // thời gian vao zone
+            exit_time: { type: Date },// thơi gian rời zone
+            dwell_time_seconds: { type: Number, default: 0 }
+        }
+    ]
 });
 
-// Đánh Index để tìm kiếm những người đang ở trong cửa hàng nhanh nhất (chưa có exit_time)
-SessionSchema.index({ location_id: 1, exit_time: 1 });
+sessionSchema.index({ location_id: 1 });
+sessionSchema.index({ session_uuid: 1 });
+sessionSchema.index({ person_id: 1 });
+sessionSchema.index({ entry_time: 1 });
 
-module.exports = mongoose.model('Session', SessionSchema);
+module.exports = mongoose.model('Session', sessionSchema);
