@@ -14,10 +14,14 @@ const register = async (userData) => {
     const trimmedPassword = password.trim();
     
     const isExisting = await userModel.findOne({ $or: [{ account: trimmedAccount }, { email: trimmedEmail }] });
-    if (isExisting) error({message : "Account and Email is exist", code : StatusCodes.BAD_REQUEST})
+    if (isExisting) {
+        error({message: "Account and Email is exist", code: StatusCodes.BAD_REQUEST});
+    }
     
     const location = await locationModel.findById(location_id);
-    if (!location) error({message: "The locations is not exist ", code: StatusCodes.BAD_REQUEST});
+    if (!location) {
+        error({message: "The locations is not exist", code: StatusCodes.BAD_REQUEST});
+    }
     
     const hashedPassword = await hashPassword(trimmedPassword);
     const newUser = await userModel.create({
@@ -32,12 +36,14 @@ const register = async (userData) => {
 };
 
 const login = async (account, password) => {
+    // Validate input types
+    if (typeof account !== 'string' || typeof password !== 'string') {
+        error({message: "Invalid input types", code: StatusCodes.BAD_REQUEST});
+    }
+
     const user = await userModel.findOne({ account: account.trim() });
     if (!user || !(await comparePassword(password.trim(), user.password))) {
-        error("Tài khoản hoặc mật khẩu không đúng", 401);
-
-        error({message: "Incorrect account or password", code : StatusCodes.UNAUTHORIZED});
-
+        error({message: "Incorrect account or password", code: StatusCodes.UNAUTHORIZED});
     }
     const token = renderToken({
         id: user._id,

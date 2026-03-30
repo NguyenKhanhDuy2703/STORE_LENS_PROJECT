@@ -24,7 +24,6 @@ const locationSchema = new Schema({
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-locationSchema.index({ location_code: 1 });
 locationSchema.index({ type_model: 1 });
 
 module.exports = mongoose.model('Location', locationSchema);

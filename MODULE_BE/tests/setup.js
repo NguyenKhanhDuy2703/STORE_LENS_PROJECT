@@ -9,7 +9,7 @@ beforeAll( async () => {
     console.log('Setting up test environment...');
     monogoServerTest = await MongoMemoryServer.create();
     const uri = await monogoServerTest.getUri();
-    await monsgoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await monsgoose.connect(uri);
     
 });
 
