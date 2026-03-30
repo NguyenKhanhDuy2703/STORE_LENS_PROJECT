@@ -3,15 +3,7 @@ const catchAsync = require("../utils/catchAsync");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logging");
 const config = require("../config");
-
-const registerController = catchAsync(async (req, res) => {
-    const { account, password, email, location_id } = req.body;
-    if (!account || !password || !email || !location_id) {
-        error("Vui lòng nhập đầy đủ thông tin", 400);
-    }
-
 const { StatusCodes } = require("http-status-codes");
-
 const _CheckRequiredFields = ( fields , types ) =>{
     switch (types) {
         case "register":
