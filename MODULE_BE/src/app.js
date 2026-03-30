@@ -15,15 +15,20 @@ app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: true  , limit: '50mb'}));
 app.use(cors(corsOption));
 app.use(cookieParser());
-const startWorker = async () => {
     try{
         await worker.connection()
     }catch(error){
         logger.error(`Error starting worker: ${error.message}`);
+
+    }
+}
+startWorker();
+
         throw error;
     }
 }
 startWorker();
+>
 
 routes(app);
 app.use(handleException)

@@ -1,6 +1,9 @@
 const monsgoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
+// Set test environment
+process.env.NODE_ENV = 'test';
+
 let monogoServerTest
 beforeAll( async () => {
     console.log('Setting up test environment...');

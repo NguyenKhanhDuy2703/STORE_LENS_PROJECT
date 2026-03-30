@@ -12,13 +12,14 @@ const comparePassword = async (password, hashedPassword) => {
 };
 
 const { JWT_SECRET} = process.env;
+const secret = JWT_SECRET || 'test-secret-key-for-jest'; // Default for test environment
 
 const renderToken =  (data) => {
-    return  jwt.sign(data , JWT_SECRET, {expiresIn: '1h'});
+    return  jwt.sign(data , secret, {expiresIn: '1h'});
 }
 const verifyToken =  (token) => {
    try{
-    const decode = jwt.verify(token, JWT_SECRET);
+    const decode = jwt.verify(token, secret);
     return decode;
    }catch(error){
        console.log(error);
@@ -27,3 +28,4 @@ const verifyToken =  (token) => {
 module.exports = {
     renderToken , verifyToken , hashPassword, comparePassword
 };
+

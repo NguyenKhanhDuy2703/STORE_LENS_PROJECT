@@ -3,6 +3,13 @@ const catchAsync = require("../utils/catchAsync");
 const { success, error } = require("../utils/response");
 const logger = require("../utils/logging");
 const config = require("../config");
+
+const registerController = catchAsync(async (req, res) => {
+    const { account, password, email, location_id } = req.body;
+    if (!account || !password || !email || !location_id) {
+        error("Vui lòng nhập đầy đủ thông tin", 400);
+    }
+
 const { StatusCodes } = require("http-status-codes");
 
 const _CheckRequiredFields = ( fields , types ) =>{
@@ -20,6 +27,7 @@ const _CheckRequiredFields = ( fields , types ) =>{
 const registerController = catchAsync(async (req, res) => {
     const { account, password, email, location_id } = req.body;
     _CheckRequiredFields({ account, password, email, location_id }, "register");
+
     const result = await authService.register(req.body);
     return success({ res, data: { id: result.id, account: result.account, location: result.location }, message: "register successfully", code: StatusCodes.CREATED });
 });
@@ -28,7 +36,7 @@ const loginController = catchAsync(async (req, res) => {
     const { account, password } = req.body;
     _CheckRequiredFields({ account, password }, "login");
     const result = await authService.login(account, password);
-  res.cookie("sessionToken", result.token, {
+    res.cookie("sessionToken", result.token, {
         httpOnly: config.cookie.httpOnly,
         secure: config.cookie.secure, 
         sameSite: config.cookie.sameSite,
