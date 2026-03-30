@@ -9,7 +9,7 @@ const userSchema = new Schema({
     // Manager/Staff sẽ bị giới hạn chỉ xem được dữ liệu của location này
     location_id: { type: Schema.Types.ObjectId, ref: 'Location' }
 }, { 
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } 
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } ,
 
     role: { type: String, trim: true  , Enum: ['ADMIN', 'USER', 'MANAGER'], default: 'USER' },
     location_id: { type: String, ref: 'Location', required: function(){return this.role !== 'ADMIN_SUPER';} }

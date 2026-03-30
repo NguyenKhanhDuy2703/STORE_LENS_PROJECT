@@ -3,16 +3,11 @@ const locationModel = require("../schemas/location.schema");
 const { error } = require("../utils/response");
 const { renderToken , comparePassword , hashPassword ,verifyToken } = require("../middlewares/security.middleware");
 const { StatusCodes } = require("http-status-codes");
+
+
 const register = async (userData) => {
     const { account, password, email, location_id, fullname } = userData;
-    // 1. Logic kiểm tra trùng lặp
-    const isExisting = await userModel.findOne({ $or: [{ account }, { email }] });
-    if (isExisting) error({message : "Account and Email is exist", code : StatusCodes.BAD_REQUEST}) 
-    const location = await locationModel.findById(location_id);
-    if (!location) error({message: "The locations is not exist ", code: StatusCodes.BAD_REQUEST});
-    const hashedPassword = await hashPassword(password);
 
-    
     // Validate input
     const trimmedAccount = account.toString().trim();
     const trimmedEmail = email.toString().trim();
@@ -35,6 +30,7 @@ const register = async (userData) => {
     });
     return { id: newUser._id, account: newUser.account, location: location.name };
 };
+
 const login = async (account, password) => {
     const user = await userModel.findOne({ account: account.trim() });
     if (!user || !(await comparePassword(password.trim(), user.password))) {

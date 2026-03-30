@@ -15,6 +15,7 @@ app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: true  , limit: '50mb'}));
 app.use(cors(corsOption));
 app.use(cookieParser());
+const startWorker = async () => {
     try{
         await worker.connection()
     }catch(error){
@@ -24,11 +25,6 @@ app.use(cookieParser());
 }
 startWorker();
 
-        throw error;
-    }
-}
-startWorker();
->
 
 routes(app);
 app.use(handleException)
