@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import{ useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchGetMembers, fetchGetSegments } from './member.thunk';
-import SegmentationOverview from './components/segmentation-overview';
-import ClusterProfiles from './components/cluster-profiles';
-import MemberListInsights from './components/member-list-insights';
-import GenAIInsights from './components/genai-insights';
+import SegmentationOverview from './components/SegmentationOverview';
+import ClusterProfiles from './components/ClusterProfiles';
+import MemberListInsights from './components/MemberListInsights';
+
 
 const MemberSegmentation = () => {
     const dispatch = useDispatch();
@@ -36,8 +36,6 @@ const MemberSegmentation = () => {
 
             <SegmentationOverview data={overviewData} />
             <ClusterProfiles segments={segments} />
-            
-            <GenAIInsights />
             <MemberListInsights members={members} />
         </div>
     );

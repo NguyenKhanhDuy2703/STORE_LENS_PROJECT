@@ -1,8 +1,5 @@
-import React from 'react';
-import { Users, Target, TrendingUp, UserPlus } from 'lucide-react';
-
+import { Users, UserPlus } from 'lucide-react';
 const SegmentationOverview = ({ data }) => {
-    // Dữ liệu fallback nếu chưa có data
     const stats = data || { total: 0, active: 0, growth: "0%", segments: 0 };
 
     const Card = ({ title, value, icon: Icon, colorClass }) => (
