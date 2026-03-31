@@ -1,5 +1,5 @@
 import React from 'react';
-import Header from './components/Header';
+
 import StatsCards from './components/StatsCards';
 import Charts from './components/Charts';
 import AreaDetails from './components/AreaDetails';
@@ -7,7 +7,6 @@ import AreaDetails from './components/AreaDetails';
 const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-emerald-100">
-      <Header />
       
       <main className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto">
         <StatsCards />
