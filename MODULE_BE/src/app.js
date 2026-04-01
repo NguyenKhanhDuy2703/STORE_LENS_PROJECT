@@ -20,10 +20,11 @@ const startWorker = async () => {
         await worker.connection()
     }catch(error){
         logger.error(`Error starting worker: ${error.message}`);
-        throw error;
+
     }
 }
 startWorker();
+
 
 routes(app);
 app.use(handleException)

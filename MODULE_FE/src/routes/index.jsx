@@ -8,7 +8,6 @@ import Downtime from "../features/AnalyticsDwellTime/AnalyticsDwellTime";
 import { CameraZoneConfig } from "../features/CameraZoneConfig/CameraZoneConfig";
 import { ZoneConfig } from "../features/ZoneConfig/ZoneConfig";
 import { CustomerManagement } from "../features/UserManagement/CustomerManagement";
-// Chú ý: Thêm dấu { } nếu MainLayout là named export
 import { MainLayout } from "../components/common/layout/MainLayout";
 
 const AppRouter = () => {

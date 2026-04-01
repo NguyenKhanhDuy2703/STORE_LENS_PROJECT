@@ -1,12 +1,15 @@
 const monsgoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
+// Set test environment
+process.env.NODE_ENV = 'test';
+
 let monogoServerTest
 beforeAll( async () => {
     console.log('Setting up test environment...');
     monogoServerTest = await MongoMemoryServer.create();
     const uri = await monogoServerTest.getUri();
-    await monsgoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await monsgoose.connect(uri);
     
 });
 
