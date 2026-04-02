@@ -6,6 +6,7 @@ const zoneSchema = new Schema({
     camera_id: { type: String, ref: 'Camera', required: true },
     zone_name: { type: String, required: true, trim: true },
     zone_id: { type: String, required: true, uppercase: true, trim: true },
+    asset_id: { type: String, ref: 'Asset' }, // asset_id liên kết với zone
     function_type: { type: String, trim: true }, // loại chức năng của zone (category_name)
     polygon_coordinates: { type: [[Number]], required: true },
 }, {

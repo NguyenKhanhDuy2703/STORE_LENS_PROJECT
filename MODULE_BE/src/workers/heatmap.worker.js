@@ -1,11 +1,16 @@
 const heatmapModel = require("../schemas/heatmap.schema");
 const logger = require("../utils/logging");
-const TIME_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
+const TIME_THRESHOLD = 20 * 1000; // 20 seconds
+const LIST_TIME_STAMP = new Map();
 const heatmapWorker = {
   async save(payload) {
     const {data , infor} = payload;
-    let timebefore = 0;
-    let currentTime = Date.now();
+    const currentTime = Date.now();
+   
+    if(!LIST_TIME_STAMP.has(`${infor.location_id}_${infor.camera_id}`)){
+        LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
+    }
+    const lastTime = LIST_TIME_STAMP.get(`${infor.location_id}_${infor.camera_id}`);
     try {
       const heatmapData = new heatmapModel({
             location_id: infor.location_id,
@@ -14,18 +19,17 @@ const heatmapWorker = {
             frame_height: data.frame_height,
             frame_width: data.frame_width,
             grid_size: data.grid_size,
-            height_matrix: data.height_matrix,
-            width_matrix: data.width_matrix,
+            height_matrix: data.grid_width,
+            width_matrix: data.grid_height,
             heatmap_matrix: data.heatmap_matrix,
           });
-      if (currentTime - timebefore < TIME_THRESHOLD) {
+      if (currentTime - lastTime >= TIME_THRESHOLD) {
          heatmapData.time_stamp = currentTime;
-         timebefore = currentTime;
+         LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
          await heatmapData.save();
-         logger.info(`Saved heatmap data for camera ${infor.camera_id} at location ${infor.location_id}`);
       }else{
         heatmapData.time_stamp = currentTime;
-        timebefore = currentTime;
+        LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
         await heatmapData.updateOne(
           { 
             location_id: infor.location_id, 

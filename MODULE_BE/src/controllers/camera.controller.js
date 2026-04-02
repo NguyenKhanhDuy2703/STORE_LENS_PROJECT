@@ -4,11 +4,11 @@ const catchAsync = require("../utils/catchAsync");
 const { success , error } = require("../utils/response");
 mock_zones = [
     {
-        "name": "Zone A",
+        "zone_id": "Zone_A",
         "points": [[100, 100], [500, 100], [500, 500], [100, 500]]
     },
     {
-        "name": "Zone B",
+        "zone_id": "Zone_B",
         "points": [[600, 100], [1000, 100], [1000, 500], [600, 500]]
     }
 

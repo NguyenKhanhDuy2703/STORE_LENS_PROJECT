@@ -13,7 +13,7 @@ class setting {
       },
     };
     this.database = {
-      mongoURI: process.env.MONGO_URI || "",
+      mongoURI: process.env.URI_MONGODB ,
     };
     this.redis = {
       host: process.env.REDIS_HOST,
