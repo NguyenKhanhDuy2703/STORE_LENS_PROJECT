@@ -12,6 +12,10 @@ class DeepSortModel:
             nn_budget=deepsort_config['nn_budget']
         )
     def tracker_predict(self , detections , frame):
-        tracks = self.model.update_tracks(detections, frame=frame) 
+        cleaned_detections = []
+        for det in detections:
+            bbox, conf, cls = det
+            cleaned_detections.append((bbox, float(conf), int(cls)))
+        tracks = self.model.update_tracks(cleaned_detections, frame=frame) 
         return tracks
         

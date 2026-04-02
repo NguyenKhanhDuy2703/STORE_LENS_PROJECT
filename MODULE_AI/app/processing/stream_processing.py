@@ -53,7 +53,7 @@ class StreamProcessor:
         for track in tracks:
             if not track.is_confirmed():
                 continue
-            track_id = track.track_id
+            track_id = getattr(track, 'final_track_id', track.track_id)
             ltrb = track.to_ltrb() 
             seed = int(str(track_id).split('-')[-1]) if '-' in str(track_id) else int(track_id)
             color = (
@@ -104,8 +104,8 @@ class StreamProcessor:
                 current_frame_counts = {}
                 if list_zone:
                     for z in list_zone:
-                        z_name = z.get("name") if isinstance(z, dict) else getattr(z, "name", "unknown")
-                        current_frame_counts[z_name] = 0
+                        z_id = z.get("zone_id") if isinstance(z, dict) else getattr(z, "zone_id", "unknown")
+                        current_frame_counts[z_id] = 0
 
                 for track in tracks:
                     if track.is_confirmed():
@@ -130,7 +130,7 @@ class StreamProcessor:
                                 self.re_id.set_id_mapping(camera_id=self.camera_id, deepsort_id=deepsort_track_id, final_id=final_track_id)
                                                
                         final_track_id = final_track_id or deepsort_track_id
-                        track.track_id = final_track_id
+                        track.final_track_id = final_track_id
                         self.dwell_time_analyzer.update_dwell_time(final_track_id, current_pos = [x1, y1, x2, y2] )
                         
                         center = (x1 + x2) // 2
@@ -186,11 +186,14 @@ class StreamProcessor:
                         ]
                     )
                 if len(self.dwell_time_analyzer.finished_events) > 0:
+                    for event in self.dwell_time_analyzer.finished_events:
+                        event["zone_id"] = hit_zone[0] if hit_zone else "unknown"
                     self.pack_communication.dispatch_payload(
                     [
                         {
                             "type":"dwell_time",
                             "data": self.dwell_time_analyzer.finished_events,
+                            "zone_id": "",
                             "info":{
                                 "camera_id": self.camera_id,
                                 "location_id": location_id
@@ -198,6 +201,7 @@ class StreamProcessor:
                         }
                     ]
                 )
+                    self.dwell_time_analyzer.finished_events.clear()
                 self.dwell_time_analyzer.cleanup_old_tracks()
                 
                 self.pack_communication.dispatch_payload(

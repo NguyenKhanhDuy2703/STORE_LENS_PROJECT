@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 // bản lưu chi tiếc các tương tác của session với zone, asset
 const interactionLogSchema = new Schema({
-    session_id: { type: String, ref: 'Session', required: true },
+    session_uuid: { type: String, ref: 'Session', required: true },
     location_id: { type: String, ref: 'Location', required: true },
     zone_id: { type: String, ref: 'Zone' },
     asset_id: { type: String, ref: 'Asset' },

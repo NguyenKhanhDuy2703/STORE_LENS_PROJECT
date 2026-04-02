@@ -4,7 +4,6 @@ const { StatusCodes } = require("http-status-codes");
 const baseUrl = "/api/v1/tracking";
 const turnOnCamera = async ({cameraId, urlRtsp, locationId , listZone}) => {
     try {
-        console.log("Turning on camera with URL:", urlRtsp , "and zones:", listZone , "and cameraId:", cameraId, "and allocationId:", locationId);
         const response = await axiosInstance.post(`${baseUrl}/process`, {
             camera_id: String(cameraId),
             url_rtsp: String(urlRtsp),

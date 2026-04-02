@@ -1,31 +1,33 @@
-const monsgoose = require('mongoose');
+const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 // Set test environment
 process.env.NODE_ENV = 'test';
 
-let monogoServerTest
-beforeAll( async () => {
+let mongoServerTest;
+beforeAll(async () => {
     console.log('Setting up test environment...');
-    monogoServerTest = await MongoMemoryServer.create();
-    const uri = await monogoServerTest.getUri();
-    await monsgoose.connect(uri);
-    
+    mongoServerTest = await MongoMemoryServer.create();
+    const uri = await mongoServerTest.getUri();
+    await mongoose.connect(uri);
 });
 
-afterEach( async () => {
-    const collections = await monsgoose.connection.db.collections();
-    for (const key in collections ){
-        const collection = collections[key];
+afterEach(async () => {
+    if (mongoose.connection.readyState !== 1) {
+        return;
+    }
+
+    const collections = await mongoose.connection.db.collections();
+    for (const collection of collections) {
         await collection.deleteMany({});
     }
 });
 
-afterAll( async () => {
-    if (monsgoose.connection.readyState !== 0) {
-        await monsgoose.disconnect();
+afterAll(async () => {
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
     }
-    if (monogoServerTest) {
-        await monogoServerTest.stop();
+    if (mongoServerTest) {
+        await mongoServerTest.stop();
     }
 });

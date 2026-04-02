@@ -11,7 +11,7 @@ router_tracking = APIRouter(
     tags=["tracking"],
 )
 class ZoneItem(BaseModel):
-    name: str
+    zone_id: str
     points: List[List[int]]  
 
 class TrackingRequest (BaseModel):

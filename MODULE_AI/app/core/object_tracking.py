@@ -15,7 +15,7 @@ class ObjectTracking :
                 cls = int(box.cls[0].item()) 
                 w = x2 - x1
                 h = y2 - y1
-                detections.append(([x1, y1, w, h], conf, cls))
+                detections.append(([x1, y1, w, h], float(conf), cls))
         return detections
     def process_single_frame(self , frame):
         results = self.yolo_model.predict_frame(frame)
