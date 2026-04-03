@@ -91,14 +91,14 @@ const RuleForm = ({ onAdd, category }) => {
     <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-4">
       <div className="flex items-center gap-2 mb-6">
         <config.icon className={config.iconClass} size={20} />
-        <h3 className="font-bold text-slate-900">Thêm quy tắc {config.label}</h3>
+        <h3 className="font-medium tracking-tight text-slate-900">Thêm quy tắc {config.label}</h3>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Điều kiện</label>
+          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Điều kiện</label>
           <select 
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
             value={formData.condition}
             onChange={(e) => setFormData({
               ...formData,
@@ -115,7 +115,7 @@ const RuleForm = ({ onAdd, category }) => {
           {formData.condition === CUSTOM_OPTION_VALUE && (
             <input
               type="text"
-              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500"
+              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
               placeholder="Nhập điều kiện mới"
               value={formData.conditionCustom}
               onChange={(e) => setFormData({ ...formData, conditionCustom: e.target.value })}
@@ -124,24 +124,24 @@ const RuleForm = ({ onAdd, category }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">{config.thresholdLabel}</label>
+          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">{config.thresholdLabel}</label>
           <div className="relative flex items-center gap-2">
             <input 
               type="number"
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm tabular-nums tracking-tight outline-none focus:ring-1 focus:ring-teal-500"
               placeholder={config.valuePlaceholder}
               min="0"
               value={formData.value}
               onChange={(e) => setFormData({...formData, value: e.target.value})}
             />
-            <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">{config.unit}</span>
+            <span className="text-xs font-medium text-slate-500 whitespace-nowrap tracking-tight">{config.unit}</span>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase">Hành động</label>
+          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Hành động</label>
           <select 
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
             value={formData.action}
             onChange={(e) => setFormData({
               ...formData,
@@ -158,7 +158,7 @@ const RuleForm = ({ onAdd, category }) => {
           {formData.action === CUSTOM_OPTION_VALUE && (
             <input
               type="text"
-              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500"
+              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
               placeholder="Nhập hành động mới"
               value={formData.actionCustom}
               onChange={(e) => setFormData({ ...formData, actionCustom: e.target.value })}
@@ -167,17 +167,17 @@ const RuleForm = ({ onAdd, category }) => {
         </div>
 
         <div className="pt-2">
-          <button type="submit" className="w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-2 rounded-lg flex items-center justify-center gap-2 transition-all shadow-md shadow-teal-100">
+          <button type="submit" className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2 rounded-lg flex items-center justify-center gap-2 transition-all shadow-md shadow-teal-100 tracking-tight">
             <Plus size={18} /> Thêm vào bảng
           </button>
         </div>
       </form>
 
-      {/* NATURAL LANGUAGE PREVIEW */}
+      {/* Rule preview in natural language */}
       {selectedCondition && (
         <div className="mt-6 p-3 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-          <p className="text-[12px] text-slate-500 italic">
-            "Hệ thống sẽ <span className="text-teal-600 font-bold">{selectedAction || '...'}</span> khi <span className="text-indigo-600 font-bold">{selectedCondition}</span> đạt từ <span className="font-bold">{formData.value || '0'} {config.unit}</span> trở lên."
+          <p className="text-xs text-slate-500 tracking-tight">
+            "Hệ thống sẽ <span className="text-teal-600 font-medium">{selectedAction || '...'}</span> khi <span className="text-indigo-600 font-medium">{selectedCondition}</span> đạt từ <span className="font-medium tabular-nums tracking-tight">{formData.value || '0'} {config.unit}</span> trở lên."
           </p>
         </div>
       )}

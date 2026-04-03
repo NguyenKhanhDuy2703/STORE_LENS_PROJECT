@@ -94,9 +94,9 @@ const AnalyticsRules = () => {
   };
 
   return (
-    <div className="p-8 space-y-12 pb-28">
-      {/* SECTION: RETENTION */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8 pb-28">
+      {/* RETENTION RULES SECTION */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
         <div className="lg:col-span-4">
           <RuleForm category="retention" onAdd={addRule} />
         </div>
@@ -109,8 +109,8 @@ const AnalyticsRules = () => {
         </div>
       </section>
 
-      {/* SECTION: ZONE */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 border-t border-slate-100 pt-12">
+      {/* ZONE RULES SECTION */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12 border-t border-slate-200 pt-12">
         <div className="lg:col-span-4">
           <RuleForm category="zone" onAdd={addRule} />
         </div>
@@ -123,8 +123,8 @@ const AnalyticsRules = () => {
         </div>
       </section>
 
-      {/* SECTION: REVENUE */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 border-t border-slate-100 pt-12">
+      {/* REVENUE RULES SECTION */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12 border-t border-slate-200 pt-12">
         <div className="lg:col-span-4">
           <RuleForm category="revenue" onAdd={addRule} />
         </div>
@@ -137,12 +137,12 @@ const AnalyticsRules = () => {
         </div>
       </section>
 
-      {/* Sticky action bar keeps primary actions visible while scrolling long forms/tables. */}
+      {/* Sticky action bar */}
       <div className="sticky bottom-4 z-50 flex justify-end">
-        <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+        <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-6 py-3 shadow-lg backdrop-blur">
           <div className="inline-flex items-center gap-2 text-slate-700">
-            <SlidersHorizontal size={15} className="text-slate-500" />
-            <span className="text-sm font-semibold">{activeRuleCount} quy tắc đang hoạt động</span>
+            <SlidersHorizontal size={16} className="text-slate-500" />
+            <span className="text-sm font-medium tracking-tight">{activeRuleCount} quy tắc đang hoạt động</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -150,7 +150,7 @@ const AnalyticsRules = () => {
               type="button"
               onClick={handleCancel}
               disabled={!hasChanges}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium tracking-tight text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Hủy bỏ
             </button>
@@ -158,7 +158,7 @@ const AnalyticsRules = () => {
               type="button"
               onClick={handleSaveConfig}
               disabled={!hasChanges || !hasAllRuleGroups}
-              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium tracking-tight text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               Lưu cấu hình
             </button>

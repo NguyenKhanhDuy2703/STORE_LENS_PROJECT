@@ -40,7 +40,7 @@ const ClusterProfiles = ({ segments }) => {
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-      <h3 className="font-bold text-xl mb-2 text-slate-900">Phân bổ nhóm đối tượng</h3>
+      <h3 className="font-medium tracking-tight text-xl mb-2 text-slate-900">Phân bổ nhóm đối tượng</h3>
       <div className="h-[1px] bg-slate-200 my-4"></div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-6 items-center">
@@ -145,12 +145,12 @@ const ClusterProfiles = ({ segments }) => {
                 ></span>
                 <div>
                   {/* Segment name and member count */}
-                  <p className="text-sm font-semibold text-slate-800">{seg.segment_name}</p>
-                  <p className="text-xs text-slate-500">~{seg.member_count} thành viên</p>
+                  <p className="text-sm font-medium tracking-tight text-slate-800">{seg.segment_name}</p>
+                  <p className="text-xs text-slate-500 tracking-tight tabular-nums">~{seg.member_count} thành viên</p>
                 </div>
               </div>
               {/* Percentage badge */}
-              <div className="text-lg font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg min-w-[60px] text-center">
+              <div className="text-lg font-medium text-slate-900 bg-slate-100 px-3 py-1 rounded-lg min-w-[60px] text-center tracking-tight tabular-nums">
                 {seg.percentage}%
               </div>
             </div>
@@ -160,7 +160,7 @@ const ClusterProfiles = ({ segments }) => {
 
       {/* Legend - Bottom reference guide for segments */}
       <div className="mt-6 pt-4 border-t border-slate-200">
-        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Chú thích</p>
+        <p className="text-xs font-medium text-slate-600 tracking-tight mb-3">Chú thích</p>
         <div className="flex flex-wrap gap-3">
           {segmentData.map((seg) => (
             <div 
@@ -173,7 +173,7 @@ const ClusterProfiles = ({ segments }) => {
                 style={{ backgroundColor: seg.color }}
               ></span>
               {/* Segment name in legend */}
-              <span className="text-sm text-slate-700 font-medium">{seg.segment_name}</span>
+              <span className="text-sm text-slate-700 font-medium tracking-tight">{seg.segment_name}</span>
             </div>
           ))}
         </div>

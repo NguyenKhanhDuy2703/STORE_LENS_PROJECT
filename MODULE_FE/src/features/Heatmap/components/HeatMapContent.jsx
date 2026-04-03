@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Layer, Rect, Group, Stage } from "react-konva";
-import { SkipBack, SkipForward, ZoomIn, ZoomOut } from "lucide-react";
+import { Layer, Stage, Group } from "react-konva";
+import { SkipBack, SkipForward, ZoomIn, ZoomOut, EyeOff } from "lucide-react";
 import {
   CameraImage,
   DrawingPoints,
@@ -9,10 +9,15 @@ import {
   ZoneShape,
 } from "./CanvaHeatmap";
 
-const HeatmapCanvas = ({ storeId = "STORE_001", cameraCode = "CAM_01", isLoading = false }) => {
-  // 1. DỮ LIỆU GIẢ (MOCK DATA)
-  const mockTimeLine = ["09:00", "09:15", "09:30", "09:45", "10:00"];
-  
+const HeatmapCanvas = ({
+  isLoading = false,
+  timeLine = [],
+  heatmapVisible = true,
+  zoneOverlay = true,
+  opacity = 0.8,
+  heatRadius = 15,
+}) => {
+  // Mock data
   const generateMockMatrix = (rows, cols) => {
     return Array.from({ length: rows }, () => 
       Array.from({ length: cols }, () => Math.floor(Math.random() * 100))
@@ -31,46 +36,39 @@ const HeatmapCanvas = ({ storeId = "STORE_001", cameraCode = "CAM_01", isLoading
         coordinates: [
           { x: 100, y: 100 }, { x: 400, y: 100 }, { x: 400, y: 400 }, { x: 100, y: 400 }
         ],
-        color: "rgba(20, 184, 166, 0.3)"
+        color: "rgba(13, 148, 136, 0.3)"
       }
     ]
   };
 
-  // 2. LOCAL STATE QUẢN LÝ UI (Thay thế Redux)
+  // State for canvas controls
   const [zoom, setZoom] = useState(0.8);
   const [currentFrame, setCurrentFrame] = useState(0);
-  const [statusCurrent] = useState({
-    grid: true,
-    zone: true,
-    opacity: 0.6
-  });
   const [dimensions, setDimensions] = useState({ width: 1280, height: 720 });
   const containerRef = useRef(null);
 
-  const { grid, zone, opacity } = statusCurrent;
-  const currentHeatmap = [mockHeatmapData]; 
-  const totalFrames = mockTimeLine.length;
-  const startTimeLine = mockTimeLine[0];
-  const endTimeLine = mockTimeLine[mockTimeLine.length - 1];
+  const currentHeatmap = [mockHeatmapData];
+  const totalFrames = timeLine.length > 0 ? timeLine.length : 5;
+  const startTimeLine = timeLine[0] || "09:00";
+  const endTimeLine = timeLine[timeLine.length - 1] || "10:00";
 
   const onChangeFrame = (value) => {
     if (value >= 0 && value < totalFrames) {
       setCurrentFrame(value);
-      console.log("Chuyển khung giờ demo:", mockTimeLine[value]);
     }
   };
 
   const frameWidth = currentHeatmap[0].frameWidth;
   const frameHeight = currentHeatmap[0].frameHeight;
 
-  // Xử lý Responsive cho Canvas
+  // Responsive canvas
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
         const container = containerRef.current;
         setDimensions({
-          width: container.clientWidth - 32,
-          height: container.clientHeight - 32,
+          width: container.clientWidth - 16,
+          height: container.clientHeight - 16,
         });
       }
     };
@@ -79,129 +77,136 @@ const HeatmapCanvas = ({ storeId = "STORE_001", cameraCode = "CAM_01", isLoading
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // 3. THAY THẾ COMPONENT LOADING BẰNG DIV CƠ BẢN
   if (isLoading) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
-        <span className="ml-3 text-slate-500 font-medium">Đang tải dữ liệu...</span>
+      <div className="h-full w-full flex flex-col items-center justify-center gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
+        <span className="text-slate-500 font-medium text-sm">Đang tải dữ liệu...</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-slate-200 h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-tight">
-                Camera {cameraCode}
-              </h2>
-              <p className="text-[11px] text-slate-500 font-medium">
-                {storeId} • Khung giờ: {mockTimeLine[currentFrame]} • 20/11/2026
-              </p>
-            </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div className="flex gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <div>Độ phân giải: <span className="text-slate-700">{frameWidth}×{frameHeight}</span></div>
-              <div>Lưới: <span className="text-slate-700">{currentHeatmap[0].gridSize}px</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Canvas Area */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Canvas Area - Priority */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden bg-slate-900 flex items-center justify-center p-4 relative"
+        className="flex-1 overflow-hidden bg-slate-900 flex items-center justify-center p-2 relative"
       >
-        <Stage
-          width={dimensions.width}
-          height={dimensions.height}
-          scaleX={zoom}
-          scaleY={zoom}
-        >
-          <Layer>
-            <CameraImage
-              src={currentHeatmap[0].backgroundImage}
-              width={frameWidth}
-              height={frameHeight}
-            />
-            <HeatmapGrid
-              matrix={currentHeatmap[0].heatmapMatrix}
-              gridSize={currentHeatmap[0].gridSize}
-              frameWidth={frameWidth}
-              frameHeight={frameHeight}
-              opacity={opacity}
-            />
-            {zone && currentHeatmap[0].zones.map((z, idx) => (
-              <Group key={idx}>
-                <ZoneShape zone={z} />
-                <DrawingPoints points={z.coordinates} />
-              </Group>
-            ))}
-            {grid && (
+        {heatmapVisible ? (
+          <Stage
+            width={dimensions.width}
+            height={dimensions.height}
+            scaleX={zoom}
+            scaleY={zoom}
+          >
+            <Layer>
+              <CameraImage
+                src={currentHeatmap[0].backgroundImage}
+                width={frameWidth}
+                height={frameHeight}
+              />
+              {heatmapVisible && (
+                <HeatmapGrid
+                  matrix={currentHeatmap[0].heatmapMatrix}
+                  gridSize={heatRadius}
+                  frameWidth={frameWidth}
+                  frameHeight={frameHeight}
+                  opacity={opacity}
+                />
+              )}
+              {zoneOverlay && currentHeatmap[0].zones.map((z, idx) => (
+                <Group key={idx}>
+                  <ZoneShape zone={z} />
+                  <DrawingPoints points={z.coordinates} />
+                </Group>
+              ))}
               <GridLines
                 gridSize={currentHeatmap[0].gridSize}
                 frameWidth={frameWidth}
                 frameHeight={frameHeight}
               />
-            )}
-            <Rect width={frameWidth} height={frameHeight} fill="black" opacity={0.2} />
-          </Layer>
-        </Stage>
+            </Layer>
+          </Stage>
+        ) : (
+          <div className="text-center flex flex-col items-center justify-center h-full gap-3">
+            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
+              <EyeOff className="text-slate-400" size={24} />
+            </div>
+            <p className="text-slate-400 text-sm font-medium">Bản đồ nhiệt đã tắt</p>
+            <p className="text-slate-500 text-xs">Bật nó lên từ bảng điều khiển bên trái</p>
+          </div>
+        )}
       </div>
 
-      {/* Toolbar & Timeline */}
-      <div className="px-5 py-4 bg-white border-t border-slate-100 space-y-4">
-        {/* Color Scale */}
+      {/* Controls at Bottom */}
+      <div className="bg-slate-800 border-t border-slate-700 px-4 py-3 space-y-3">
+        {/* Color Scale Legend */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase">Mật độ:</span>
+          <span className="text-[10px] font-medium text-slate-400 tracking-tight whitespace-nowrap">Cường Độ:</span>
           <div className="flex-1 h-2 rounded-full" style={{ background: "linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)" }} />
-          <div className="flex gap-4 text-[10px] font-bold text-slate-400 uppercase">
-            <span>Thấp</span>
-            <span>Cao</span>
-          </div>
+          <span className="text-[10px] text-slate-400 tracking-tight">Thấp → Cao</span>
         </div>
 
-        {/* Controls */}
+        {/* Timeline Controls */}
         <div className="flex items-center gap-4">
+          {/* Frame Navigation */}
           <div className="flex gap-1">
             <button
               onClick={() => onChangeFrame(currentFrame - 1)}
-              className="p-2 hover:bg-slate-100 rounded-lg border border-slate-200 disabled:opacity-30"
               disabled={currentFrame === 0}
+              className="p-1.5 hover:bg-slate-700 rounded border border-slate-600 disabled:opacity-30 transition-colors text-slate-300 hover:text-slate-100"
+              title="Khung trước"
             >
               <SkipBack size={16} />
             </button>
             <button
               onClick={() => onChangeFrame(currentFrame + 1)}
-              className="p-2 hover:bg-slate-100 rounded-lg border border-slate-200 disabled:opacity-30"
               disabled={currentFrame === totalFrames - 1}
+              className="p-1.5 hover:bg-slate-700 rounded border border-slate-600 disabled:opacity-30 transition-colors text-slate-300 hover:text-slate-100"
+              title="Khung sau"
             >
               <SkipForward size={16} />
             </button>
           </div>
 
+          {/* Timeline Slider */}
           <div className="flex-1 flex items-center gap-3">
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">{startTimeLine}</span>
+            <span className="text-[10px] font-medium text-slate-400 bg-slate-700 px-2 py-1 rounded whitespace-nowrap tracking-tight tabular-nums">
+              {startTimeLine}
+            </span>
             <input
               type="range"
               min={0}
               max={totalFrames - 1}
               value={currentFrame}
               onChange={(e) => onChangeFrame(Number(e.target.value))}
-              className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
+              className="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600"
             />
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">{endTimeLine}</span>
+            <span className="text-[10px] font-medium text-slate-400 bg-slate-700 px-2 py-1 rounded whitespace-nowrap tracking-tight tabular-nums">
+              {endTimeLine}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-            <button onClick={() => setZoom(Math.max(0.3, zoom - 0.1))} className="p-1.5 hover:bg-slate-100 rounded border border-slate-200"><ZoomOut size={14} /></button>
-            <span className="text-[11px] font-mono text-slate-600 w-10 text-center">{(zoom * 100).toFixed(0)}%</span>
-            <button onClick={() => setZoom(Math.min(2, zoom + 0.1))} className="p-1.5 hover:bg-slate-100 rounded border border-slate-200"><ZoomIn size={14} /></button>
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2 border-l border-slate-600 pl-4">
+            <button
+              onClick={() => setZoom(Math.max(0.3, zoom - 0.1))}
+              className="p-1.5 hover:bg-slate-700 rounded border border-slate-600 transition-colors text-slate-300 hover:text-slate-100"
+              title="Thu nhỏ"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span className="text-[10px] font-medium text-slate-400 w-10 text-center tracking-tight tabular-nums">
+              {(zoom * 100).toFixed(0)}%
+            </span>
+            <button
+              onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+              className="p-1.5 hover:bg-slate-700 rounded border border-slate-600 transition-colors text-slate-300 hover:text-slate-100"
+              title="Phóng to"
+            >
+              <ZoomIn size={16} />
+            </button>
           </div>
         </div>
       </div>

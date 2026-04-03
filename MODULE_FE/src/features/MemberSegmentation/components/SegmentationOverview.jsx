@@ -3,13 +3,13 @@ const SegmentationOverview = ({ data }) => {
     const stats = data || { total: 0, active: 0, growth: "0%", segments: 0 };
 
     const Card = ({ title, value, icon: Icon, colorClass }) => (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
             <div className={`p-3 rounded-xl ${colorClass}`}>
                 <Icon size={24} />
             </div>
             <div>
-                <p className="text-sm text-slate-500 font-medium">{title}</p>
-                <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
+                <p className="text-[10px] font-medium text-slate-500 tracking-tight">{title}</p>
+                <h3 className="text-2xl font-semibold text-slate-800 mt-1 tracking-tight tabular-nums">{value}</h3>
             </div>
         </div>
     );
