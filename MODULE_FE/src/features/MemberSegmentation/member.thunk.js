@@ -25,35 +25,3 @@ export const fetchGetSegments = createAsyncThunk(
         }
     }
 );
-/* 
-
-import { createAsyncThunk } from "@reduxjs/toolkit";
-// Giả định api service được định nghĩa trong services/member.api.js
-import { getMembers, getSegments } from "../../services/member.api";
-
-export const fetchGetMembers = createAsyncThunk(
-    "memberSegmentation/fetchGetMembers",
-    async ({ storeId, page, limit }, { rejectWithValue }) => {
-        try {
-            const response = await getMembers({ storeId, page, limit });
-            // Tuân thủ quy tắc phản hồi { status, code, data, meta }
-            return response; 
-        } catch (error) {
-            return rejectWithValue(error.message || "Không thể tải danh sách hội viên");
-        }
-    }
-);
-
-export const fetchGetSegments = createAsyncThunk(
-    "memberSegmentation/fetchGetSegments",
-    async (storeId, { rejectWithValue }) => {
-        try {
-            const response = await getSegments(storeId);
-            return response;
-        } catch (error) {
-            return rejectWithValue(error.message || "Không thể tải dữ liệu phân khúc");
-        }
-    }
-);
-
-*/

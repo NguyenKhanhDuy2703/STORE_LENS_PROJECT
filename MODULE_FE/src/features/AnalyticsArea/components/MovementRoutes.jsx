@@ -15,16 +15,16 @@ const routesData = [
 
 const MovementRoutes = () => {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full">
-      <h3 className="font-bold text-lg mb-4">Tuyến đường di chuyển</h3>
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+      <h3 className="font-medium tracking-tight text-lg mb-6 text-slate-900">Tuyến Đường Di Chuyển</h3>
       
-      <div className="flex justify-between text-xs font-semibold text-slate-400 uppercase mb-3 px-2">
-        <span>Tuyến đường</span>
-        <span>Độ tin</span>
+      <div className="flex justify-between text-xs font-medium text-slate-400 tracking-tight mb-4 px-2">
+        <span>Tuyến Đường</span>
+        <span>Độ Tin Cậy</span>
       </div>
 
-      {/* Container có thanh cuộn */}
-      <div className="space-y-3 overflow-y-auto pr-2 max-h-[350px] custom-scrollbar">
+      {/* Scrollable container */}
+      <div className="space-y-2.5 overflow-y-auto pr-2 max-h-[350px]">
         {routesData.map((route, index) => (
           <RouteItem 
             key={index}

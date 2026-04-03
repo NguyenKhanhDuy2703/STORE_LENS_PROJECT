@@ -1,136 +1,136 @@
-import { useState } from "react";
-import { Download, RotateCcw, Filter, Eye } from "lucide-react";
+import { Eye, Layers } from 'lucide-react';
+
+const cameras = [
+  { id: 'C01', label: 'Camera 01 - Cửa chính' },
+  { id: 'C02', label: 'Camera 02 - Khu vực tạ' },
+  { id: 'C03', label: 'Camera 03 - Quầy thanh toán' },
+];
 
 const LeftSidebar = ({
-  selectedDate,
-  setSelectedDate,
-  selectedStore,
-  setSelectedStore,
+  heatmapVisible,
+  setHeatmapVisible,
+  zoneOverlay,
+  setZoneOverlay,
+  paletteType,
+  setPaletteType,
   selectedCamera,
   setSelectedCamera,
-  handleExport,
-  handleReset,
 }) => {
-  // 1. THAY THẾ REDUX BẰNG LOCAL STATE
-  const [grid, setGrid] = useState(true);
-  const [zone, setZone] = useState(true);
-  const [opacity, setOpacity] = useState(60);
+  const paletteOptions = [
+    { value: 'turbo', label: 'Turbo', preview: 'bg-gradient-to-r from-blue-600 via-cyan-500 to-red-600' },
+    { value: 'viridis', label: 'Viridis', preview: 'bg-gradient-to-r from-purple-900 via-green-500 to-yellow-300' },
+    { value: 'plasma', label: 'Plasma', preview: 'bg-gradient-to-r from-purple-900 via-pink-500 to-yellow-300' },
+  ];
 
-  const today = new Date().toISOString().split("T")[0];
+  const ToggleButton = ({ icon: Icon, label, isActive, onChange }) => (
+    <button
+      onClick={() => onChange(!isActive)}
+      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border-2 transition-all font-medium text-sm ${
+        isActive
+          ? 'bg-teal-50 border-teal-600 text-teal-700'
+          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <Icon size={16} />
+        <span>{label}</span>
+      </div>
+      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
+        isActive ? 'bg-teal-600 border-teal-600' : 'border-slate-300 bg-white'
+      }`}>
+        {isActive && (
+          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        )}
+      </div>
+    </button>
+  );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        
-        {/* Section: Bộ lọc */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-2">
-            <Filter size={16} className="text-teal-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider">Bộ lọc dữ liệu</h3>
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Ngày phân tích</label>
-              <input
-                type="date"
-                value={selectedDate || today}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Cơ sở / Cửa hàng</label>
-              <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none cursor-pointer"
-              >
-                <option value="STORE001">Cơ sở Quận 1 (Chính)</option>
-                <option value="STORE002">Cơ sở Quận 7</option>
-                <option value="STORE003">Cơ sở Đà Nẵng</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Nguồn Camera</label>
-              <select
-                value={selectedCamera}
-                onChange={(e) => setSelectedCamera(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none cursor-pointer"
-              >
-                <option value="C01">Camera 01 - Cửa chính</option>
-                <option value="C02">Camera 02 - Khu vực tạ</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Section: Tùy chọn hiển thị */}
-        <div className="pt-2 space-y-4">
-          <div className="flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-2">
-            <Eye size={16} className="text-blue-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider">Tùy chọn hiển thị</h3>
-          </div>
-
-          <div className="space-y-4">
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors group">
-              <span className="text-sm font-medium text-slate-700">Ranh giới khu vực</span>
-              <input
-                type="checkbox"
-                checked={zone}
-                onChange={(e) => setZone(e.target.checked)}
-                className="w-5 h-5 accent-teal-500 rounded cursor-pointer transition-transform group-active:scale-90"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors group">
-              <span className="text-sm font-medium text-slate-700">Lưới tọa độ (Grid)</span>
-              <input
-                type="checkbox"
-                checked={grid}
-                onChange={(e) => setGrid(e.target.checked)}
-                className="w-5 h-5 accent-teal-500 rounded cursor-pointer transition-transform group-active:scale-90"
-              />
-            </label>
-
-            <div className="space-y-3 px-1 pt-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-500 uppercase">Độ mờ Heatmap</label>
-                <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-                  {opacity}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={opacity}
-                onChange={(e) => setOpacity(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
-              />
-            </div>
-          </div>
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 h-full flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+      {/* Camera Selector */}
+      <div className="mb-5 pb-4 border-b border-slate-200">
+        <label className="text-xs font-medium text-slate-600 tracking-tight mb-2.5 block">
+          Camera
+        </label>
+        <div className="space-y-1.5">
+          {cameras.map((cam) => (
+            <button
+              key={cam.id}
+              onClick={() => setSelectedCamera(cam.id)}
+              className={`w-full text-left px-3 py-2 rounded-lg border-2 transition-all text-xs font-medium ${
+                selectedCamera === cam.id
+                  ? 'bg-teal-50 border-teal-600 text-teal-700'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              {cam.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-2">
-        <button
-          onClick={handleExport}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all shadow-md shadow-teal-100 font-bold text-sm active:scale-95"
-        >
-          <Download size={18} />
-          Xuất dữ liệu PNG
-        </button>
-        <button
-          onClick={handleReset}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-xl transition-all font-bold text-sm active:scale-95"
-        >
-          <RotateCcw size={18} />
-          Làm mới bộ lọc
-        </button>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
+        <Eye size={16} className="text-teal-600" />
+        <h3 className="text-xs font-medium text-slate-900 tracking-tight">
+          Hiển Thị
+        </h3>
+      </div>
+
+      {/* Display Toggles */}
+      <div className="space-y-2.5 mb-5">
+        <ToggleButton
+          icon={Eye}
+          label="Bản Đồ Nhiệt"
+          isActive={heatmapVisible}
+          onChange={setHeatmapVisible}
+        />
+
+        <ToggleButton
+          icon={Layers}
+          label="Khu Vực"
+          isActive={zoneOverlay}
+          onChange={setZoneOverlay}
+        />
+      </div>
+
+      {/* Palette Selection */}
+      <div className="pt-4 border-t border-slate-200">
+        <label className="text-xs font-medium text-slate-600 tracking-tight mb-2.5 block">
+          Bảng Màu
+        </label>
+        
+        <div className="space-y-1.5">
+          {paletteOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setPaletteType(option.value)}
+              className={`w-full p-2.5 rounded-lg border-2 transition-all text-xs ${
+                paletteType === option.value
+                  ? 'border-teal-600 bg-teal-50'
+                  : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`w-6 h-4 rounded-md ${option.preview}`}></div>
+                <span className={`font-medium ${
+                  paletteType === option.value ? 'text-teal-700' : 'text-slate-600'
+                }`}>
+                  {option.label}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <div className="mt-auto pt-3 border-t border-slate-200">
+        <p className="text-[9px] text-slate-500 leading-relaxed">
+          Dùng <strong>GlobalFilter</strong> để chọn cơ sở, camera và ngày phân tích.
+        </p>
       </div>
     </div>
   );

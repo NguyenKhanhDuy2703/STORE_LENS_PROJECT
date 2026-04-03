@@ -11,7 +11,6 @@ const MemberSegmentation = () => {
     const { members = [], segments = [], loading = false } = useSelector((state) => state.memberSegmentation ?? {});
 
     useEffect(() => {
-        // Vẫn gọi dispatch để Demo luồng xử lý của AI
         dispatch(fetchGetMembers());
         dispatch(fetchGetSegments());
     }, [dispatch]);
@@ -24,13 +23,18 @@ const MemberSegmentation = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6 space-y-6">
-            <h1 className="text-2xl font-bold text-slate-800"></h1>
+        <div className="min-h-screen bg-slate-50 p-6 space-y-6">
+            <div>
+                <h1 className="text-2xl font-medium tracking-tight text-slate-900">Quản lý khách hàng</h1>
+                <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+                    Theo dõi phân khúc hội viên, tần suất ghé thăm và các chỉ số hành vi của khách hàng.
+                </p>
+            </div>
             
             {loading && (
-                <div className="flex items-center gap-2 text-indigo-600 animate-pulse">
-                    <div className="w-2 h-2 bg-indigo-600 rounded-full"></div>
-                    <span className="font-medium text-sm">AI đang xử lý dữ liệu không gian...</span>
+                <div className="flex items-center gap-2 text-teal-600 animate-pulse">
+                    <div className="w-2 h-2 bg-teal-600 rounded-full"></div>
+                    <span className="font-medium text-sm tracking-tight text-slate-600">AI đang xử lý dữ liệu không gian...</span>
                 </div>
             )}
 

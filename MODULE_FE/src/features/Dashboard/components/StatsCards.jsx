@@ -1,55 +1,88 @@
-import React from 'react';
+import  { useMemo } from 'react';
 import { DollarSign, Users, TrendingUp } from 'lucide-react';
 
-const StatsCards = () => (
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-    {/* Doanh thu */}
-    <div className="bg-white border border-gray-100 rounded-xl p-6 flex justify-between">
-      <div>
-        <p className="text-gray-500 text-xs font-bold uppercase mb-2">TỔNG DOANH THU</p>
-        <h2 className="text-4xl font-bold text-gray-800">25.0M</h2>
-      </div>
-      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-500">
-        <DollarSign size={24} />
-      </div>
-    </div>
+const StatsCards = () => {
+  const mockStats = useMemo(() => {
+    return {
+      total_revenue: 25000000, 
+      total_customers: 1300,
+      conversion_rate: 12.5,
+      current_visitors: 42,
+      waiting_queue: 8,
+    };
+  }, []);
 
-    {/* Khách hàng */}
-    <div className="bg-white border border-gray-100 rounded-xl p-6 flex justify-between">
-      <div>
-        <p className="text-gray-500 text-xs font-bold uppercase mb-2">TỔNG KHÁCH HÀNG</p>
-        <h2 className="text-4xl font-bold text-gray-800">1.3K</h2>
-      </div>
-      <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-500">
-        <Users size={24} />
-      </div>
-    </div>
+  const formatCurrency = (value) => {
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    }
+    if (value >= 1000) {
+      return (value / 1000).toFixed(1) + 'K';
+    }
+    return value.toString();
+  };
 
-    {/* Chuyển đổi */}
-    <div className="bg-white border border-gray-100 rounded-xl p-6 flex justify-between">
-      <div>
-        <p className="text-gray-500 text-xs font-bold uppercase mb-2">TỶ LỆ CHUYỂN ĐỔI</p>
-        <h2 className="text-4xl font-bold text-gray-800">12.5%</h2>
-      </div>
-      <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-400">
-        <TrendingUp size={24} />
-      </div>
-    </div>
+  const formatNumber = (value) => {
+    return value.toLocaleString('vi-VN');
+  };
 
-    {/* Live Status */}
-    <div className="bg-white border border-gray-100 rounded-xl p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-        <span className="text-emerald-600 text-xs font-bold">LIVE</span>
+  const MetricCard = ({ label, value, icon: Icon, iconBg }) => (
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-start shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex-1">
+        <p className="text-[10px] font-medium text-slate-400 tracking-tight mb-2">{label}</p>
+        <h2 className="text-4xl font-semibold text-slate-900 tabular-nums tracking-tight">{value}</h2>
       </div>
-      <p className="text-gray-500 text-[11px] font-bold uppercase mb-1">KHÁCH HIỆN TẠI TRONG CỬA HÀNG</p>
-      <h2 className="text-4xl font-bold text-gray-800 mb-1">42</h2>
-      <p className="text-gray-400 text-[10px] mb-4">Cập nhật 20:42:47</p>
-      
-      <p className="text-gray-500 text-[11px] font-bold uppercase mb-1">CHỜ TẠI QUẦY</p>
-      <h2 className="text-2xl font-bold text-gray-800">8</h2>
+      <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+        <Icon size={24} className="text-white" />
+      </div>
     </div>
-  </div>
-);
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Total Revenue */}
+      <MetricCard
+        label="Tổng Doanh Thu"
+        value={formatCurrency(mockStats.total_revenue)}
+        icon={DollarSign}
+        iconBg="bg-teal-600"
+      />
+
+      {/* Total Customers */}
+      <MetricCard
+        label="Tổng Khách Hàng"
+        value={formatNumber(mockStats.total_customers)}
+        icon={Users}
+        iconBg="bg-teal-600"
+      />
+
+      {/* Conversion Rate */}
+      <MetricCard
+        label="Tỷ Lệ Chuyển Đổi"
+        value={`${mockStats.conversion_rate.toFixed(1)}%`}
+        icon={TrendingUp}
+        iconBg="bg-teal-600"
+      />
+
+      {/* Live Status Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-2 h-2 rounded-full bg-teal-600"></div>
+          <span className="text-teal-600 text-[10px] font-medium tracking-tight">Live</span>
+        </div>
+        
+        <p className="text-[10px] font-medium text-slate-400 tracking-tight mb-1">Khách Hiện Tại</p>
+        <h2 className="text-4xl font-semibold text-slate-900 mb-2 tabular-nums tracking-tight">{mockStats.current_visitors}</h2>
+        
+        <p className="text-[9px] text-slate-500 mb-4">Cập nhật lúc {new Date().toLocaleTimeString('vi-VN')}</p>
+        
+        <div className="border-t border-slate-200 pt-4">
+          <p className="text-[10px] font-medium text-slate-400 tracking-tight mb-2">Chờ Tại Quầy</p>
+          <h3 className="text-2xl font-semibold text-slate-900 tabular-nums tracking-tight">{mockStats.waiting_queue}</h3>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default StatsCards;
