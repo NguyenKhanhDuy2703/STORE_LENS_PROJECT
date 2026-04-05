@@ -1,27 +1,50 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import axios from 'axios'; 
+import { toast } from 'react-toastify';
 
+/**
+ * Thunk 1: Lấy danh sách chi tiết hội viên (Cho bảng MemberListInsights)
+ */
 export const fetchGetMembers = createAsyncThunk(
     "memberSegmentation/fetchGetMembers",
-    async (_, { rejectWithValue }) => {
+    async (locationId, { rejectWithValue }) => {
         try {
-            // Giả lập độ trễ mạng để hiệu ứng Loading hiện ra
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            // Trả về thành công nhưng data rỗng để Slice dùng dữ liệu Mock
-            return { status: "success", data: [], meta: { total: 5 } }; 
+            // Gọi API thực tế từ Backend
+            const response = await axios.get(`/api/v1/member/list`, {
+                params: { location_id: locationId }
+            });
+
+            if (response.data.status === "success") {
+                return response.data; 
+            }
+            return rejectWithValue(response.data.message);
         } catch (error) {
-            return rejectWithValue("Lỗi hệ thống demo");
+            const message = error.response?.data?.message || "Lỗi tải danh sách hội viên";
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
 
+/**
+ * Thunk 2: Lấy dữ liệu phân cụm (Cho biểu đồ ClusterProfiles)
+ */
 export const fetchGetSegments = createAsyncThunk(
     "memberSegmentation/fetchGetSegments",
-    async (_, { rejectWithValue }) => {
+    async (locationId, { rejectWithValue }) => {
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return { status: "success", data: [] };
+            const response = await axios.get(`/api/v1/member/segments`, {
+                params: { location_id: locationId }
+            });
+
+            if (response.data.status === "success") {
+                return response.data;
+            }
+            return rejectWithValue(response.data.message);
         } catch (error) {
-            return rejectWithValue("Lỗi tải phân cụm");
+            const message = error.response?.data?.message || "Lỗi tải dữ liệu phân cụm";
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
