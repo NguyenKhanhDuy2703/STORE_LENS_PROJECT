@@ -59,3 +59,9 @@ MODULE_AI/datasets/
 
 # Chặn toàn bộ thư mục weights
 MODULE_AI/weights/
+
+# docs [MODULE_FE]
+MODULE_FE/docs/
+MODULE_FE/.vscode/
+MODULE_FE/.idea/
+MODULE_FE/src/seeds

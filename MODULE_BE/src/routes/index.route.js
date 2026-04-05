@@ -3,7 +3,7 @@ const { error, success } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
 const authRoutes = require("./auth.routes");
 const cameraAIRoutes = require("./cameraAI.routes");
-
+const asynLocationRoutes = require("./asyn.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -12,7 +12,7 @@ const routes = (app) => {
   
   app.use(`${version}/auth`, authRoutes);
   app.use(`${version}/camera`, cameraAIRoutes);
-
+  app.use(`${version}/async`, asynLocationRoutes);
 
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success(

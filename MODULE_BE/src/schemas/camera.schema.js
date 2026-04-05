@@ -22,7 +22,6 @@ const cameraSchema = new Schema({
     installation_date: { type: Date },
     camera_spec: cameraSpecSchema,
     camera_state: cameraStateSchema,
-    ai_config: aiConfigSchema
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
