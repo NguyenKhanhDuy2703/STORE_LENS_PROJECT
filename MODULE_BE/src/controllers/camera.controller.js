@@ -15,9 +15,9 @@ mock_zones = [
 ]
 const turnOncameraController = catchAsync(async (req, res) => {
     const {
-      cameraId = 1,
-      urlRtsp = "D:\\NCKH_2\\MODULE_AI\\storage\\videos\\video_1.mp4",
-      locationId = 1,
+      cameraId ,
+      urlRtsp ,
+      locationId ,
     } = req.body;
     if (!cameraId || !urlRtsp || !locationId) {
         error({ message: "Missing values", code: StatusCodes.BAD_REQUEST });

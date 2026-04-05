@@ -9,7 +9,7 @@ const assetAttributesSchema = new Schema({
 // Schema chính cho Asset
 const assetSchema = new Schema({
     location_id: { type: String, ref: 'Location', required: true },
-    category_name: { type: String, required: true, trim: true },
+    category_name: { type: String, required: true, trim: true , unique: true },
     name_product: { type: String, required: true, trim: true },
     brand: { type: String, trim: true },
     price: { type: Number, default: 0 },

@@ -5,7 +5,7 @@ const authRoutes = require("./auth.routes");
 const cameraAIRoutes = require("./cameraAI.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const areaManagementRoutes = require("./areaManagement.routes");
-
+const asynLocationRoutes = require("./asyn.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -17,6 +17,8 @@ const routes = (app) => {
   app.use(`${version}/dashboard`, dashboardRoutes);
   app.use(`${version}/area-management`, areaManagementRoutes);
 
+
+  app.use(`${version}/async`, asynLocationRoutes);
 
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success(
