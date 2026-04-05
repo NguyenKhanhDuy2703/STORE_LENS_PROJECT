@@ -6,7 +6,9 @@
   "scripts": {
     "test": "jest --detectOpenHandles",
     "start": "nodemon --inspect src/server.js",
-    "setup_db": ""
+    "seed:fake": "node src/seeds/fake.seed.js --clean",
+    "seed:fake:append": "node src/seeds/fake.seed.js",
+    "setup_db": "npm run seed:fake"
   },
   "author": "khanhduy",
   "license": "ISC",
@@ -27,6 +29,7 @@
     "http-errors": "^2.0.1",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.6.1",
     "mongodb": "^7.1.1",
     "mongoose": "^8.18.1",
     "morgan": "^1.10.0",
