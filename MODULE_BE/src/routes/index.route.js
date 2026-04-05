@@ -3,6 +3,8 @@ const { error, success } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
 const authRoutes = require("./auth.routes");
 const cameraAIRoutes = require("./cameraAI.routes");
+const dashboardRoutes = require("./dashboard.routes");
+const areaManagementRoutes = require("./areaManagement.routes");
 
 const {
   authenticationToken,
@@ -12,6 +14,8 @@ const routes = (app) => {
   
   app.use(`${version}/auth`, authRoutes);
   app.use(`${version}/camera`, cameraAIRoutes);
+  app.use(`${version}/dashboard`, dashboardRoutes);
+  app.use(`${version}/area-management`, areaManagementRoutes);
 
 
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
