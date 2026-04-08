@@ -8,7 +8,7 @@ const Heatmap = () => {
   const [heatmapVisible, setHeatmapVisible] = useState(true);
   const [zoneOverlay, setZoneOverlay] = useState(true);
   const [paletteType, setPaletteType] = useState('turbo');
-  const [selectedCamera, setSelectedCamera] = useState('C01');
+  const [selectedCamera, setSelectedCamera] = useState('CAM_FRONT_057601');
 
   // Mock data for canvas
   const mockTimeLine = ['09:00', '09:15', '09:30', '09:45', '10:00'];

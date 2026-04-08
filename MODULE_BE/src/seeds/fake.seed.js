@@ -12,20 +12,16 @@ const LocationStats = require('../schemas/locationStats.schema');
 const ZoneStats = require('../schemas/zoneStats.schema');
 const Heatmap = require('../schemas/heatmap.schema');
 const FlowPatterns = require('../schemas/flowPatterns.schema');
+const { dateUtil, getCurrnetDateVN } = require('../utils/date.util');
 
 const MONGO_URI = process.env.URI_MONGODB || process.env.MONGO_URI;
 const LOCATION_CODE = (process.env.SEED_LOCATION_CODE || 'LOC_TEST_001').toUpperCase();
+const FRONT_CAMERA_CODE = 'CAM_FRONT_057601';
+const CHECKOUT_CAMERA_CODE = 'CAM_CHECKOUT_057601';
 const SHOULD_CLEAN = process.argv.includes('--clean');
 
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function vnStartOfDay(date = new Date()) {
-    const offsetMs = 7 * 60 * 60 * 1000;
-    const vnDate = new Date(date.getTime() + offsetMs);
-    vnDate.setUTCHours(0, 0, 0, 0);
-    return new Date(vnDate.getTime() - offsetMs);
 }
 
 function createHeatmapMatrix(height, width) {
@@ -67,7 +63,7 @@ async function seed() {
     await mongoose.connect(MONGO_URI, { dbName: 'spacelens' });
     console.log('[seed] Connected MongoDB');
 
-    const today = vnStartOfDay();
+    const { startDate: today } = dateUtil({ type: 'today' });
     const locationNameSuffix = randomInt(100, 999);
 
     let location = await Location.findOne({ location_code: LOCATION_CODE });
@@ -135,26 +131,28 @@ async function seed() {
         {
             location_id: locationId,
             camera_name: 'Front Door Cam',
-            camera_code: `CAM_FRONT_${uniqueSuffix}`,
+            camera_code: FRONT_CAMERA_CODE,
             rtsp_url: 'rtsp://demo:demo@127.0.0.1:554/front',
+            url_image_snapshot: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop',
             status: 'active',
-            installation_date: new Date(),
+            installation_date: getCurrnetDateVN(),
             camera_spec: {
                 max_resolution: { width: 1920, height: 1080 },
                 current_resolution: { width: 1280, height: 720 }
             },
             camera_state: {
-                last_processed_time: new Date(),
+                last_processed_time: getCurrnetDateVN(),
                 last_stop_time: null
             }
         },
         {
             location_id: locationId,
             camera_name: 'Checkout Cam',
-            camera_code: `CAM_CHECKOUT_${uniqueSuffix}`,
+            camera_code: CHECKOUT_CAMERA_CODE,
             rtsp_url: 'rtsp://demo:demo@127.0.0.1:554/checkout',
+            url_image_snapshot: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop',
             status: 'active',
-            installation_date: new Date()
+            installation_date: getCurrnetDateVN()
         }
     ]);
 
@@ -413,7 +411,7 @@ async function seed() {
     await Heatmap.insertMany([
         {
             location_id: locationId,
-            camera_id: String(cameras[0]._id),
+            camera_id: cameras[0].camera_code,
             date: today,
             time_stamp: Date.now(),
             width_matrix: 8,
@@ -425,7 +423,7 @@ async function seed() {
         },
         {
             location_id: locationId,
-            camera_id: String(cameras[1]._id),
+            camera_id: cameras[1].camera_code,
             date: today,
             time_stamp: Date.now() + 1,
             width_matrix: 8,

@@ -1,9 +1,8 @@
 import { Eye, Layers } from 'lucide-react';
 
 const cameras = [
-  { id: 'C01', label: 'Camera 01 - Cửa chính' },
-  { id: 'C02', label: 'Camera 02 - Khu vực tạ' },
-  { id: 'C03', label: 'Camera 03 - Quầy thanh toán' },
+  { id: 'CAM_FRONT_057601', label: 'Camera Front - Cửa chính' },
+  { id: 'CAM_CHECKOUT_057601', label: 'Camera Checkout - Quầy thanh toán' },
 ];
 
 const LeftSidebar = ({

@@ -8,8 +8,7 @@ const assetSchema = require("../schemas/asset.schema");
 
 const zoneStatsWorker = {
   async process({ locationId, zoneId }) {
-    const today = dateUtil.getVNStartofDay(new Date());
-    const nextDay = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const { startDate: today, endDate: nextDay } = dateUtil.dateUtil({ type: "today" });
     await zoneStatsSchema.updateOne(
       {
         location_id: locationId,
@@ -137,7 +136,7 @@ const zoneStatsWorker = {
       {
         $match: {
           location_id: locationId,
-          date: { $gte: today, $lt: nextDay },
+          date: { $gte: today, $lte: nextDay },
         },
       },
       {
@@ -212,7 +211,7 @@ const funcTracking = {
       {
         $match: {
           "zone_sequence.zone_id": zoneId,
-          "zone_sequence.entry_time": { $gte: today, $lt: nextDay },
+          "zone_sequence.entry_time": { $gte: today, $lte: nextDay },
         },
       },
       {
@@ -246,7 +245,7 @@ const funcTracking = {
       {
         $match: {
           "zone_sequence.zone_id": zoneId,
-          "zone_sequence.entry_time": { $gte: today, $lt: nextDay },
+          "zone_sequence.entry_time": { $gte: today, $lte: nextDay },
         },
       },
       {
@@ -280,7 +279,7 @@ const funcTracking = {
       location_id: locationId,
       zone_id: zoneId,
       event_type: "stop",
-      start_time: { $gte: today, $lt: nextDay },
+      start_time: { $gte: today, $lte: nextDay },
     });
     return totalStopEventsAgg;
   },
