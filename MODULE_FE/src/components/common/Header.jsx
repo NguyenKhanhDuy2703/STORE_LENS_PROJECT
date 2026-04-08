@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { 
   LayoutDashboard, BarChart3, MapPin, 
   ChevronDown, Settings,
-  Flame, Clock, Camera, User, LogOut, Users, Menu, X,
+  Flame, Clock, Camera, LogOut, Users,
   Package
 } from 'lucide-react';
 import NotificationPopover from './NotificationPopover';
@@ -22,7 +22,6 @@ export const Header = () => {
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
@@ -63,13 +62,13 @@ export const Header = () => {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-teal-600 hover:bg-teal-500 transition-colors">
                 <Flame className="text-white" size={20} />
               </div>
-              <span className="text-base font-semibold text-slate-900 hidden lg:inline tracking-tight">
+              <span className="text-base font-semibold text-slate-900 tracking-tight">
                 SpaceLens
               </span>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden xl:flex items-center gap-1 border-l border-slate-200 pl-6">
+            <nav className="flex items-center gap-1 border-l border-slate-200 pl-6">
               {navItems.map((item) => (
                 <Link 
                   key={item.path}
@@ -174,16 +173,16 @@ export const Header = () => {
           {/* RIGHT: Actions - Status Badge, Notifications, User Menu */}
           <div className="flex items-center gap-4 shrink-0">
             {/* Online Status Badge */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-emerald-700 text-xs font-semibold uppercase tracking-tight">Trực tuyến</span>
             </div>
 
             {/* Notification Popover */}
-            <NotificationPopover />
+          <NotificationPopover />
 
             {/* User Menu */}
-            <div className="relative hidden sm:block">
+            <div className="relative block">
               <button 
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200"
@@ -191,10 +190,10 @@ export const Header = () => {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-600 to-teal-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                   {currentUser.avatar}
                 </div>
-                <span className="text-sm font-medium text-slate-900 hidden lg:inline">
+                <span className="text-sm font-medium text-slate-900">
                   {currentUser.fullName}
                 </span>
-                <ChevronDown size={14} className="text-slate-400 hidden lg:inline" />
+                <ChevronDown size={14} className="text-slate-400" />
               </button>
 
               <AnimatePresence>
@@ -245,116 +244,8 @@ export const Header = () => {
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-            >
-              {isMobileMenuOpen ? (
-                <X size={20} />
-              ) : (
-                <Menu size={20} />
-              )}
-            </button>
           </div>
         </div>
-
-        {/* MOBILE MENU */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }} 
-              animate={{ opacity: 1, height: 'auto' }} 
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t border-slate-200 bg-slate-50"
-            >
-              <nav className="px-4 py-4 space-y-2">
-                {/* Mobile Navigation Items */}
-                {navItems.map((item) => (
-                  <Link 
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium ${
-                      isActive(item.path) 
-                        ? 'bg-teal-100 text-teal-700' 
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-
-                {/* Mobile Management Section */}
-                <div>
-                  <button 
-                    onClick={() => setIsManagementOpen(!isManagementOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-100 transition-all text-sm font-medium"
-                  >
-                    <div className="flex items-center gap-3">
-                      <BarChart3 size={18} />
-                      <span>Quản lý</span>
-                    </div>
-                    <ChevronDown size={14} className={`transition-transform ${isManagementOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  <div className={`overflow-hidden transition-all ${isManagementOpen ? 'max-h-48' : 'max-h-0'}`}>
-                    {managementItems.map(item => (
-                      <Link 
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-8 py-2.5 text-slate-600 hover:bg-slate-100 transition-colors text-sm"
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mobile Configuration Section */}
-                <div>
-                  <button 
-                    onClick={() => setIsConfigOpen(!isConfigOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-100 transition-all text-sm font-medium"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Settings size={18} />
-                      <span>Cấu hình</span>
-                    </div>
-                    <ChevronDown size={14} className={`transition-transform ${isConfigOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  <div className={`overflow-hidden transition-all ${isConfigOpen ? 'max-h-48' : 'max-h-0'}`}>
-                    {configItems.map(item => (
-                      <Link 
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-8 py-2.5 text-slate-600 hover:bg-slate-100 transition-colors text-sm"
-                      >
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mobile User Section */}
-                <div className="px-4 py-3 border-t border-slate-200">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors text-sm font-semibold"
-                  >
-                    <LogOut size={16} />
-                    <span>Đăng xuất</span>
-                  </button>
-                </div>
-              </nav>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </header>
   );

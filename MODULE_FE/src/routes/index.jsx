@@ -7,6 +7,7 @@ import Heatmap from "../features/Heatmap/Heatmap";
 import Downtime from "../features/Downtime/Downtime";
 import ManagermentCameraPage from "../features/ManagermentCamera/ManagermentCameraPage";
 import MemberSegmentation from "../features/MemberSegmentation/MemberSegmentation";
+import Settings from "../features/Settings/Settings";
 
 import Map from "../features/Map/Map";
 import ManagerUser from "../features/ManagerUser/ManagerUser";
@@ -36,7 +37,7 @@ const AppRouter = () => {
         <Route path="customer-management" element={<Navigate to="/quan-ly-khach-hang" replace />} />
         <Route path="user-management" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
         <Route path="management/users" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
-        <Route path="settings" element={<Navigate to="/config/rules" replace />} />
+        <Route path="settings" element={<Settings />} />
 
         {/* Legacy paths */}
         <Route path="analytics/area" element={<Navigate to="/management/area" replace />} />

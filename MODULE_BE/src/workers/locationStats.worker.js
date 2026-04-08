@@ -1,12 +1,11 @@
 const locationStats = require("../schemas/locationStats.schema");
-const dateUtil = require("../utils/date.util");
 const Session = require("../schemas/session.schema");
 const BusinessEvent = require("../schemas/businessEvent.schema");
 const locationStatsSchema = require("../schemas/locationStats.schema");
+const {dateUtil} = require("../utils/date.util");
 const locationStatsWorker = {
   async process(locationId) {
-    const today = dateUtil.getVNStartofDay(new Date());
-    const nextDay = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const { startDate: today, endDate: nextDay } = dateUtil({ type: "today" });
     await locationStats.updateOne(
       {
         location_id: locationId,
@@ -57,7 +56,7 @@ const locationStatsWorker = {
       {
         $match: {
           location_id: locationId,
-          date: { $gte: today, $lt: nextDay },
+          date: { $gte: today, $lte: nextDay },
         },
       },
       {
@@ -95,7 +94,7 @@ const locationStatsWorker = {
   async chartDataProcessor({ locationId, today, nextDay }) {
   const [dataRevenue, dataTracking] = await Promise.all([
     BusinessEvent.aggregate([
-      { $match: { location_id: locationId, date: { $gte: today, $lt: nextDay } } },
+      { $match: { location_id: locationId, date: { $gte: today, $lte: nextDay } } },
       {
         $group: {
           _id: { $hour: { date: "$date", timezone: "Asia/Ho_Chi_Minh" } },
@@ -107,7 +106,7 @@ const locationStatsWorker = {
       { $project: { _id: 0, hour: "$_id", bill_count: 1, total_revenue: 1 } }
     ]),
     Session.aggregate([
-      { $match: { location_id: locationId, entry_time: { $gte: today, $lt: nextDay } } },
+      { $match: { location_id: locationId, entry_time: { $gte: today, $lte: nextDay } } },
       {
         $group: {
           _id: { $hour: { date: "$entry_time", timezone: "Asia/Ho_Chi_Minh" } },
@@ -146,7 +145,7 @@ const locationStatsWorker = {
       {
         $match: {
           location_id: locationId,
-          date: { $gte: today, $lt: nextDay },
+          date: { $gte: today, $lte: nextDay },
         },
       },
       { $unwind: "$event_details" },
