@@ -2,6 +2,7 @@ const logger = require("../utils/logging");
 const sessionSchema = require("../schemas/session.schema");
 const interactionLogSchema = require("../schemas/interactionLog.schema");
 const zoneSchema = require("../schemas/zone.schema");
+const {getCurrnetDateVN} = require("../utils/date.util");
 const sessionWorker = {
   async save(payload = {}) {
     if (!payload || typeof payload !== "object") {
@@ -42,7 +43,7 @@ const sessionWorker = {
           },
           {
             $setOnInsert: {
-              entry_time: new Date(),
+              entry_time: getCurrnetDateVN(),
               camera_id: camera_id,
               location_id: location_id,
               session_uuid: sessionUUID,
@@ -80,7 +81,7 @@ const sessionWorker = {
             asset_id: assetInZone.asset_id,
             event_type: item.event_type,
             start_time: item.timestamp,
-            last_heartbeat: new Date(),
+            last_heartbeat: getCurrnetDateVN(),
             duration_seconds: item.dwell_time,
             status: "active",
           });
@@ -138,7 +139,6 @@ const sessionWorker = {
     const { camera_id, location_id } = infor;
     const { track_id, event, zone_id, from_zone_id, to_zone_id } = data || {};
     const sessionUUID = `${location_id}_${camera_id}_${track_id}`;
-    const now = new Date();
     switch (event) {
         case "ENTRY":
             await sessionSchema.findOneAndUpdate(
@@ -147,7 +147,7 @@ const sessionWorker = {
                     $push: { 
                         zone_sequence: { 
                             zone_id: zone_id, 
-                            entry_time: now,
+                            entry_time: getCurrnetDateVN(),
                             exit_time: null,
                             dwell_time_seconds: 0
                         } 
@@ -162,12 +162,13 @@ const sessionWorker = {
             if (session && Array.isArray(session.zone_sequence) && session.zone_sequence.length > 0) {
                 const lastZone = session.zone_sequence[session.zone_sequence.length - 1];
                 if (lastZone.zone_id === zone_id && !lastZone.exit_time) {
+                  const now = getCurrnetDateVN();
                     const dwellTime = Math.floor((now - lastZone.entry_time) / 1000);
                     await sessionSchema.updateOne(
                         { session_uuid: sessionUUID, "zone_sequence._id": lastZone._id },
                         { 
                             $set: { 
-                                "zone_sequence.$.exit_time": now,
+                                "zone_sequence.$.exit_time": getCurrnetDateVN(),
                                 "zone_sequence.$.dwell_time_seconds": dwellTime
                             } 
                         }
