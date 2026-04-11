@@ -1,4 +1,4 @@
-const {tunrOffcameraController , turnOncameraController} = require("../controllers/camera.controller");
+const {tunrOffcameraController , turnOncameraController} = require("../controllers/cameraStatus.controller");
 const express = require("express");
 const router = express.Router();
 const { 
