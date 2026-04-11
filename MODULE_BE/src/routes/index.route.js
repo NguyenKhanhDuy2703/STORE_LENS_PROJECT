@@ -6,20 +6,21 @@ const cameraAIRoutes = require("./cameraAI.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const areaManagementRoutes = require("./areaManagement.routes");
 const asynLocationRoutes = require("./asyn.routes");
+const heatmapRoutes = require("./heatmap.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
+  ALLOWED_MANAGER,
+  ALLOWED_ADMIN
 } = require("../middlewares/auth.middleware");
 const routes = (app) => {
   
   app.use(`${version}/auth`, authRoutes);
   app.use(`${version}/camera`, cameraAIRoutes);
+  app.use(`${version}/async`, asynLocationRoutes);
   app.use(`${version}/dashboard`, dashboardRoutes);
   app.use(`${version}/area-management`, areaManagementRoutes);
-
-
-  app.use(`${version}/async`, asynLocationRoutes);
-
+  app.use(`${version}/heatmap`, heatmapRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success(
       res,
