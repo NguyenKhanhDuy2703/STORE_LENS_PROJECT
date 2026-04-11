@@ -1,12 +1,51 @@
 const Camera = require('../schemas/camera.schema');
 
-const getCameraKPIMetrics = async ({ locationId } = {}) => {
+const getCameraDashboardData = async () => {
     try {
-        const cameras = await Camera.find({ location_id: locationId });
+        const result = await Camera.aggregate([
+            {
+                $facet: {
+                    "total": [{ $count: "count" }],
+                    "active": [
+                        { $match: { status: "active" } },
+                        { $count: "count" }
+                    ],
+                    "error": [
+                        { $match: { status: { $in: ["error", "disconnect"] } } },
+                        { $count: "count" }
+                    ],
+                    "camera_list": [
+                        { $sort: { created_at: -1 } },
+                        {
+                            $project: {
+                                id: "$_id",
+                                camera_name: 1,
+                                camera_code: 1,
+                                rtsp_url: 1,
+                                status: 1,
+                                location_id: 1,
+                                last_heartbeat: 1,
+                                updated_at: 1,
+                                _id: 0
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    metrics: {
+                        total: { $ifNull: [{ $arrayElemAt: ["$total.count", 0] }, 0] },
+                        active: { $ifNull: [{ $arrayElemAt: ["$active.count", 0] }, 0] },
+                        error: { $ifNull: [{ $arrayElemAt: ["$error.count", 0] }, 0] }
+                    },
+                    camera_list: 1
+                }
+            }
+        ]);
+
         return {
-            total_cameras: cameras.length,
-            active_cameras: cameras.filter(c => c.status === 'active').length,
-            issue_cameras: cameras.filter(c => c.status === 'error' || c.status === 'disconnect').length,
+            ...result[0],
             last_updated: new Date()
         };
     } catch (error) {
@@ -14,45 +53,28 @@ const getCameraKPIMetrics = async ({ locationId } = {}) => {
     }
 };
 
-const getCameraListDetails = async ({ locationId } = {}) => {
+const upsertCamera = async (cameraCode, cameraData) => {
     try {
-        const cameras = await Camera.find({ location_id: locationId }).sort({ created_at: -1 });
-        return {
-            camera_list: cameras.map(c => ({
-                id: c._id,
-                camera_name: c.camera_name,
-                camera_code: c.camera_code,
-                rtsp_url: c.rtsp_url,
-                location_id: c.location_id, 
-                status: c.status,
-                last_heartbeat: c.last_heartbeat,
-                updated_at: c.updated_at
-            })),
-            last_updated: new Date()
-        };
-    } catch (error) {
-        throw error;
-    }
-};
-
-const createCamera = async (cameraData) => {
-    try {
-        const camera = new Camera(cameraData);
-        return await camera.save();
-    } catch (error) {
-        throw error;
-    }
-};
-
-const updateCamera = async (cameraCode, updateData) => {
-    try {
-    
-        const { status, ...validUpdateData } = updateData;
+        const { status, camera_code, created_at, ...otherData } = cameraData;
 
         return await Camera.findOneAndUpdate(
-            { camera_code: cameraCode }, 
-            validUpdateData, 
-            { new: true }
+            { camera_code: cameraCode },
+            {
+                $set: { 
+                    ...otherData, 
+                    updated_at: new Date() 
+                },
+                $setOnInsert: { 
+                    status: status || 'inactive',
+                    created_at: new Date()
+                }
+            },
+            {
+                new: true,
+                upsert: true,
+                runValidators: true,
+                setDefaultsOnInsert: true
+            }
         );
     } catch (error) {
         throw error;
@@ -68,9 +90,7 @@ const deleteCamera = async (cameraCode) => {
 };
 
 module.exports = {
-    getCameraKPIMetrics,
-    getCameraListDetails,
-    createCamera,
-    updateCamera,
+    getCameraDashboardData,
+    upsertCamera,
     deleteCamera
 };
