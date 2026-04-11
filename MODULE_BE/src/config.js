@@ -32,6 +32,11 @@ class setting {
     };
     this.api = {
         version: "/api/v1",
+    },
+    this.cloudinary = {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
     }
   
     setting.instance = this;
@@ -43,6 +48,7 @@ class setting {
       redis: this.redis,
       api : this.api,
       apiAI : this.apiAI,
+      cloudinary: this.cloudinary,
     };
   }
 }

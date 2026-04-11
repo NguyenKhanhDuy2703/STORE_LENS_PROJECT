@@ -12,6 +12,7 @@ const LocationStats = require('../schemas/locationStats.schema');
 const ZoneStats = require('../schemas/zoneStats.schema');
 const Heatmap = require('../schemas/heatmap.schema');
 const FlowPatterns = require('../schemas/flowPatterns.schema');
+const CustomerCareRule = require('../schemas/customerCareRule.schema');
 const { dateUtil, getCurrnetDateVN } = require('../utils/date.util');
 
 const MONGO_URI = process.env.URI_MONGODB || process.env.MONGO_URI;
@@ -47,7 +48,8 @@ async function cleanupLocationData(locationId, zoneIds) {
         LocationStats.deleteMany({ location_id: locationId }),
         ZoneStats.deleteMany({ location_id: locationId }),
         Heatmap.deleteMany({ location_id: locationId }),
-        FlowPatterns.deleteMany({ location_id: locationId })
+        FlowPatterns.deleteMany({ location_id: locationId }),
+        CustomerCareRule.deleteMany({ location_id: locationId })
     ]);
 
     if (Array.isArray(zoneIds) && zoneIds.length > 0) {
@@ -156,10 +158,15 @@ async function seed() {
         }
     ]);
 
+    const cameraCodeByName = {
+        frontDoor: cameras[0].camera_code,
+        checkout: cameras[1].camera_code
+    };
+
     const zones = await Zone.insertMany([
         {
             location_id: locationId,
-            camera_id: String(cameras[0]._id),
+            camera_id: cameraCodeByName.frontDoor,
             zone_name: 'Smartphone Display',
             zone_id: `ZONE_PHONE_${uniqueSuffix}`,
             category_name: assets[0].category_name,
@@ -168,7 +175,7 @@ async function seed() {
         },
         {
             location_id: locationId,
-            camera_id: String(cameras[0]._id),
+            camera_id: cameraCodeByName.frontDoor,
             zone_name: 'Laptop Shelf',
             zone_id: `ZONE_LAPTOP_${uniqueSuffix}`,
             category_name: assets[1].category_name,
@@ -177,7 +184,7 @@ async function seed() {
         },
         {
             location_id: locationId,
-            camera_id: String(cameras[1]._id),
+            camera_id: cameraCodeByName.checkout,
             zone_name: 'Checkout Counter',
             zone_id: `ZONE_CHECKOUT_${uniqueSuffix}`,
             category_name: assets[2].category_name,
@@ -456,10 +463,57 @@ async function seed() {
         }
     ]);
 
+    const configRules = await CustomerCareRule.insertMany([
+        {
+            location_id: locationId,
+            category: 'retention',
+            rule_id: `RETENTION_LOW_VISIT_${uniqueSuffix}`,
+            rule_name: 'Low visitor retention alert',
+            logic: {
+                metric_name: 'total_visitors',
+                operator: '<',
+                threshold: 50,
+                unit: 'visitors/day'
+            },
+            action: 'notify',
+            is_active: true
+        },
+        {
+            location_id: locationId,
+            category: 'zone',
+            rule_id: `ZONE_LONG_DWELL_${uniqueSuffix}`,
+            rule_name: 'Zone dwell time warning',
+            logic: {
+                metric_name: 'avg_dwell_time',
+                operator: '>=',
+                threshold: 30,
+                unit: 'minutes'
+            },
+            action: 'review_zone_layout',
+            is_active: true
+        },
+        {
+            location_id: locationId,
+            category: 'revenue',
+            rule_id: `REVENUE_UPSELL_${uniqueSuffix}`,
+            rule_name: 'Revenue upsell opportunity',
+            logic: {
+                metric_name: 'avg_basket_value',
+                operator: '<=',
+                threshold: 25000000,
+                unit: 'VND'
+            },
+            action: 'suggest_promotion',
+            is_active: true
+        }
+    ]);
+
     console.log('[seed] Done');
     console.log(`[seed] location_code=${locationId}`);
     console.log(`[seed] assets=${assets.length}, cameras=${cameras.length}, zones=${zones.length}`);
+    console.log(`[seed] zone-camera mapping: ${zones.map((z) => `${z.zone_id}->${z.camera_id}`).join(', ')}`);
     console.log(`[seed] events=${businessEvents.length}, sessions=2`);
+    console.log(`[seed] configRules=${configRules.length}`);
 }
 
 seed()
