@@ -37,6 +37,22 @@ function createHeatmapMatrix(height, width) {
     return matrix;
 }
 
+function createHeatmapSeries({ locationId, cameraId, date, count = 5, intervalMs = 30000 }) {
+    const baseTime = Date.now();
+    return Array.from({ length: count }).map((_, index) => ({
+        location_id: locationId,
+        camera_id: cameraId,
+        date,
+        time_stamp: baseTime + index * intervalMs,
+        width_matrix: 8,
+        height_matrix: 6,
+        grid_size: 60,
+        frame_width: 1280,
+        frame_height: 720,
+        heatmap_matrix: createHeatmapMatrix(6, 8)
+    }));
+}
+
 async function cleanupLocationData(locationId, zoneIds) {
     await Promise.all([
         Asset.deleteMany({ location_id: locationId }),
@@ -135,7 +151,7 @@ async function seed() {
             camera_name: 'Front Door Cam',
             camera_code: FRONT_CAMERA_CODE,
             rtsp_url: 'rtsp://demo:demo@127.0.0.1:554/front',
-            url_image_snapshot: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop',
+            url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1765270843/uploads/s8jfq1zamsxmbaopoarm.png',
             status: 'active',
             installation_date: getCurrnetDateVN(),
             camera_spec: {
@@ -416,30 +432,13 @@ async function seed() {
     ]);
 
     await Heatmap.insertMany([
-        {
-            location_id: locationId,
-            camera_id: cameras[0].camera_code,
+        ...createHeatmapSeries({
+            locationId,
+            cameraId: cameras[0].camera_code,
             date: today,
-            time_stamp: Date.now(),
-            width_matrix: 8,
-            height_matrix: 6,
-            grid_size: 60,
-            frame_width: 1280,
-            frame_height: 720,
-            heatmap_matrix: createHeatmapMatrix(6, 8)
-        },
-        {
-            location_id: locationId,
-            camera_id: cameras[1].camera_code,
-            date: today,
-            time_stamp: Date.now() + 1,
-            width_matrix: 8,
-            height_matrix: 6,
-            grid_size: 60,
-            frame_width: 1280,
-            frame_height: 720,
-            heatmap_matrix: createHeatmapMatrix(6, 8)
-        }
+            count: 6,
+            intervalMs: 30 * 1000
+        })
     ]);
 
     await FlowPatterns.insertMany([

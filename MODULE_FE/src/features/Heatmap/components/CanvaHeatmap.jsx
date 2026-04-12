@@ -1,10 +1,8 @@
 import {
-  Rect,
   Group,
   Line,
   Image as KonvaImage,
   Circle,
-  Text,
 } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
@@ -20,25 +18,30 @@ export const CameraImage = ({ src, width, height }) => {
 
 export const HeatmapGrid = ({
   matrix,
-  gridSize,
   frameWidth,
   frameHeight,
   opacity,
+  heatRadius = 24,
+  blurRadius = 70,
 }) => {
   const groupRef = useRef(null);
+  const rows = matrix?.length || 0;
+  const cols = matrix?.[0]?.length || 0;
+  const cellWidth = cols > 0 ? frameWidth / cols : 0;
+  const cellHeight = rows > 0 ? frameHeight / rows : 0;
 
   const colorScale = useMemo(() => {
     if (!matrix || matrix.length === 0) return null;
     const flatValues = matrix.flat();
-    const minValue = Math.min(...flatValues) || 0;
-    const maxValue = Math.max(...flatValues) || 1;
+    const minValue = Math.min(...flatValues);
+    const maxValue = Math.max(...flatValues);
 
     if (minValue === maxValue) return () => "rgba(0,0,255,0)";
     return scaleSequential(interpolateTurbo).domain([minValue, maxValue]);
   }, [matrix]);
 
   useEffect(() => {
-    const node = groupRef.current; 
+    const node = groupRef.current;
     if (
       node &&
       typeof node.cache === "function" &&
@@ -55,10 +58,10 @@ export const HeatmapGrid = ({
           pixelRatio: 2,
         });
       } catch (e) {
-        console.warn("Konva caching failed:", e); // Giữ lại dòng này để theo dõi
+        console.warn("Konva caching failed:", e);
       }
     }
-  }, [matrix, gridSize, frameWidth, frameHeight, opacity]);
+  }, [matrix, frameWidth, frameHeight, opacity, blurRadius]);
 
   if (!matrix || matrix.length === 0 || !colorScale) return null;
 
@@ -66,24 +69,28 @@ export const HeatmapGrid = ({
     <Group
       ref={groupRef}
       filters={[Konva.Filters.Blur]}
-      blurRadius={40}
+      blurRadius={blurRadius}
       globalCompositeOperation="screen"
     >
       {matrix.map((row, rowIdx) =>
         row.map((value, colIdx) => {
           if (value === 0) return null;
 
+          const x = colIdx * cellWidth + cellWidth / 2;
+          const y = rowIdx * cellHeight + cellHeight / 2;
+          const radius = Math.max(heatRadius, Math.min(cellWidth, cellHeight) * 0.55);
+          const fillColor = colorScale(value);
+
           return (
-            <Rect
-              key={`${rowIdx}-${colIdx}`}
-              x={colIdx * gridSize}
-              y={rowIdx * gridSize}
-              width={gridSize}
-              height={gridSize}
-              fill={colorScale(value)}
-              opacity={Math.max(0.01, opacity / 100)}
-              stroke={colorScale(value)}
-              strokeWidth={10}
+            <Circle
+              key={`heat-${rowIdx}-${colIdx}`}
+              x={x}
+              y={y}
+              radius={radius}
+              fill={fillColor}
+              opacity={Math.max(0.08, opacity)}
+              shadowBlur={24}
+              shadowColor={fillColor}
             />
           );
         })
@@ -121,110 +128,4 @@ export const GridLines = ({ gridSize, frameWidth, frameHeight }) => {
   }
 
   return <Group>{lines}</Group>;
-};
-export const DrawingPoints = ({ points }) => {
-  let pointPairs = [];
-  if (points.length > 0) {
-    if (typeof points[0] === "number") {
-      for (let i = 0; i < points.length; i += 2) {
-        pointPairs.push([points[i], points[i + 1]]);
-      }
-    } else {
-      pointPairs = points;
-    }
-  }
-  return (
-    <>
-      {pointPairs.map((p, i) => (
-        <Group key={i}>
-          <Circle
-            x={p[0]}
-            y={p[1]}
-            radius={6}
-            fill="#EF4444"
-            stroke="#FFF"
-            strokeWidth={2}
-          />
-          <Text
-            x={p[0] - 5}
-            y={p[1] - 6}
-            text={String(i + 1)}
-            fontSize={12}
-            fontStyle="bold"
-            fill="#FFF"
-          />
-          {i > 0 && (
-            <Line
-              points={[pointPairs[i - 1][0], pointPairs[i - 1][1], p[0], p[1]]}
-              stroke="#3B82F6"
-              strokeWidth={2}
-            />
-          )}
-        </Group>
-      ))}
-
-      {pointPairs.length === 4 && (
-        <Line
-          points={[
-            pointPairs[3][0],
-            pointPairs[3][1],
-            pointPairs[0][0],
-            pointPairs[0][1],
-          ]}
-          stroke="#3B82F6"
-          strokeWidth={2}
-        />
-      )}
-    </>
-  );
-};
-// --- Vẽ một vùng (Zone) ---
-export const ZoneShape = ({ zone }) => {
-  const points = zone.coordinates.flatMap((coord) => coord);
-
-  const centerX =
-    zone.coordinates.reduce((sum, c) => sum + c[0], 0) /
-    zone.coordinates.length;
-  const centerY =
-    zone.coordinates.reduce((sum, c) => sum + c[1], 0) /
-    zone.coordinates.length;
-
-  return (
-    <Group visible={zone.visible !== false}>
-      <Line
-        points={points}
-        closed
-        fill={zone.color + "22"}
-        stroke={zone.color}
-        strokeWidth={3}
-      />
-      <Rect
-        x={centerX - 60}
-        y={centerY - 25}
-        width={120}
-        height={40}
-        fill="rgba(0,0,0,0.7)"
-        cornerRadius={4}
-      />
-      <Text
-        x={centerX - 60}
-        y={centerY - 15}
-        width={120}
-        text={zone.zone_name || "Zone"}
-        fontSize={14}
-        fontStyle="bold"
-        fill="#FFF"
-        align="center"
-      />
-      <Text
-        x={centerX - 60}
-        y={centerY + 2}
-        width={120}
-        text={zone.category_name}
-        fontSize={12}
-        fill={zone.color}
-        align="center"
-      />
-    </Group>
-  );
 };
