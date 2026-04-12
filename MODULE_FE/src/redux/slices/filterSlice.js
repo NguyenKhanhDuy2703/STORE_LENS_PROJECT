@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  locationId: 'loc_all',
-  cameraId: 'cam_all',
+  locationId: 'LOC_TEST_001',
+  cameraId: 'CAM_FRONT_057601',
   date: new Date().toISOString().split('T')[0]
 };
 

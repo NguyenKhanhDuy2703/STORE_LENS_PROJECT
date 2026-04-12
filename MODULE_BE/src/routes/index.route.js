@@ -19,10 +19,8 @@ const routes = (app) => {
   
   app.use(`${version}/auth`, authRoutes);
   app.use(`${version}/camera`, cameraAIRoutes);
-  app.use(`${version}/async`, asynLocationRoutes);
   app.use(`${version}/dashboard`, dashboardRoutes);
   app.use(`${version}/area-management`, areaManagementRoutes);
-  app.use(`${version}/heatmap`, heatmapRoutes);
   app.use(`${version}/async` , asynLocationRoutes);
   app.use(`${version}/heatmap` , heatmapRoutes);
   app.use(`${version}/zone` , zoneRoutes);

@@ -23,7 +23,7 @@ const getCameraListDetails = async ({ locationId } = {}) => {
                 camera_name: c.camera_name,
                 camera_code: c.camera_code,
                 rtsp_url: c.rtsp_url,
-                location_id: c.location_id, 
+                location_id: c.location_id,
                 status: c.status,
                 last_heartbeat: c.last_heartbeat,
                 updated_at: c.updated_at
@@ -46,12 +46,10 @@ const createCamera = async (cameraData) => {
 
 const updateCamera = async (cameraCode, updateData) => {
     try {
-    
         const { status, ...validUpdateData } = updateData;
-
         return await Camera.findOneAndUpdate(
-            { camera_code: cameraCode }, 
-            validUpdateData, 
+            { camera_code: cameraCode },
+            validUpdateData,
             { new: true }
         );
     } catch (error) {
@@ -67,24 +65,29 @@ const deleteCamera = async (cameraCode) => {
     }
 };
 
+const updateImgforCamera = async ({ locationId, cameraCode, urlImg }) => {
+    try {
+        return await Camera.updateOne(
+            {
+                location_id: locationId,
+                camera_code: cameraCode,
+            },
+            {
+                $set: {
+                    url_img: urlImg,
+                },
+            }
+        );
+    } catch (error) {
+        throw error;
+    }
+};
+
 module.exports = {
     getCameraKPIMetrics,
     getCameraListDetails,
     createCamera,
     updateCamera,
-    deleteCamera
+    deleteCamera,
+    updateImgforCamera,
 };
-const cameraService = {
-    async updateImgforCamera({locationId , cameraCode , urlImg}){
-        const result = await cameraSchema.updateOne({
-            location_id : locationId,
-            camera_code : cameraCode,
-        },{
-            $set: {
-                url_img : urlImg,
-            },
-        })
-        return result;
-    }
-}
-module.exports = cameraService;

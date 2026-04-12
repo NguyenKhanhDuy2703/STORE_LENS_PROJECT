@@ -15,16 +15,24 @@ const zoneService = {
             if(!camera){
                 throw new Error("Camera not found for the specified location");
             }
-           
+            return { location, camera };
     },
     
     async getZonesList ({locationId , cameraCode}){
-        await this._preCheck({locationId , cameraCode});
+        const { camera } = await this._preCheck({locationId , cameraCode});
         const listZones = await zoneSchema.find({ location_id: locationId, camera_id: cameraCode });
+
+        const snapshotUrl = camera?.url_image_snapshot;
+        if(!snapshotUrl){
+            throw new Error("Background image not found for the specified camera");
+        }
         if(!listZones || listZones.length === 0){
             throw new Error("No zones found for the specified location and camera");
         }
-        return listZones;
+        return {
+            snapshot_url: snapshotUrl,
+            zones: listZones,
+        };
     },
     async createAndUpdateZone({locationId , cameraCode , zoneName , zoneId , coordinates , categoryName  }){
         await this._preCheck({locationId , cameraCode});

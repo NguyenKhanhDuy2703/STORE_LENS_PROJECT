@@ -66,7 +66,6 @@ const createAndUpdateConfigRuleController = catchAsync(async (req , res) => {
 );
 const deleteConfigRuleController = catchAsync(async (req , res) => {
     const { locationId , ruleId } = req.query;
-    console.log("Delete config rule with locationId:", locationId, "and ruleId:", ruleId);
     if(!locationId){
         return error({
             res,
