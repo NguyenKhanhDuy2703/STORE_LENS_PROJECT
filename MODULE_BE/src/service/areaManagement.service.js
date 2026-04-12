@@ -1,5 +1,5 @@
-const ZoneStats = require('../schemas/zoneStats.schema');
-const Session = require('../schemas/session.schema');
+const ZoneStatsSchema = require('../schemas/zoneStats.schema');
+const SessionSchema = require('../schemas/session.schema');
 const { dateUtil } = require('../utils/date.util');
 
 const buildDateFilter = ({ type, startCustom, endCustom, date, defaultType = 'today' }) => {
@@ -22,7 +22,7 @@ const getAreaManagementMetrics = async (params = {}) => {
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
         
         const query = { location_id: locationId, zone_id: zoneId, date: dateFilter };
-        const stats = await ZoneStats.findOne(query).sort({ updated_at: -1 });
+        const stats = await ZoneStatsSchema.findOne(query).sort({ updated_at: -1 });
 
         if (!stats) {
             return {
@@ -51,7 +51,7 @@ const getAreaHourlyTraffic = async (params = {}) => {
         const { locationId, zoneId } = params;
         const dateFilter = buildDateFilter(params);
         
-        const hourlyFlow = await Session.aggregate([
+        const hourlyFlow = await SessionSchema.aggregate([
             { $match: { location_id: locationId, entry_time: dateFilter, "zone_sequence.zone_id": zoneId } },
             { $unwind: "$zone_sequence" },
             { $match: { "zone_sequence.zone_id": zoneId } },
@@ -76,7 +76,7 @@ const getZonePerformanceDetails = async (params = {}) => {
         const { locationId, type, startCustom, endCustom, date } = params;
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
 
-        const allZonesStats = await ZoneStats.find({
+        const allZonesStats = await ZoneStatsSchema.find({
             location_id: locationId,
             date: dateFilter
         }).sort({ "performance.people_count": -1 });
@@ -87,7 +87,7 @@ const getZonePerformanceDetails = async (params = {}) => {
                 camera_id: s.metadata?.camera_id || 'N/A',
                 current_people: s.realtime?.people_in_zone || 0,
                 total_today: s.performance?.people_count || 0,
-                growth_rate: s.performance?.growth_rate || 0, // So với hôm qua
+                growth_rate: s.performance?.growth_rate || 0,
                 avg_dwell_time: s.performance?.avg_dwell_time || 0
             })),
             lastUpdated: new Date()

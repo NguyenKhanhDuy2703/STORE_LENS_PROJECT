@@ -1,9 +1,9 @@
-const Camera = require('../schemas/camera.schema');
+const CameraSchema = require('../schemas/camera.schema');
 
 const cameraService = {
     async getCameraDashboardData() {
         try {
-            const result = await Camera.aggregate([
+            const result = await CameraSchema.aggregate([
                 {
                     $facet: {
                         "total": [{ $count: "count" }],
@@ -46,7 +46,7 @@ const cameraService = {
             ]);
 
             return {
-                ...result[0],
+                ...(result[0] || { metrics: { total: 0, active: 0, error: 0 }, camera_list: [] }),
                 last_updated: new Date()
             };
         } catch (error) {
@@ -58,7 +58,7 @@ const cameraService = {
         try {
             const { status, camera_code, created_at, ...otherData } = cameraData;
 
-            return await Camera.findOneAndUpdate(
+            return await CameraSchema.findOneAndUpdate(
                 { camera_code: cameraCode },
                 {
                     $set: { 
@@ -84,7 +84,7 @@ const cameraService = {
 
     async deleteCamera(cameraCode) {
         try {
-            return await Camera.findOneAndDelete({ camera_code: cameraCode });
+            return await CameraSchema.findOneAndDelete({ camera_code: cameraCode });
         } catch (error) {
             throw error;
         }
@@ -92,7 +92,7 @@ const cameraService = {
 
     async updateImgforCamera({ locationId, cameraCode, urlImg }) {
         try {
-            return await Camera.updateOne(
+            return await CameraSchema.updateOne(
                 {
                     location_id: locationId,
                     camera_code: cameraCode,

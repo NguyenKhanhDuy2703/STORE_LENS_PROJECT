@@ -10,16 +10,9 @@ const LeftSidebar = ({
   setHeatmapVisible,
   zoneOverlay,
   setZoneOverlay,
-  paletteType,
-  setPaletteType,
   selectedCamera,
   setSelectedCamera,
 }) => {
-  const paletteOptions = [
-    { value: 'turbo', label: 'Turbo', preview: 'bg-gradient-to-r from-blue-600 via-cyan-500 to-red-600' },
-    { value: 'viridis', label: 'Viridis', preview: 'bg-gradient-to-r from-purple-900 via-green-500 to-yellow-300' },
-    { value: 'plasma', label: 'Plasma', preview: 'bg-gradient-to-r from-purple-900 via-pink-500 to-yellow-300' },
-  ];
 
   const ToggleButton = ({ icon: Icon, label, isActive, onChange }) => (
     <button
@@ -95,35 +88,6 @@ const LeftSidebar = ({
         />
       </div>
 
-      {/* Palette Selection */}
-      <div className="pt-4 border-t border-slate-200">
-        <label className="text-xs font-medium text-slate-600 tracking-tight mb-2.5 block">
-          Bảng Màu
-        </label>
-        
-        <div className="space-y-1.5">
-          {paletteOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setPaletteType(option.value)}
-              className={`w-full p-2.5 rounded-lg border-2 transition-all text-xs ${
-                paletteType === option.value
-                  ? 'border-teal-600 bg-teal-50'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className={`w-6 h-4 rounded-md ${option.preview}`}></div>
-                <span className={`font-medium ${
-                  paletteType === option.value ? 'text-teal-700' : 'text-slate-600'
-                }`}>
-                  {option.label}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Footer Info */}
       <div className="mt-auto pt-3 border-t border-slate-200">

@@ -5,6 +5,7 @@ const { StatusCodes } = require('http-status-codes');
 const cameraService = require("../service/camera.service");
 const getListZoneController = catchAsync(async (req, res) => {
     const { locationId , cameraCode } = req.query;
+    console.log("Received request to get list zones with locationId: ", locationId, " and cameraCode: ", cameraCode);
     if(!locationId || !cameraCode){
         return error({
             res,
@@ -69,6 +70,7 @@ const createAndUpdateZoneController = catchAsync(async (req, res) => {
 );
 const deleteZoneController = catchAsync(async (req, res) => {
     const { locationId , cameraCode , zoneId } = req.body;
+    console.log("Received request to delete zone with locationId: ", locationId, " cameraCode: ", cameraCode, " zoneId: ", zoneId);
     if(!locationId || !cameraCode || !zoneId){
         return error({
             res,
