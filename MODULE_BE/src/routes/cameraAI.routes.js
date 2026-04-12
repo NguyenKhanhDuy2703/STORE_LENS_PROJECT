@@ -1,4 +1,4 @@
-const { tunrOffcameraController, 
+const { turnOffcameraController, 
     turnOncameraController, 
     upsertCameraController,
     deleteCameraController,
@@ -6,7 +6,7 @@ const { tunrOffcameraController,
 const express = require("express");
 const router = express.Router();
 router.post("/turn-on", turnOncameraController);
-router.get("/turn-off", tunrOffcameraController);
+router.get("/turn-off", turnOffcameraController);
 router.get('/', getCameraController);
 router.post('/', upsertCameraController);
 router.delete('/:cameraCode', deleteCameraController);

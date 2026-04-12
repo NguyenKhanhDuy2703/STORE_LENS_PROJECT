@@ -3,7 +3,6 @@ const { turnOnCamera, turnOffCamera } = require("../api/cameraAI.api");
 const catchAsync = require("../utils/catchAsync");
 const { success, error } = require("../utils/response");
 const cameraService = require("../service/camera.service");
-const Camera = require('../schemas/camera.schema'); 
 
 const mock_zones = [
     {
@@ -21,8 +20,7 @@ const turnOncameraController = catchAsync(async (req, res) => {
 
     const result = await turnOnCamera({ cameraId, urlRtsp, locationId, listZone: mock_zones });
     
-    
-    await Camera.findOneAndUpdate({ camera_code: cameraId }, { status: 'active' });
+    await cameraService.upsertCamera(cameraId, { status: 'active' });
 
     return success({
       res,
@@ -32,14 +30,16 @@ const turnOncameraController = catchAsync(async (req, res) => {
     });
 });
 
-const tunrOffcameraController = catchAsync(async (req, res) => {
-    const { rtpsUrl, cameraId } = req.body; 
+const turnOffcameraController = catchAsync(async (req, res) => {
+    const { rtspUrl, cameraId } = req.body; 
     
-    const result = await turnOffCamera(rtpsUrl);
-    
-    if (cameraId) {
-        await Camera.findOneAndUpdate({ camera_code: cameraId }, { status: 'inactive' });
+    if (!rtspUrl || !cameraId) {
+        return error({ res, message: "Missing rtspUrl or cameraId", code: StatusCodes.BAD_REQUEST });
     }
+
+    const result = await turnOffCamera(rtspUrl);
+    
+    await cameraService.upsertCamera(cameraId, { status: 'inactive' });
 
     return success({
         res,
@@ -50,14 +50,20 @@ const tunrOffcameraController = catchAsync(async (req, res) => {
 });
 
 const upsertCameraController = catchAsync(async (req, res) => {
-    const cameraCode = req.params.cameraCode || req.body.camera_code;
+    const cameraCode = req.body.camera_code || req.params.cameraCode;
     
     if (!cameraCode) {
         return error({ res, message: "Camera Code is required", code: StatusCodes.BAD_REQUEST });
     }
 
     const data = await cameraService.upsertCamera(cameraCode, req.body);
-    return success({ res, data, message: "Camera processed successfully", code: StatusCodes.OK });
+    
+    return success({ 
+        res, 
+        data, 
+        message: "Camera processed successfully", 
+        code: StatusCodes.OK 
+    });
 });
 
 const deleteCameraController = catchAsync(async (req, res) => {
@@ -78,7 +84,7 @@ const getCameraController = catchAsync(async (req, res) => {
 
 module.exports = {
     turnOncameraController,
-    tunrOffcameraController,
+    turnOffcameraController,
     upsertCameraController,
     deleteCameraController,
     getCameraController
