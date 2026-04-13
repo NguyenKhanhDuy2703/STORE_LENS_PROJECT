@@ -1,5 +1,5 @@
-const Session = require('../schemas/session.schema');
-const LocationStats = require('../schemas/locationStats.schema');
+const SessionSchema = require('../schemas/session.schema');
+const LocationStatsSchema = require('../schemas/locationStats.schema');
 const { dateUtil } = require('../utils/date.util');
 
 const buildDateFilter = ({ type, startCustom, endCustom, date, defaultType = 'today' }) => {
@@ -21,7 +21,7 @@ const getKPIMetrics = async ({ locationId, type, startCustom, endCustom, date } 
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
         const query = { location_id: locationId, date: dateFilter };
 
-        const stats = await LocationStats.findOne(query).sort({ updated_at: -1 });
+        const stats = await LocationStatsSchema.findOne(query).sort({ updated_at: -1 });
 
         if (!stats) {
             return {
@@ -52,14 +52,13 @@ const getKPIMetrics = async ({ locationId, type, startCustom, endCustom, date } 
 const getHourlyCustomerFlow = async ({ locationId, type, startCustom, endCustom, date } = {}) => {
     try {
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
-        const stats = await LocationStats.findOne({ location_id: locationId, date: dateFilter });
+        const stats = await LocationStatsSchema.findOne({ location_id: locationId, date: dateFilter });
 
         return {
             hourly: stats?.chart_data || [],
             lastUpdated: new Date()
         };
     } catch (error) {
-
         throw error;
     }
 };
@@ -68,7 +67,7 @@ const getRevenueLast7Days = async ({ locationId }) => {
     try {
         const { startDate, endDate } = dateUtil({ type: 'last7days' });
 
-        const stats = await LocationStats.find({
+        const stats = await LocationStatsSchema.find({
             location_id: locationId,
             date: { $gte: startDate, $lte: endDate }
         }).select('date kpis.total_revenue').sort({ date: 1 });
@@ -89,7 +88,7 @@ const getHighTrafficZones = async ({ locationId, type, startCustom, endCustom, d
     try {
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
 
-        const zoneTraffic = await Session.aggregate([
+        const zoneTraffic = await SessionSchema.aggregate([
             { $match: { location_id: locationId, entry_time: dateFilter } },
             { $unwind: "$zone_sequence" },
             {
@@ -116,7 +115,7 @@ const getZonePerformanceDetails = async ({ locationId, type, startCustom, endCus
     try {
         const dateFilter = buildDateFilter({ type, startCustom, endCustom, date });
 
-        const performance = await Session.aggregate([
+        const performance = await SessionSchema.aggregate([
             { $match: { location_id: locationId, entry_time: dateFilter } },
             { $unwind: "$zone_sequence" },
             {
