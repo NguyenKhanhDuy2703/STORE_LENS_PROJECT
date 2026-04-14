@@ -10,7 +10,7 @@ import ManagermentCameraPage from "../features/ManagermentCamera/ManagermentCame
 import MemberSegmentation from "../features/MemberSegmentation/MemberSegmentation";
 import Settings from "../features/Settings/Settings";
 
-import Map from "../features/Map/Map";
+import CameraZoneManager from "../features/Map/CameraZoneManager";
 import ManagerUser from "../features/ManagerUser/ManagerUser";
 import { MainLayout } from "../layout/MainLayout";
 import AssetManagement from "../features/AssetManagement/ManagementProduct"
@@ -36,7 +36,7 @@ const AppRouter = () => {
         <Route path="heatmap" element={<Heatmap />} />
         <Route path="dwell-time" element={<Downtime />} />
         <Route path="config/camera" element={<ManagermentCameraPage />} />
-        <Route path="config/zone" element={<Map />} />
+        <Route path="config/zone" element={<CameraZoneManager />} />
         <Route path="quan-ly-nguoi-dung" element={<ManagerUser />} />
         <Route path="management/asset" element={<AssetManagement />} />
         {/* Legacy redirects */}

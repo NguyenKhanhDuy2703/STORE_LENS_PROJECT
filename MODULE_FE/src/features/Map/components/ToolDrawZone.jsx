@@ -1,5 +1,5 @@
 
-import { Circle, Line, Group, Text, Rect } from "react-konva";
+import { Circle, Line, Group, Text } from "react-konva";
 
 export const DrawingPoints = ({ points, scale = 1 }) => {
   let pointPairs = [];
@@ -61,72 +61,3 @@ export const DrawingPoints = ({ points, scale = 1 }) => {
   );
 };
 
-export const ZoneShape = ({ zone, scale = 1, imageSize }) => {
-  if (!imageSize?.width || !imageSize?.height) return null;
-  const rawPoints = zone.coordinates.flat(); 
-  const displayPoints = [];
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-
-  for (let i = 0; i < rawPoints.length; i += 2) {
-
-    const x = rawPoints[i] * imageSize.width;
-    const y = rawPoints[i + 1] * imageSize.height;
-    
-    displayPoints.push(x, y);
-
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  }
-
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-
-  const strokeWidth = 3 / scale;
-  const fontSize = 14 / scale;
-  const fontSizeSmall = 12 / scale;
-  const rectWidth = 120 / scale;
-  const rectHeight = 40 / scale;
-  const cornerRadius = 4 / scale;
-
-  return (
-    <Group visible={zone.visible !== false}>
-      <Line
-        points={displayPoints}
-        closed
-        fill={zone.color + "22"} 
-        stroke={zone.color}
-        strokeWidth={strokeWidth}
-      />
-      <Rect
-        x={centerX - rectWidth / 2}
-        y={centerY - rectHeight / 2}
-        width={rectWidth}
-        height={rectHeight}
-        fill="rgba(0,0,0,0.7)"
-        cornerRadius={cornerRadius}
-      />
-      <Text
-        x={centerX - rectWidth / 2}
-        y={centerY - rectHeight * 0.3}
-        width={rectWidth}
-        text={zone.zoneName || zone.zone_name || "Zone"}
-        fontSize={fontSize}
-        fontStyle="bold"
-        fill="#FFF"
-        align="center"
-      />
-      <Text
-        x={centerX - rectWidth / 2}
-        y={centerY + rectHeight * 0.15}
-        width={rectWidth}
-        text={zone.categoryName ||zone.category_name || "Type"}
-        fontSize={fontSizeSmall}
-        fill={zone.color}
-        align="center"
-      />
-    </Group>
-  );
-};
