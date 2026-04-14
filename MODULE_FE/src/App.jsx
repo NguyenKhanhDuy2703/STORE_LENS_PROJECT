@@ -3,11 +3,15 @@ import { Provider } from "react-redux";
 import store from "./redux/store";
 import AppRouter from "./routes";
 
+function AppContent() {
+  return <AppRouter />;
+}
+
 function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>  
-          <AppRouter />
+        <AppContent />
       </BrowserRouter>
     </Provider>
   );

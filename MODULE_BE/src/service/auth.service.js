@@ -18,7 +18,7 @@ const register = async (userData) => {
         error({message: "Account and Email is exist", code: StatusCodes.BAD_REQUEST});
     }
     
-    const location = await locationModel.findById(location_id);
+    const location = await locationModel.findOne({ location_code: location_id });
     if (!location) {
         error({message: "The locations is not exist", code: StatusCodes.BAD_REQUEST});
     }

@@ -1,13 +1,25 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
 import { GlobalFilter } from '../components/functionComponent/GlobalFilter';
+import { fetchStores } from '../redux/slices/storesSlice';
 
 export const MainLayout = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const { isLogin } = useSelector(state => state.auth);
+
   const showGlobalFilter = location.pathname === '/' || 
                           location.pathname.includes('/dwell-time') ||
                           location.pathname.includes('/config/rules');
+
+  useEffect(() => {
+    if (isLogin) {
+      dispatch(fetchStores());
+    }
+  }, [isLogin, dispatch]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">

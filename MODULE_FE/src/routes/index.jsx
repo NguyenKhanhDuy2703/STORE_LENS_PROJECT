@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import NotFound from "../components/functionComponent/NotFound";
 import Dashboard from "../features/Dashboard/Dashboard";
 import AnalyticsArea from "../features/AnalyticsArea/AnalyticsArea";
@@ -14,14 +15,20 @@ import ManagerUser from "../features/ManagerUser/ManagerUser";
 import { MainLayout } from "../layout/MainLayout";
 import AssetManagement from "../features/AssetManagement/ManagementProduct"
 import Authentication from "../features/Authentication/Authentication";
+import { ProtectedRoute } from "../components/ProtectedRoute";
+import SignUp from "../features/Authentication/components/SignUp";
 
 const AppRouter = () => {
+  const { isLogin } = useSelector((state) => state.auth);
+
   return (
     <Routes>
       <Route path="/login" element={<Authentication />} />
+      <Route path="/register" element={isLogin ? <Navigate to="/" replace /> : <SignUp />} />
 
-      <Route path="/" element={<MainLayout />}>
+      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
         {/* Các trang con */}
         <Route path="quan-ly-khach-hang" element={<MemberSegmentation />} />
         <Route path="management/area" element={<AnalyticsArea />} />
@@ -37,6 +44,9 @@ const AppRouter = () => {
         <Route path="customer-management" element={<Navigate to="/quan-ly-khach-hang" replace />} />
         <Route path="user-management" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
         <Route path="management/users" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
+        <Route path="dashboard-legacy" element={<Navigate to="/dashboard" replace />} />
+        <Route path="admin" element={<Navigate to="/dashboard" replace />} />
+        <Route path="home" element={<Navigate to="/dashboard" replace />} />
         <Route path="settings" element={<Settings />} />
 
         {/* Legacy paths */}
