@@ -1,115 +1,220 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { Clock3, Minus, TrendingDown, TrendingUp, Users, Loader } from 'lucide-react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchZoneAnalyticsDashboard } from '../dashboard.thunk';
 
-// Mock zones data - aligned with DB schema: zone_id, zone_name
-const topZones = [
-  { zone_id: 'zone_001', zone_name: 'Lối vào chính', traffic: 890, trend: 'up' },
-  { zone_id: 'zone_002', zone_name: 'Quầy thanh toán', traffic: 756, trend: 'neutral' },
-  { zone_id: 'zone_003', zone_name: 'Khu vực giảm giá', traffic: 723, trend: 'up' },
-  { zone_id: 'zone_004', zone_name: 'Mỹ phẩm cao cấp', traffic: 654, trend: 'down' },
-  { zone_id: 'zone_005', zone_name: 'Đồ chơi trẻ em', traffic: 521, trend: 'up' },
-  { zone_id: 'zone_006', zone_name: 'Khu thực phẩm tươi', traffic: 485, trend: 'up' },
-  { zone_id: 'zone_007', zone_name: 'Thời trang Nam', traffic: 412, trend: 'neutral' },
-  { zone_id: 'zone_008', zone_name: 'Đồ gia dụng thông minh', traffic: 398, trend: 'up' },
-  { zone_id: 'zone_009', zone_name: 'Giày dép & Phụ kiện', traffic: 345, trend: 'down' },
-  { zone_id: 'zone_010', zone_name: 'Khu vực Food Court', traffic: 310, trend: 'up' },
-];
+const formatLastUpdated = (value) => {
+  const timestamp = value ? new Date(value) : new Date();
+  if (Number.isNaN(timestamp.getTime())) return 'Vua cap nhat';
+  return timestamp.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
 
-// Performance data - zone metrics aligned with schema
-const performanceData = [
-  { zone_id: 'zone_001', zone_name: 'Khu vực giảm giá', dwell_time: '19 phút', conversion_rate: 45, color: '#0d9488' },
-  { zone_id: 'zone_002', zone_name: 'Mỹ phẩm cao cấp', dwell_time: '12 phút', conversion_rate: 38, color: '#f59e0b' },
-  { zone_id: 'zone_003', zone_name: 'Quầy thanh toán', dwell_time: '8 phút', conversion_rate: 92, color: '#6366f1' },
-  { zone_id: 'zone_004', zone_name: 'Đồ chơi trẻ em', dwell_time: '25 phút', conversion_rate: 28, color: '#ec4899' },
-  { zone_id: 'zone_005', zone_name: 'Khu quần áo', dwell_time: '15 phút', conversion_rate: 22, color: '#8b5cf6' },
-  { zone_id: 'zone_006', zone_name: 'Thiết bị điện tử', dwell_time: '30 phút', conversion_rate: 15, color: '#3b82f6' },
-  { zone_id: 'zone_007', zone_name: 'Đồ gia dụng', dwell_time: '14 phút', conversion_rate: 31, color: '#06b6d4' },
-  { zone_id: 'zone_008', zone_name: 'Thực phẩm đông lạnh', dwell_time: '6 phút', conversion_rate: 55, color: '#14b8a6' },
-];
+const formatDwellTime = (milliseconds = 0) => {
+  const safeMs = Number.isFinite(milliseconds) ? Math.max(milliseconds, 0) : 0;
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
 
-const TopZones = () => (
-  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm h-[480px] flex flex-col">
-    <h3 className="text-base font-medium tracking-tight text-slate-900 mb-6">
-      Khu Vực Lưu Lượng Cao
-    </h3>
-    
-    <div className="overflow-y-auto flex-grow pr-2 scrollbar-thin scrollbar-thumb-slate-200">
-      {topZones.map((zone, idx) => {
-        const TrendIcon = zone.trend === 'up' ? TrendingUp : zone.trend === 'down' ? TrendingDown : null;
-        return (
-          <div
-            key={zone.zone_id}
-            className="flex items-center justify-between py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 px-2 rounded-lg transition-colors"
-          >
-            <div className="flex items-center gap-4 flex-1">
-              <span className="text-slate-400 font-medium w-6 text-sm">#{idx + 1}</span>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-slate-900 text-sm">{zone.zone_name}</h4>
-                <p className="text-[11px] text-slate-500">Zone ID: {zone.zone_id}</p>
-              </div>
-            </div>
-            
-            <div className="text-right flex items-center gap-3 flex-shrink-0">
-              <div>
-                <span className="text-2xl font-semibold text-slate-900 tabular-nums tracking-tight">
-                  {zone.traffic}
-                </span>
-                <p className="text-[10px] text-slate-400 font-medium tracking-tight">Người</p>
-              </div>
-              {TrendIcon && (
-                <TrendIcon
-                  size={20}
-                  className={zone.trend === 'up' ? 'text-teal-600' : 'text-rose-600'}
-                />
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-);
+  if (minutes === 0) return `${seconds} giay`;
+  if (minutes < 10) return `${minutes} phut ${seconds} giay`;
 
-const Performance = () => (
-  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm h-[480px] flex flex-col">
-    <h3 className="text-base font-medium tracking-tight text-slate-900 mb-6">
-      Hiệu Suất Chi Tiết
-    </h3>
-    
-    <div className="overflow-y-auto flex-grow pr-2 scrollbar-thin scrollbar-thumb-slate-200">
-      {performanceData.map((detail) => (
-        <div key={detail.zone_id} className="mb-6 group">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h4 className="font-semibold text-slate-900 text-sm">{detail.zone_name}</h4>
-              <p className="text-[11px] text-slate-500">Zone ID: {detail.zone_id}</p>
-            </div>
-            <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap ml-2 tracking-tight">
-              {detail.dwell_time}
-            </span>
-          </div>
-          
-          <div className="flex justify-between text-[11px] text-slate-600 mb-2">
-            <span>Tỷ Lệ Chuyển Đổi</span>
-            <span className="font-medium tabular-nums tracking-tight" style={{ color: detail.color }}>
-              {detail.conversion_rate}%
-            </span>
-          </div>
-          
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${detail.conversion_rate}%`, backgroundColor: detail.color }}
-            ></div>
+  const decimalMinutes = (safeMs / 60000).toFixed(1);
+  return `${decimalMinutes} phut`;
+};
+
+const getConversionStyle = (rate = 0) => {
+  if (rate > 60) {
+    return {
+      bar: 'bg-emerald-500',
+      text: 'text-emerald-700',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    };
+  }
+
+  if (rate >= 30) {
+    return {
+      bar: 'bg-amber-500',
+      text: 'text-amber-700',
+      badge: 'bg-amber-50 text-amber-700 border-amber-200',
+    };
+  }
+
+  return {
+    bar: 'bg-rose-500',
+    text: 'text-rose-700',
+    badge: 'bg-rose-50 text-rose-700 border-rose-200',
+  };
+};
+
+const getTrendIcon = (rate = 0) => {
+  if (rate > 60) return TrendingUp;
+  if (rate < 30) return TrendingDown;
+  return Minus;
+};
+
+const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDate = null } = {}) => {
+  const dispatch = useDispatch();
+  const { zoneAnalytics, zoneAnalyticsLoading, zoneAnalyticsError } = useSelector(state => state.dashboard);
+  const { locationId } = useSelector(state => state.filter || { locationId: 'LOC_TEST_001' });
+  
+  useEffect(() => {
+    if (locationId) {
+      dispatch(fetchZoneAnalyticsDashboard({ 
+        locationId, 
+        type: filterType, 
+        startCustom: startDate, 
+        endCustom: endDate 
+      }));
+    }
+  }, [dispatch, locationId, filterType, startDate, endDate]);
+
+  const zones = Array.isArray(zoneAnalytics?.zones) ? zoneAnalytics.zones : [];
+  const performance = Array.isArray(zoneAnalytics?.performance) ? zoneAnalytics.performance : [];
+  const performanceMap = new Map(
+    performance.map((item) => [item.zone_id || item._id, item])
+  );
+
+  const mergedRows = zones.map((zone) => {
+    const zoneId = zone.zone_id || zone._id;
+    const perf = performanceMap.get(zoneId);
+    const hasPerformance = Boolean(perf);
+
+    return {
+      zone_id: zoneId,
+      zone_name: zone.zone_name || perf?.zone_name || 'Unknown Zone',
+      people_count: Number(zone.people_count || 0),
+      conversion_rate: hasPerformance
+        ? Number(zone.conversion_rate ?? perf?.conversion_rate ?? 0)
+        : 0,
+      avg_dwell_time: hasPerformance ? Number(perf?.avg_dwell_time || 0) : 0,
+      peak_hour: zone.peak_hour,
+    };
+  });
+
+  if (zoneAnalyticsLoading) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm pb-10">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-2">
+            <Loader size={32} className="text-slate-400 animate-spin" />
+            <p className="text-sm text-slate-500">Dang tai du lieu zone analysis...</p>
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-);
+      </section>
+    );
+  }
+
+  if (zoneAnalyticsError) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm pb-10">
+        <div className="rounded-xl border border-dashed border-rose-200 p-8 text-center">
+          <p className="text-sm text-rose-600 font-medium">Loi: {zoneAnalyticsError}</p>
+          <p className="text-xs text-rose-500 mt-2">Vui long kiem tra ket noi va thu lai</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm pb-10">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
+        <h3 className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
+          Phan Tich Hieu Suat Khu Vuc
+        </h3>
+        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+          Cap nhat luc: {formatLastUpdated(zoneAnalytics?.lastUpdated)}
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {mergedRows.map((row, index) => {
+          const styles = getConversionStyle(row.conversion_rate);
+          const TrendIcon = getTrendIcon(row.conversion_rate);
+
+          return (
+            <article
+              key={row.zone_id}
+              className="rounded-xl border border-slate-100 bg-slate-50/60 p-4 hover:bg-slate-50 transition-colors"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                <div className="md:col-span-1 flex items-center">
+                  <span className="text-sm font-semibold text-slate-500">#{index + 1}</span>
+                </div>
+
+                <div className="md:col-span-3 min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{row.zone_name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">Zone ID: {row.zone_id}</p>
+                </div>
+
+                <div className="md:col-span-2 flex items-center gap-2">
+                  <Users size={16} className="text-slate-500" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900 tabular-nums">{row.people_count}</span>
+                    <TrendIcon
+                      size={16}
+                      className={
+                        row.conversion_rate > 60
+                          ? 'text-emerald-600'
+                          : row.conversion_rate < 30
+                            ? 'text-rose-600'
+                            : 'text-amber-600'
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 flex items-center gap-2">
+                  <Clock3 size={16} className="text-slate-500" />
+                  <span className="text-sm text-slate-700">{formatDwellTime(row.avg_dwell_time)}</span>
+                </div>
+
+                <div className="md:col-span-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-slate-500">Conversion Rate</span>
+                    <span className={`text-xs font-semibold tabular-nums ${styles.text}`}>
+                      {row.conversion_rate.toFixed(0)}%
+                    </span>
+                  </div>
+
+                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${styles.bar}`}
+                      style={{ width: `${Math.min(Math.max(row.conversion_rate, 0), 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-2 hidden md:flex items-center justify-between">
+                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${styles.badge}`}>
+                      Muc hieu suat
+                    </span>
+                    {typeof row.peak_hour === 'number' && (
+                      <span className="text-[10px] text-slate-500">Peak hour: {row.peak_hour}:00</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+
+        {mergedRows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+            Khong co du lieu khu vuc trong khoang thoi gian da chon.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
 
 const AreaDetails = {
-  TopZones,
-  Performance,
+  ZoneAnalyticsDashboard,
 };
 
 export default AreaDetails;

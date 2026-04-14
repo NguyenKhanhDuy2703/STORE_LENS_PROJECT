@@ -3,6 +3,9 @@ const catchAsync = require('../utils/catchAsync');
 const { error, success } = require('../utils/response');
 const { StatusCodes } = require('http-status-codes');
 const cameraService = require("../service/camera.service");
+
+
+
 const getListZoneController = catchAsync(async (req, res) => {
     const { locationId , cameraCode } = req.query;
     console.log("Received request to get list zones with locationId: ", locationId, " and cameraCode: ", cameraCode);

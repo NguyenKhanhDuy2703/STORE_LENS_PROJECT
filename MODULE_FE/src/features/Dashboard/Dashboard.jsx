@@ -18,10 +18,7 @@ const Dashboard = () => {
         </div>
 
         {/* Zone Performance Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
-          <AreaDetails.TopZones />
-          <AreaDetails.Performance />
-        </div>
+        <AreaDetails.ZoneAnalyticsDashboard />
       </main>
     </div>
   );
