@@ -1,15 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { CalendarDays, Store, ChevronDown, Download, Upload, FileText } from 'lucide-react';
 import useScrollVisibility from '@/hooks/useScrollVisibility';
+import { setLocation, initializeFilterByUserRole } from '../../redux/slices/filterSlice';
+import { fetchStores } from '../../redux/slices/storesSlice';
 
-// Mock data for locations
-const locations = [
-  { id: 'loc_all', label: 'Tất cả cơ sở' },
-  { id: 'loc_q1', label: 'Gym Quận 1' },
-  { id: 'loc_q7', label: 'Gym Quận 7' }
-];
-
-// Mock data for date presets
+// Date preset options
 const datePresetOptions = [
   { id: 'today', label: 'Hôm nay', offsetDays: 0 },
   { id: 'yesterday', label: 'Hôm qua', offsetDays: 1 },
@@ -18,61 +14,159 @@ const datePresetOptions = [
 ];
 
 export const GlobalFilter = () => {
-  // Filter state
-  const [locationId, setLocationId] = useState('loc_all');
-  const [selectedPreset, setSelectedPreset] = useState('today');
+  const dispatch = useDispatch();
+
+  // Get user data from auth
+  const { user } = useSelector((state) => state.auth);
+  
+  // Get stores from stores slice
+  const { items: stores, isLoading: storesLoading } = useSelector((state) => state.stores);
+  
+  // Get filter state
+  const { locationId: selectedLocationId, userRole, userLocationId, isAutoSelected } = useSelector(
+    (state) => state.filter
+  );
 
   // Auto-hide with higher threshold (150px)
   const isVisible = useScrollVisibility(150);
 
+  // Initialize filter based on user role on component mount
+  useEffect(() => {
+    if (user && user.role) {
+      dispatch(
+        initializeFilterByUserRole({
+          userRole: user.role,
+          userLocationId: user.location_id,
+        })
+      );
+    }
+  }, [user, dispatch]);
+
+  // Fetch stores on component mount
+  useEffect(() => {
+    dispatch(fetchStores());
+  }, [dispatch]);
+
   const handleLocationChange = (e) => {
-    setLocationId(e.target.value);
+    const newLocationId = e.target.value;
+    dispatch(setLocation(newLocationId));
   };
 
-  const handleDatePresetChange = (e) => {
-    setSelectedPreset(e.target.value);
+  /**
+   * Get filtered location options based on user role
+   */
+  const getAvailableLocations = () => {
+    // Add "Tất cả cơ sở" option only for ADMIN_SUPER
+    const locationOptions = [];
+
+    if (user?.role === 'ADMIN_SUPER') {
+      locationOptions.push({
+        id: 'loc_all',
+        name: 'Tất cả cơ sở',
+        isDisabled: false,
+      });
+    }
+
+    // Add all stores from API
+    if (stores && stores.length > 0) {
+      stores.forEach((store) => {
+        const isDisabled = user?.role === 'MANAGER' && store._id !== userLocationId;
+        locationOptions.push({
+          id: store._id,
+          name: store.name || store.display_name || `Cửa hàng ${store._id}`,
+          isDisabled: isDisabled,
+        });
+      });
+    }
+
+    return locationOptions;
   };
+
+  /**
+   * Check if user can change location
+   * - ADMIN_SUPER: Can change freely
+   * - MANAGER/USER: Can only view their own location (disabled from changing)
+   * - Others: As per role rules
+   */
+  const canChangeLocation = (role) => {
+    return role === 'ADMIN_SUPER';
+  };
+
+  const availableLocations = getAvailableLocations();
+  const isLocationDisabled =
+    !canChangeLocation(user?.role) && isAutoSelected;
 
   return (
-    <div className={`sticky top-16 z-30 px-6 transition-all duration-300 ease-in-out ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+    <div
+      className={`sticky top-16 z-30 px-6 transition-all duration-300 ease-in-out ${
+        isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+      }`}
+    >
       <div className="mx-auto w-full max-w-[1760px]">
         {/* Filter Bar */}
         <div className="flex items-center justify-between gap-6 rounded-lg border border-slate-200 bg-white px-6 py-3.5">
-          
           {/* LEFT: Location and Date Selectors */}
           <div className="flex items-center gap-8">
-            
             {/* Location Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Cửa hàng</label>
+              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+                Cửa hàng
+              </label>
               <div className="relative">
                 <select
-                  value={locationId}
+                  value={selectedLocationId || 'loc_all'}
                   onChange={handleLocationChange}
-                  className="appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100"
+                  disabled={isLocationDisabled}
+                  title={
+                    isLocationDisabled
+                      ? 'Bạn chỉ có thể xem dữ liệu của cửa hàng được gán'
+                      : ''
+                  }
+                  className={`appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100 ${
+                    isLocationDisabled
+                      ? 'bg-slate-100 cursor-not-allowed opacity-60'
+                      : ''
+                  }`}
                 >
-                  {locations.map(location => (
-                    <option key={location.id} value={location.id}>{location.label}</option>
-                  ))}
+                  {storesLoading ? (
+                    <option>Đang tải cửa hàng...</option>
+                  ) : (
+                    availableLocations.map((location) => (
+                      <option
+                        key={location.id}
+                        value={location.id}
+                        disabled={location.isDisabled}
+                      >
+                        {location.name}
+                        {location.isDisabled ? ' (không có quyền truy cập)' : ''}
+                      </option>
+                    ))
+                  )}
                 </select>
-                <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown
+                  size={16}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
               </div>
             </div>
 
             {/* Date Preset Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Khoảng thời gian</label>
+              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+                Khoảng thời gian
+              </label>
               <div className="relative">
-                <select
-                  value={selectedPreset}
-                  onChange={handleDatePresetChange}
-                  className="appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100"
-                >
-                  {datePresetOptions.map(option => (
-                    <option key={option.id} value={option.id}>{option.label}</option>
+                <select className="appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100">
+                  {datePresetOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
-                <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <ChevronDown
+                  size={16}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
               </div>
             </div>
           </div>

@@ -1,29 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux'; // 1. Import hooks
+import { useNavigate, Link } from 'react-router-dom'; // Để chuyển trang sau khi login
+import { loginUser } from '../auth.thunk'; // 2. Import thunk
+import { clearError } from '../authSlice'; // 3. Import action xóa lỗi
 
 const SignIn = ({ onSwitchToSignUp }) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  // 4. Lấy trạng thái từ Redux store
+  const { isLoading, error, isLogin } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
-    identifier: '',
+    identifier: '', // Đây sẽ đóng vai trò là "account" gửi lên BE
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // 5. Nếu đăng nhập thành công (isLogin = true), chuyển hướng về Dashboard
+  useEffect(() => {
+    if (isLogin) {
+      navigate('/'); // Hoặc trang chủ của bạn
+    }
+  }, [isLogin, navigate]);
+
+  // 6. Xóa lỗi cũ khi vừa vào trang
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
 
     if (!formData.identifier || !formData.password) {
-      setError('Vui lòng nhập đầy đủ thông tin đăng nhập');
-      setLoading(false);
       return;
     }
 
-    console.log('Sign In', formData);
-    setLoading(false);
+    // 7. Dispatch thunk loginUser
+    // Chúng ta truyền object đúng cấu trúc BE cần: { account, password }
+    dispatch(loginUser({ 
+      account: formData.identifier, 
+      password: formData.password 
+    }));
   };
 
   return (
@@ -73,6 +92,7 @@ const SignIn = ({ onSwitchToSignUp }) => {
           </div>
         </div>
 
+        {/* 8. Hiển thị lỗi từ Redux */}
         {error && (
           <div className="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-sm">
             {error}
@@ -81,26 +101,19 @@ const SignIn = ({ onSwitchToSignUp }) => {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isLoading}
           className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium tracking-tight rounded-lg py-2.5 flex items-center justify-center gap-2 transition-colors"
         >
           <LogIn size={18} />
-          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
 
-      <div className="mt-6 p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-600 shadow-sm">
-        <p className="font-medium tracking-tight text-slate-700 mb-1">Tài khoản mẫu:</p>
-        <p className="tabular-nums">SuperAdmin: superadmin / 123456</p>
-        <p className="tabular-nums">Admin: admin / 123456</p>
-        <p className="tabular-nums">Manager: manager / 123456</p>
-      </div>
-
       <p className="text-sm text-slate-600 mt-5 text-center">
         Chưa có tài khoản?{' '}
-        <button type="button" className="text-teal-600 font-medium tracking-tight" onClick={onSwitchToSignUp}>
+        <Link to="/register" className="text-teal-600 font-medium tracking-tight hover:text-teal-500 transition-colors">
           Đăng ký
-        </button>
+        </Link>
       </p>
     </div>
   );

@@ -21,7 +21,7 @@ export default {
         pinkLight: "#FEEAEA",
         blueLighter: "#E9F2FF",
         orangeLight: "#FEFCE8",
-        // Bạn có thể thêm màu chủ đạo teal của StoreLens ở đây
+        // Bạn có thể thêm màu chủ đạo teal của SpaceLens ở đây
         primary: "#0D9488", 
       },
       fontFamily: {
