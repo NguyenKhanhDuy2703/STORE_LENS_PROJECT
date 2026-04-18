@@ -10,6 +10,7 @@ const heatmapRoutes = require("./heatmap.routes");
 const zoneRoutes = require("./zone.routes");
 const configRuleRoutes = require("./customerConfigrule.routes");
 const storesRoutes = require("./stores.routes");
+const assetRoutes = require("./asset.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -27,6 +28,7 @@ const routes = (app) => {
   app.use(`${version}/zone` , zoneRoutes);
   app.use(`${version}/customer-config-rule` , configRuleRoutes);
   app.use(`${version}/stores`, storesRoutes);
+  app.use(`${version}/asset` , assetRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success(
       res,
