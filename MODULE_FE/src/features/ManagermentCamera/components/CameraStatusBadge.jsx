@@ -1,4 +1,19 @@
 const STATUS_CONFIG = {
+  active: {
+    label: 'Dang hoat dong',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dotClass: 'bg-emerald-400',
+  },
+  inactive: {
+    label: 'Khong hoat dong',
+    className: 'bg-slate-100 text-slate-600 border-slate-200',
+    dotClass: 'bg-slate-400',
+  },
+  disconnect: {
+    label: 'Mat ket noi',
+    className: 'bg-rose-50 text-rose-600 border-rose-200',
+    dotClass: 'bg-rose-400',
+  },
   online: {
     label: 'Dang hoat dong',
     className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -20,8 +35,8 @@ export const CameraStatusBadge = ({ status }) => {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.offline;
 
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-medium tracking-tight ${config.className}`}>
-      <span className={`h-3 w-3 rounded-full ${config.dotClass}`} />
+    <span className={`inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-sm font-semibold tracking-tight ${config.className}`}>
+      <span className={`h-3.5 w-3.5 rounded-full ${config.dotClass}`} />
       {config.label}
     </span>
   );

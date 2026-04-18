@@ -24,24 +24,43 @@ const selectZonesFromStore = (state) => {
 
   return [];
 };
-const ALOCATION_ID = "LOC_TEST_001";
 const AnalyticsRules = () => {
   const [activeTab, setActiveTab] = useState("business");
   const [customerCareRules, setCustomerCareRules] = useState([]);
+  const notifySuccess = (title, text) =>
+    Swal.fire({
+      icon: "success",
+      title,
+      text,
+      confirmButtonText: "Đóng",
+    });
+
+  const notifyError = (title, text) =>
+    Swal.fire({
+      icon: "error",
+      title,
+      text,
+      confirmButtonText: "Đóng",
+    });
 
   const dispatch = useDispatch();
+  const { locationId, userLocationId } = useSelector((state) => state.filter);
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
   const {rules} = useSelector((state) => state.customerRules);
   const zones = useSelector(selectZonesFromStore);
   useEffect(() => {
+      if (!effectiveLocationId) return;
+
       const fetchRules = async () => {
         try{
-          await dispatch(fetchCustomerRules({locationId : ALOCATION_ID})).unwrap();
+          await dispatch(fetchCustomerRules({locationId : effectiveLocationId})).unwrap();
         }catch(error){
           console.error("Failed to fetch customer care rules:", error);
+          notifyError("Không tải được quy tắc", error?.message || "Vui lòng thử lại sau.");
         }
       }
       fetchRules();
-  },[dispatch])
+  },[dispatch, effectiveLocationId])
 
   useEffect(() => {
     if (Array.isArray(rules)) {
@@ -50,8 +69,10 @@ const AnalyticsRules = () => {
   }, [rules]);
 
   const addRule = async(newRule) => {
+    if (!effectiveLocationId) return;
+
     const saveRule = {
-      locationId: ALOCATION_ID,
+      locationId: effectiveLocationId,
       category: newRule.category,
       ruleId: `TEMP_${Date.now()}`,
       ruleName: newRule.ruleName,
@@ -62,7 +83,6 @@ const AnalyticsRules = () => {
         operator: newRule.operator,
         unit: newRule.unit,
       },
-      zoneId: newRule.zoneId || "",
       nameZone: newRule.zoneName,
       action: newRule.action,
       isActive: true,
@@ -84,19 +104,21 @@ const AnalyticsRules = () => {
       cancelButtonText: 'Hủy',
       preConfirm: async () =>{
         try {
-          return await dispatch(removeCustomerRule({locationId : ALOCATION_ID , ruleId})).unwrap();
+          if (!effectiveLocationId) return;
+          return await dispatch(removeCustomerRule({locationId : effectiveLocationId , ruleId})).unwrap();
         }catch(error){
-          Swal.showValidationMessage(`Lỗi khi xóa quy tắc: ${error.message}`);
+          Swal.showValidationMessage(`Lỗi khi xóa quy tắc: ${error?.message || "Không xác định"}`);
+          throw error;
         }
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        dispatch(deleteRule(ruleId));
-        Swal.fire(
-          'Đã xóa!',
-          'Quy tắc đã được xóa.',
-          'success'
-        );
+        try {
+          dispatch(deleteRule(ruleId));
+          notifySuccess('Đã xóa!', 'Quy tắc đã được xóa.');
+        } catch (error) {
+          notifyError('Xóa thất bại', error?.message || 'Không thể xóa quy tắc.');
+        }
       }
     });
   };
@@ -110,40 +132,40 @@ const AnalyticsRules = () => {
  
  
   const handleCancel = async() => {
-    await dispatch(fetchCustomerRules({locationId : ALOCATION_ID})).unwrap();
-    Swal.fire({
-      title: 'Đã hủy thay đổi',
-      text: 'Các thay đổi chưa lưu đã được hủy bỏ.',
-    })
+    if (!effectiveLocationId) return;
+    try {
+      await dispatch(fetchCustomerRules({locationId : effectiveLocationId})).unwrap();
+      notifySuccess('Đã hủy thay đổi', 'Các thay đổi chưa lưu đã được hủy bỏ.');
+    } catch (error) {
+      notifyError('Hủy thất bại', error?.message || 'Không thể tải lại cấu hình gốc.');
+    }
   };
 
   const handleSaveConfig = async () => {
-    await dispatch(addAndUpdateCustomerRule({locationId : ALOCATION_ID ,ruleData: rules})).unwrap();
-    Swal.fire({
-    title: 'Đang lưu cấu hình...',
-    text: 'Vui lòng xác nhận để lưu các thay đổi của bạn.',
+    if (!effectiveLocationId) return;
+
+    const confirmation = await Swal.fire({
+    title: 'Lưu cấu hình?',
+    text: 'Bạn có muốn lưu các thay đổi hiện tại không?',
+    icon: 'question',
     allowOutsideClick: false, 
     showCancelButton: true,
     confirmButtonText: 'Xác nhận lưu',
+    cancelButtonText: 'Hủy',
     showLoaderOnConfirm: true,
-    icon: 'warning',
-
     preConfirm: async () => {
       try {
-        return await dispatch(addAndUpdateCustomerRule({locationId : ALOCATION_ID , ruleData:rules})).unwrap();
+        return await dispatch(addAndUpdateCustomerRule({locationId : effectiveLocationId , ruleData:rules})).unwrap();
       } catch (error) {
-        Swal.showValidationMessage(`Lỗi khi lưu cấu hình: ${error.message}`);
+        Swal.showValidationMessage(`Lỗi khi lưu cấu hình: ${error?.message || "Không xác định"}`);
+        throw error;
       }
     }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          title: 'Lưu thành công',
-          text: 'Cấu hình đã được lưu thành công.',
-          icon: 'success',
-        });
-      }
     });
+
+    if (confirmation.isConfirmed) {
+      notifySuccess('Lưu thành công', 'Cấu hình đã được lưu thành công.');
+    }
   };
 
   const tabConfig = {

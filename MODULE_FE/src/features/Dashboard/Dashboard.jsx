@@ -1,7 +1,6 @@
 import StatsCards from './components/StatsCards';
 import Charts from './components/Charts';
 import AreaDetails from './components/AreaDetails';
-
 const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-teal-100">

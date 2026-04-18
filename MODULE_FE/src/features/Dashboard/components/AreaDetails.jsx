@@ -61,18 +61,19 @@ const getTrendIcon = (rate = 0) => {
 const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDate = null } = {}) => {
   const dispatch = useDispatch();
   const { zoneAnalytics, zoneAnalyticsLoading, zoneAnalyticsError } = useSelector(state => state.dashboard);
-  const { locationId } = useSelector(state => state.filter || { locationId: 'LOC_TEST_001' });
+  const { locationId, userLocationId } = useSelector(state => state.filter);
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
   
   useEffect(() => {
-    if (locationId) {
+    if (effectiveLocationId) {
       dispatch(fetchZoneAnalyticsDashboard({ 
-        locationId, 
+        locationId: effectiveLocationId,
         type: filterType, 
         startCustom: startDate, 
         endCustom: endDate 
       }));
     }
-  }, [dispatch, locationId, filterType, startDate, endDate]);
+  }, [dispatch, effectiveLocationId, filterType, startDate, endDate]);
 
   const zones = Array.isArray(zoneAnalytics?.zones) ? zoneAnalytics.zones : [];
   const performance = Array.isArray(zoneAnalytics?.performance) ? zoneAnalytics.performance : [];

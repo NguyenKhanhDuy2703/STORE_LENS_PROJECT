@@ -9,8 +9,10 @@ const assetAttributesSchema = new Schema({
 // Schema chính cho Asset
 const assetSchema = new Schema({
     location_id: { type: String, ref: 'Location', required: true },
-    category_name: { type: String, required: true, trim: true , unique: true },
+    product_id: { type: String, trim: true },
+    category_name: { type: String, required: true, trim: true },
     name_product: { type: String, required: true, trim: true },
+    zone_name: { type: String, trim: true },
     brand: { type: String, trim: true },
     price: { type: Number, default: 0 },
     unit: { type: String, trim: true },
@@ -24,5 +26,6 @@ const assetSchema = new Schema({
 assetSchema.index({ location_id: 1 });
 assetSchema.index({ category_name: 1 });
 assetSchema.index({ name_product: 1 });
+assetSchema.index({ zone_name: 1 });
 
 module.exports = mongoose.model('Asset', assetSchema);

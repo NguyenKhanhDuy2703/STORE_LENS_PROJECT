@@ -1,0 +1,57 @@
+import axiosInstance from "./axios";
+const BASE_URL = "/camera";
+export const getCameraDashboardData = async (locationId) => {
+  try {
+        const response = await axiosInstance.get(`${BASE_URL}`, {
+        params: { locationId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+    }
+};
+
+export const upsertCamera = async (cameraCode, cameraData) => {
+    try {
+        const isUpdate = Boolean(cameraCode);
+        const payload = isUpdate
+            ? { ...cameraData, camera_code: cameraCode }
+            : cameraData;
+        const response = isUpdate
+            ? await axiosInstance.put(`${BASE_URL}/${cameraCode}`, payload)
+            : await axiosInstance.post(`${BASE_URL}`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const deleteCamera = async (cameraCode) => {
+    try {
+        const response = await axiosInstance.delete(`${BASE_URL}/${cameraCode}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+export const turnOnCamera = async (cameraCode) => {
+    try {
+        const response = await axiosInstance.post(`${BASE_URL}/turn-on`, cameraCode);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+};
+
+export const turnOffCamera = async (urlRtsp) => {
+    try {
+        const response = await axiosInstance.get(`${BASE_URL}/turn-off`, {
+            params: { urlRtsp }
+        });
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+};

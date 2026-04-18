@@ -1,9 +1,12 @@
 const CameraSchema = require('../schemas/camera.schema');
 
 const cameraService = {
-    async getCameraDashboardData() {
+    async getCameraDashboardData({locationId}) {
         try {
             const result = await CameraSchema.aggregate([
+                {
+                    $match: { location_id: locationId }
+                },
                 {
                     $facet: {
                         "total": [{ $count: "count" }],
@@ -23,9 +26,14 @@ const cameraService = {
                                     camera_name: 1,
                                     camera_code: 1,
                                     rtsp_url: 1,
+                                    url_image_snapshot: 1,
                                     status: 1,
                                     location_id: 1,
+                                    camera_spec: 1,
+                                    max_resolution: "$camera_spec.max_resolution",
+                                    current_resolution: "$camera_spec.current_resolution",
                                     last_heartbeat: 1,
+                                    installation_date: 1,
                                     updated_at: 1,
                                     _id: 0
                                 }
@@ -56,19 +64,90 @@ const cameraService = {
 
     async upsertCamera(cameraCode, cameraData) {
         try {
-            const { status, camera_code, created_at, ...otherData } = cameraData;
+            const data = cameraData || {};
+
+            const finalCameraCode = (data.camera_code || data.cameraCode || cameraCode || '').toString().trim();
+            const location_id = (data.location_id || data.locationId || '').toString().trim();
+            const camera_name = (data.camera_name || data.cameraName || '').toString().trim();
+            const rtsp_url = (data.rtsp_url || data.rtspUrl || '').toString().trim();
+            const url_image_snapshot = data.url_image_snapshot || data.urlImageSnapshot;
+            const status = data.status;
+            const camera_spec = data.camera_spec || data.cameraSpec;
+            const camera_state = data.camera_state || data.cameraState;
+
+            let last_heartbeat;
+            if (data.last_heartbeat || data.lastHeartbeat) {
+                const parsedLastHeartbeat = new Date(data.last_heartbeat || data.lastHeartbeat);
+                if (Number.isNaN(parsedLastHeartbeat.getTime())) {
+                    throw new Error('Invalid last_heartbeat date');
+                }
+                last_heartbeat = parsedLastHeartbeat;
+            }
+
+            let installation_date;
+            if (data.installation_date || data.installationDate) {
+                const parsedInstallationDate = new Date(data.installation_date || data.installationDate);
+                if (Number.isNaN(parsedInstallationDate.getTime())) {
+                    throw new Error('Invalid installation_date date');
+                }
+                installation_date = parsedInstallationDate;
+            }
+
+            if (!finalCameraCode) {
+                throw new Error('Camera Code is required');
+            }
+
+            if (!location_id) {
+                throw new Error('Location ID is required');
+            }
+
+            if (!camera_name) {
+                throw new Error('Camera Name is required');
+            }
+
+            if (!rtsp_url) {
+                throw new Error('RTSP URL is required');
+            }
+
+            const updatePayload = {
+                location_id,
+                camera_name,
+                camera_code: finalCameraCode,
+                rtsp_url,
+                camera_spec,
+                camera_state,
+                updated_at: new Date()
+            };
+
+            if (status !== undefined && status !== null && String(status).trim() !== '') {
+                updatePayload.status = status;
+            }
+
+            if (url_image_snapshot !== undefined) {
+                updatePayload.url_image_snapshot = url_image_snapshot;
+            }
+
+            if (last_heartbeat !== undefined) {
+                updatePayload.last_heartbeat = last_heartbeat;
+            }
+
+            if (installation_date !== undefined) {
+                updatePayload.installation_date = installation_date;
+            }
+
+            const setOnInsertPayload = {
+                created_at: new Date()
+            };
+
+            if (updatePayload.status === undefined) {
+                setOnInsertPayload.status = 'inactive';
+            }
 
             return await CameraSchema.findOneAndUpdate(
-                { camera_code: cameraCode },
+                { camera_code: finalCameraCode },
                 {
-                    $set: { 
-                        ...otherData, 
-                        updated_at: new Date() 
-                    },
-                    $setOnInsert: { 
-                        status: status || 'inactive',
-                        created_at: new Date()
-                    }
+                    $set: updatePayload,
+                    $setOnInsert: setOnInsertPayload
                 },
                 {
                     new: true,
