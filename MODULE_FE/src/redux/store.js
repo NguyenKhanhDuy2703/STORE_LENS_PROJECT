@@ -1,19 +1,24 @@
 import { configureStore } from "@reduxjs/toolkit";
 import memberSegmentationReducer from "../features/MemberSegmentation/member.slice";
-import notificationReducer from "./slices/notificationSlice";
 import customerRuleReducer from "../features/AnalyticsRules/analyticsRules.slice";
-import authReducer from "../features/Authentication/authSlice";
-import storesReducer from "./slices/storesSlice";
-import filterReducer from "./slices/filterSlice";
+import heatmapReducer from "../features/Heatmap/heatmap.slice";
+import cameraZonesReducer from "../features/Map/cameraZonesSlice";
+import dashboardReducer from "../features/Dashboard/dashboard.slice";
+import authReducer from "../features/Authentication/auth.slice";
+import globalReducer from "./slices/global.slice";
+import assetReducer from "../features/AssetManagement/asset.slice";
+import cameraReducer from "../features/ManagermentCamera/camera.slice";
 
 const store = configureStore({
   reducer: {
-    memberSegmentation: memberSegmentationReducer,
-    notifications: notificationReducer,
     customerRules : customerRuleReducer,
+    heatmap: heatmapReducer,
+    cameraZones: cameraZonesReducer,
+    dashboard: dashboardReducer,
     auth: authReducer,
-    stores: storesReducer,
-    filter: filterReducer,
+    filter: globalReducer,
+    asset: assetReducer,
+    camera: cameraReducer,
   },
 });
 

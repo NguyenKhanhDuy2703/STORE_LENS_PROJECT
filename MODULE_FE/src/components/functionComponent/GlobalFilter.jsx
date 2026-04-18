@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CalendarDays, Store, ChevronDown, Download, Upload, FileText } from 'lucide-react';
 import useScrollVisibility from '@/hooks/useScrollVisibility';
-import { setLocation, initializeFilterByUserRole } from '../../redux/slices/filterSlice';
-import { fetchStores } from '../../redux/slices/storesSlice';
+import { setLocation, initializeFilterByUserRole } from '../../redux/slices/global.slice';
 
 // Date preset options
 const datePresetOptions = [
@@ -16,14 +15,8 @@ const datePresetOptions = [
 export const GlobalFilter = () => {
   const dispatch = useDispatch();
 
-  // Get user data from auth
-  const { user } = useSelector((state) => state.auth);
-  
-  // Get stores from stores slice
-  const { items: stores, isLoading: storesLoading } = useSelector((state) => state.stores);
-  
-  // Get filter state
-  const { locationId: selectedLocationId, userRole, userLocationId, isAutoSelected } = useSelector(
+  // Get user + filter data from global slice only
+  const { user, allocation, locationId: selectedLocationId, userLocationId, isAutoSelected } = useSelector(
     (state) => state.filter
   );
 
@@ -42,11 +35,6 @@ export const GlobalFilter = () => {
     }
   }, [user, dispatch]);
 
-  // Fetch stores on component mount
-  useEffect(() => {
-    dispatch(fetchStores());
-  }, [dispatch]);
-
   const handleLocationChange = (e) => {
     const newLocationId = e.target.value;
     dispatch(setLocation(newLocationId));
@@ -54,9 +42,9 @@ export const GlobalFilter = () => {
 
   /**
    * Get filtered location options based on user role
+   * Uses allocation data fetched from Redux global state
    */
   const getAvailableLocations = () => {
-    // Add "Tất cả cơ sở" option only for ADMIN_SUPER
     const locationOptions = [];
 
     if (user?.role === 'ADMIN_SUPER') {
@@ -67,15 +55,17 @@ export const GlobalFilter = () => {
       });
     }
 
-    // Add all stores from API
-    if (stores && stores.length > 0) {
-      stores.forEach((store) => {
-        const isDisabled = user?.role === 'MANAGER' && store._id !== userLocationId;
-        locationOptions.push({
-          id: store._id,
-          name: store.name || store.display_name || `Cửa hàng ${store._id}`,
-          isDisabled: isDisabled,
-        });
+    // Add current user's allocation location
+    if (allocation) {
+      const locationOptionId = allocation.location_code || allocation._id || userLocationId;
+      const isDisabled =
+        (user?.role === 'MANAGER' || user?.role === 'USER') &&
+        locationOptionId !== userLocationId;
+
+      locationOptions.push({
+        id: locationOptionId,
+        name: allocation.name || `Cửa hàng ${locationOptionId}`,
+        isDisabled: isDisabled,
       });
     }
 
@@ -98,7 +88,7 @@ export const GlobalFilter = () => {
 
   return (
     <div
-      className={`sticky top-16 z-30 px-6 transition-all duration-300 ease-in-out ${
+      className={`sticky top-16 z-20 px-6 transition-all duration-300 ease-in-out ${
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
@@ -128,20 +118,16 @@ export const GlobalFilter = () => {
                       : ''
                   }`}
                 >
-                  {storesLoading ? (
-                    <option>Đang tải cửa hàng...</option>
-                  ) : (
-                    availableLocations.map((location) => (
-                      <option
-                        key={location.id}
-                        value={location.id}
-                        disabled={location.isDisabled}
-                      >
-                        {location.name}
-                        {location.isDisabled ? ' (không có quyền truy cập)' : ''}
-                      </option>
-                    ))
-                  )}
+                  {availableLocations.map((location) => (
+                    <option
+                      key={location.id}
+                      value={location.id}
+                      disabled={location.isDisabled}
+                    >
+                      {location.name}
+                      {location.isDisabled ? ' (không có quyền truy cập)' : ''}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown
                   size={16}

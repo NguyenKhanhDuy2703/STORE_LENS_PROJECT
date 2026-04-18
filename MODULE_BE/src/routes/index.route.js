@@ -1,6 +1,7 @@
 const { version } = require("../config").getConfig().api;
 const { error, success } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
+
 const authRoutes = require("./auth.routes");
 const cameraAIRoutes = require("./cameraAI.routes");
 const dashboardRoutes = require("./dashboard.routes");
@@ -9,7 +10,7 @@ const asynLocationRoutes = require("./asyn.routes");
 const heatmapRoutes = require("./heatmap.routes");
 const zoneRoutes = require("./zone.routes");
 const configRuleRoutes = require("./customerConfigrule.routes");
-const storesRoutes = require("./stores.routes");
+const locationRoutes = require("./allocation.routes");
 const assetRoutes = require("./asset.routes");
 const {
   authenticationToken,
@@ -27,13 +28,15 @@ const routes = (app) => {
   app.use(`${version}/heatmap` , heatmapRoutes);
   app.use(`${version}/zone` , zoneRoutes);
   app.use(`${version}/customer-config-rule` , configRuleRoutes);
-  app.use(`${version}/stores`, storesRoutes);
+  app.use(`${version}/location`, locationRoutes);
   app.use(`${version}/asset` , assetRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
-    return success(
+    return success({
       res,
-      { user: req.user },
-      "get token successfully",
+      message: "Get current session successfully",
+      code: StatusCodes.OK,
+      data: req.user || null
+    }
     );
   });
   app.get(`${version}/healthy`, (req, res) => {

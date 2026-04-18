@@ -1,6 +1,20 @@
 const zoneSchema = require('../schemas/zone.schema');
+const zoneStatsSchema = require('../schemas/zoneStats.schema');
+const SessionSchema = require('../schemas/session.schema');
 const locationSchema = require('../schemas/location.schema');
 const cameraSchema = require('../schemas/camera.schema');
+const { dateUtil } = require('../utils/date.util');
+
+const buildDateRangeFilter = ({ type, startCustom, endCustom, defaultType = 'today' } = {}) => {
+    const filterType = type || ((startCustom || endCustom) ? 'custom' : defaultType);
+    const { startDate, endDate } = dateUtil({
+        type: filterType,
+        startCustom,
+        endCustom
+    });
+
+    return { $gte: startDate, $lte: endDate };
+};
 
 const zoneService = {
     async _preCheck({locationId , cameraCode}){

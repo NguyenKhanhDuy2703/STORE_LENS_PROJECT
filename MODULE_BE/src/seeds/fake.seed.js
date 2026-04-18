@@ -13,13 +13,62 @@ const ZoneStats = require('../schemas/zoneStats.schema');
 const Heatmap = require('../schemas/heatmap.schema');
 const FlowPatterns = require('../schemas/flowPatterns.schema');
 const CustomerCareRule = require('../schemas/customerCareRule.schema');
+const User = require('../schemas/user.schema');
+const { hashPassword } = require('../middlewares/security.middleware');
 const { dateUtil, getCurrnetDateVN } = require('../utils/date.util');
 
 const MONGO_URI = process.env.URI_MONGODB || process.env.MONGO_URI;
 const LOCATION_CODE = (process.env.SEED_LOCATION_CODE || 'LOC_TEST_001').toUpperCase();
+const SECONDARY_LOCATION_CODE = (process.env.SEED_SECONDARY_LOCATION_CODE || 'LOC_TEST_002').toUpperCase();
+const TEST_USER_PASSWORD = process.env.SEED_TEST_PASSWORD || '123456';
 const FRONT_CAMERA_CODE = 'CAM_FRONT_057601';
 const CHECKOUT_CAMERA_CODE = 'CAM_CHECKOUT_057601';
 const SHOULD_CLEAN = process.argv.includes('--clean');
+
+async function ensureTestAccounts({ primaryLocationId, secondaryLocationId }) {
+    const hashedPassword = await hashPassword(TEST_USER_PASSWORD);
+
+    await User.updateOne(
+        { account: 'manager_test_1store' },
+        {
+            $set: {
+                account: 'manager_test_1store',
+                password: hashedPassword,
+                email: 'manager.test.1store@spacelens.vn',
+                role: 'MANAGER',
+                location_id: primaryLocationId
+            }
+        },
+        { upsert: true }
+    );
+
+    await User.updateOne(
+        { account: 'admin_test_2stores' },
+        {
+            $set: {
+                account: 'admin_test_2stores',
+                password: hashedPassword,
+                email: 'admin.test.2stores@spacelens.vn',
+                role: 'ADMIN',
+                location_id: primaryLocationId
+            }
+        },
+        { upsert: true }
+    );
+
+    return {
+        manager: {
+            account: 'manager_test_1store',
+            role: 'MANAGER',
+            stores: [primaryLocationId]
+        },
+        admin: {
+            account: 'admin_test_2stores',
+            role: 'ADMIN',
+            stores: [primaryLocationId, secondaryLocationId]
+        }
+    };
+}
 
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -104,6 +153,26 @@ async function seed() {
         });
     }
 
+    let secondaryLocation = await Location.findOne({ location_code: SECONDARY_LOCATION_CODE });
+    if (!secondaryLocation) {
+        secondaryLocation = await Location.create({
+            location_code: SECONDARY_LOCATION_CODE,
+            name: `Demo Store ${randomInt(100, 999)}`,
+            address: '456 Le Loi, District 1, HCMC',
+            type_model: 'RETAIL',
+            manager_info: {
+                name: 'Secondary Store Manager',
+                phone: '0911111111',
+                email: `manager.${SECONDARY_LOCATION_CODE.toLowerCase()}@example.com`
+            },
+            business_hours: {
+                open: '08:00',
+                close: '22:00',
+                timezone: 'Asia/Ho_Chi_Minh'
+            }
+        });
+    }
+
     const locationId = location.location_code;
     const existingZones = await Zone.find({ location_id: locationId }).select('zone_id').lean();
     const existingZoneIds = existingZones.map((z) => z.zone_id);
@@ -116,32 +185,153 @@ async function seed() {
     const uniqueSuffix = Date.now().toString().slice(-6);
 
     const assets = await Asset.insertMany([
+        // Danh mục: Đồ uống
         {
             location_id: locationId,
-            category_name: 'Smartphone',
-            name_product: `iPhone 15 Pro ${uniqueSuffix}`,
-            brand: 'Apple',
-            price: 29990000,
-            unit: 'piece',
-            stock_quantity: 35
+            product_id: `SP_MILK_${uniqueSuffix}`,
+            category_name: 'Đồ uống',
+            name_product: 'Sữa tươi không đường',
+            zone_name: 'Quầy thanh toán',
+            brand: 'Vinamilk',
+            price: 32000,
+            unit: 'Hộp',
+            stock_quantity: 120,
+            status: true
         },
         {
             location_id: locationId,
-            category_name: 'Laptop',
-            name_product: `MacBook Air M3 ${uniqueSuffix}`,
-            brand: 'Apple',
-            price: 31990000,
-            unit: 'piece',
-            stock_quantity: 20
+            product_id: `SP_WATER_${uniqueSuffix}`,
+            category_name: 'Đồ uống',
+            name_product: 'Nước khoáng',
+            zone_name: 'Lối vào chính',
+            brand: 'Lavie',
+            price: 10000,
+            unit: 'Chai',
+            stock_quantity: 80,
+            status: true
         },
         {
             location_id: locationId,
-            category_name: 'Accessory',
-            name_product: `AirPods Pro ${uniqueSuffix}`,
-            brand: 'Apple',
-            price: 5990000,
-            unit: 'piece',
-            stock_quantity: 90
+            product_id: `SP_COFFEE_${uniqueSuffix}`,
+            category_name: 'Đồ uống',
+            name_product: 'Cà phê hạt',
+            zone_name: 'Quầy thanh toán',
+            brand: 'Trung Nguyên',
+            price: 85000,
+            unit: 'Gói',
+            stock_quantity: 45,
+            status: true
+        },
+        // Danh mục: Bánh kẹo
+        {
+            location_id: locationId,
+            product_id: `SP_COOKIE_${uniqueSuffix}`,
+            category_name: 'Bánh kẹo',
+            name_product: 'Bánh quy bơ',
+            zone_name: 'Khu vực giảm giá',
+            brand: 'Cosy',
+            price: 55000,
+            unit: 'Hộp',
+            stock_quantity: 25,
+            status: true
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_SNACK_${uniqueSuffix}`,
+            category_name: 'Bánh kẹo',
+            name_product: 'Snack khoai tây',
+            zone_name: 'Lối vào chính',
+            brand: 'Oishi',
+            price: 12000,
+            unit: 'Gói',
+            stock_quantity: 8,
+            status: true
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_CANDY_${uniqueSuffix}`,
+            category_name: 'Bánh kẹo',
+            name_product: 'Kẹo Halls',
+            zone_name: 'Quầy thanh toán',
+            brand: 'Halls',
+            price: 8000,
+            unit: 'Gói',
+            stock_quantity: 0,
+            status: false
+        },
+        // Danh mục: Đồ khô
+        {
+            location_id: locationId,
+            product_id: `SP_NOODLE_${uniqueSuffix}`,
+            category_name: 'Đồ khô',
+            name_product: 'Mì ăn liền vị bò',
+            zone_name: 'Khu vực giảm giá',
+            brand: 'Hảo Hảo',
+            price: 4500,
+            unit: 'Gói',
+            stock_quantity: 0,
+            status: false
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_OIL_${uniqueSuffix}`,
+            category_name: 'Đồ khô',
+            name_product: 'Dầu ăn',
+            zone_name: 'Quầy thanh toán',
+            brand: 'Neptune',
+            price: 69000,
+            unit: 'Chai',
+            stock_quantity: 42,
+            status: true
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_RICE_${uniqueSuffix}`,
+            category_name: 'Đồ khô',
+            name_product: 'Gạo jasmine',
+            zone_name: 'Mỹ phẩm cao cấp',
+            brand: 'ST25',
+            price: 125000,
+            unit: 'Túi 5kg',
+            stock_quantity: 18,
+            status: true
+        },
+        // Danh mục: Gia dụng
+        {
+            location_id: locationId,
+            product_id: `SP_DETERGENT_${uniqueSuffix}`,
+            category_name: 'Gia dụng',
+            name_product: 'Bột giặt',
+            zone_name: 'Quầy thanh toán',
+            brand: 'Ariel',
+            price: 135000,
+            unit: 'Túi',
+            stock_quantity: 60,
+            status: true
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_HANDWASH_${uniqueSuffix}`,
+            category_name: 'Gia dụng',
+            name_product: 'Nước rửa tay',
+            zone_name: 'Mỹ phẩm cao cấp',
+            brand: 'Lifebuoy',
+            price: 78000,
+            unit: 'Chai',
+            stock_quantity: 15,
+            status: true
+        },
+        {
+            location_id: locationId,
+            product_id: `SP_SOAP_${uniqueSuffix}`,
+            category_name: 'Gia dụng',
+            name_product: 'Xà phòng tắm',
+            zone_name: 'Lối vào chính',
+            brand: 'Dettol',
+            price: 35000,
+            unit: 'Cái',
+            stock_quantity: 35,
+            status: true
         }
     ]);
 
@@ -183,29 +373,38 @@ async function seed() {
         {
             location_id: locationId,
             camera_id: cameraCodeByName.frontDoor,
-            zone_name: 'Smartphone Display',
-            zone_id: `ZONE_PHONE_${uniqueSuffix}`,
-            category_name: assets[0].category_name,
-            function_type: 'Product Showcase',
+            zone_name: 'Quầy thanh toán',
+            zone_id: `ZONE_CHECKOUT_${uniqueSuffix}`,
+            category_name: 'Thanh toán',
+            function_type: 'Checkout Counter',
             polygon_coordinates: [[100, 120], [450, 120], [450, 400], [100, 400]]
         },
         {
             location_id: locationId,
             camera_id: cameraCodeByName.frontDoor,
-            zone_name: 'Laptop Shelf',
-            zone_id: `ZONE_LAPTOP_${uniqueSuffix}`,
-            category_name: assets[1].category_name,
-            function_type: 'Product Showcase',
+            zone_name: 'Lối vào chính',
+            zone_id: `ZONE_ENTRANCE_${uniqueSuffix}`,
+            category_name: 'Đồ uống',
+            function_type: 'Main Entrance',
             polygon_coordinates: [[500, 130], [880, 130], [880, 430], [500, 430]]
         },
         {
             location_id: locationId,
             camera_id: cameraCodeByName.checkout,
-            zone_name: 'Checkout Counter',
-            zone_id: `ZONE_CHECKOUT_${uniqueSuffix}`,
-            category_name: assets[2].category_name,
-            function_type: 'Checkout',
+            zone_name: 'Khu vực giảm giá',
+            zone_id: `ZONE_SALE_${uniqueSuffix}`,
+            category_name: 'Bánh kẹo',
+            function_type: 'Sale Area',
             polygon_coordinates: [[50, 80], [600, 80], [600, 360], [50, 360]]
+        },
+        {
+            location_id: locationId,
+            camera_id: cameraCodeByName.checkout,
+            zone_name: 'Mỹ phẩm cao cấp',
+            zone_id: `ZONE_PREMIUM_${uniqueSuffix}`,
+            category_name: 'Gia dụng',
+            function_type: 'Premium Products',
+            polygon_coordinates: [[100, 100], [800, 100], [800, 500], [100, 500]]
         }
     ]);
 
@@ -507,12 +706,40 @@ async function seed() {
         }
     ]);
 
+    const seededAccounts = await ensureTestAccounts({
+        primaryLocationId: locationId,
+        secondaryLocationId: secondaryLocation.location_code
+    });
+
     console.log('[seed] Done');
     console.log(`[seed] location_code=${locationId}`);
+    console.log(`[seed] secondary_location_code=${secondaryLocation.location_code}`);
     console.log(`[seed] assets=${assets.length}, cameras=${cameras.length}, zones=${zones.length}`);
     console.log(`[seed] zone-camera mapping: ${zones.map((z) => `${z.zone_id}->${z.camera_id}`).join(', ')}`);
     console.log(`[seed] events=${businessEvents.length}, sessions=2`);
     console.log(`[seed] configRules=${configRules.length}`);
+
+    const testUsers = await User.find({
+        $or: [
+            { location_id: locationId },
+            { role: 'ADMIN_SUPER' }
+        ]
+    })
+        .select('account role -_id')
+        .sort({ role: 1, account: 1 })
+        .lean();
+
+    if (testUsers.length > 0) {
+        console.log('[seed] test users (account - role - password):');
+        testUsers.forEach((user) => {
+            console.log(`[seed] - ${user.account} - ${user.role} - ${TEST_USER_PASSWORD}`);
+        });
+    } else {
+        console.log('[seed] test users (account - role - password): empty. Please run user seed first.');
+    }
+
+    console.log(`[seed] manager test account: ${seededAccounts.manager.account} - ${seededAccounts.manager.role} - stores=${seededAccounts.manager.stores.join(', ')} - password=${TEST_USER_PASSWORD}`);
+    console.log(`[seed] admin test account: ${seededAccounts.admin.account} - ${seededAccounts.admin.role} - stores=${seededAccounts.admin.stores.join(', ')} - password=${TEST_USER_PASSWORD}`);
 }
 
 seed()

@@ -2,27 +2,33 @@ const { StatusCodes } = require("http-status-codes");
 const { turnOnCamera, turnOffCamera } = require("../api/cameraAI.api");
 const catchAsync = require("../utils/catchAsync");
 const { success , error } = require("../utils/response");
-mock_zones = [
-    {
-        "zone_id": "Zone_A",
-        "points": [[100, 100], [500, 100], [500, 500], [100, 500]]
-    },
-    {
-        "zone_id": "Zone_B",
-        "points": [[600, 100], [1000, 100], [1000, 500], [600, 500]]
-    }
+const ZoneSchema = require("../schemas/zone.schema");
 
-]
 const turnOncameraController = catchAsync(async (req, res) => {
     const {
-      cameraId ,
+    cameraId ,
+    cameraCode,
       urlRtsp ,
       locationId ,
     } = req.body;
-    if (!cameraId || !urlRtsp || !locationId) {
+
+  const resolvedCameraCode = cameraId || cameraCode;
+
+  if (!resolvedCameraCode || !urlRtsp || !locationId) {
         error({ message: "Missing values", code: StatusCodes.BAD_REQUEST });
     }
-    const result = await turnOnCamera({cameraId, urlRtsp, locationId , listZone : mock_zones});
+
+  const listZone = await ZoneSchema.getListZoneByCameraCode({
+    locationId,
+    cameraCode: resolvedCameraCode,
+  });
+
+  const result = await turnOnCamera({
+    cameraId: resolvedCameraCode,
+    urlRtsp,
+    locationId,
+    listZone,
+  });
     
     return success({
       res,
@@ -32,8 +38,13 @@ const turnOncameraController = catchAsync(async (req, res) => {
     });
 });
 const tunrOffcameraController = catchAsync(async (req, res) => {
-        const { rtpsUrl } = req.body;
-        const result = await turnOffCamera(rtpsUrl);
+    const urlRtsp = req.query.urlRtsp || req.query.rtspUrl || req.body?.urlRtsp || req.body?.rtspUrl;
+
+    if (!urlRtsp) {
+      error({ message: "Missing urlRtsp", code: StatusCodes.BAD_REQUEST });
+    }
+
+    const result = await turnOffCamera(urlRtsp);
         return success({
             res,
             data: result,

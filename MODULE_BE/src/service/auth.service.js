@@ -7,8 +7,6 @@ const { StatusCodes } = require("http-status-codes");
 
 const register = async (userData) => {
     const { account, password, email, location_id, fullname } = userData;
-
-    // Validate input
     const trimmedAccount = account.toString().trim();
     const trimmedEmail = email.toString().trim();
     const trimmedPassword = password.trim();
@@ -36,7 +34,6 @@ const register = async (userData) => {
 };
 
 const login = async (account, password) => {
-    // Validate input types
     if (typeof account !== 'string' || typeof password !== 'string') {
         error({message: "Invalid input types", code: StatusCodes.BAD_REQUEST});
     }

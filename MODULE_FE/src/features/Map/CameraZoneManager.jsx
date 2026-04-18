@@ -26,9 +26,11 @@ const CameraZoneManager = () => {
 
   const selectedCamera = DUMMY_CAMERAS.find((cam) => cam.cameraCode === selectedCameraCode);
   const cameraZonesState = useSelector((state) => state.cameraZones);
+  const { locationId, userLocationId } = useSelector((state) => state.filter);
   const selectedCameraState = cameraZonesState?.selectedCamera;
   const stateBackgroundImage = selectedCameraState?.zones?.backgroundImage || "";
   const previewImageUrl = imageUrl || stateBackgroundImage;
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
 
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [loadedImage] = useImage(previewImageUrl, "anonymous");
@@ -86,9 +88,10 @@ const CameraZoneManager = () => {
 
   const handleUpdateZone = async () => {
     if (!editingZoneId) return;
+    if (!effectiveLocationId) return;
 
     const apiPayload = {
-      locationId: "LOC_TEST_001",
+      locationId: effectiveLocationId,
       cameraCode: selectedCameraCode,
       listZones: [
         {
@@ -106,7 +109,7 @@ const CameraZoneManager = () => {
       const updatedZone = {
         cameraCode: selectedCameraCode,
         camera_id: selectedCameraCode,
-        location_id: "LOC_TEST_001",
+        location_id: effectiveLocationId,
         zoneId: editingZoneId,
         zone_name: draftZone.zoneName,
         categoryName: draftZone.categoryName,
@@ -133,11 +136,11 @@ const CameraZoneManager = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (selectedCameraCode) {
+    if (selectedCameraCode && effectiveLocationId) {
       setImageUrl("");
-      dispatch(fetchListZone({ locationId: "LOC_TEST_001", cameraCode: selectedCameraCode }));
+      dispatch(fetchListZone({ locationId: effectiveLocationId, cameraCode: selectedCameraCode }));
     }
-  }, [dispatch, selectedCameraCode]);
+  }, [dispatch, selectedCameraCode, effectiveLocationId]);
 
   useEffect(() => {
     return () => {
@@ -178,10 +181,12 @@ const CameraZoneManager = () => {
   };
 
   const handleSaveZone = async () => {
+    if (!effectiveLocationId) return;
+
     const zoneId = `ZONE_${selectedCameraCode}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
     const apiPayload = {
-      locationId: "LOC_TEST_001",
+      locationId: effectiveLocationId,
       cameraCode: selectedCameraCode,
       listZones: [
         {
@@ -199,7 +204,7 @@ const CameraZoneManager = () => {
       const localZone = {
         cameraCode: selectedCameraCode,
         camera_id: selectedCameraCode,
-        location_id: "LOC_TEST_001",
+        location_id: effectiveLocationId,
         zoneId,
         zone_name: draftZone.zoneName,
         categoryName: draftZone.categoryName,
@@ -376,7 +381,8 @@ const CameraZoneManager = () => {
                       onEdit={handleStartEdit}
                       onDelete={async (zoneId) => {
                         try {
-                          await dispatch(fetchDeleteZone({ locationId: "LOC_TEST_001", cameraCode: selectedCameraCode, zoneId })).unwrap();
+                          if (!effectiveLocationId) return;
+                          await dispatch(fetchDeleteZone({ locationId: effectiveLocationId, cameraCode: selectedCameraCode, zoneId })).unwrap();
                           dispatch(deleteZoneAction({ cameraCode: selectedCameraCode, zoneId }));
                         } catch (error) {
                           console.error("Failed to delete zone:", error);

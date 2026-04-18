@@ -1,44 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../auth.thunk';
-import { clearError } from '../authSlice';
+import { registerThunk } from '../auth.thunk';
 import { useNavigate } from 'react-router-dom';
 const SignUp = ({ onSwitchToSignIn }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isLoading, error, user } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '', email: '', accountName: '', password: '', role: 'USER', assignedStore: ''
   });
+  const goToSignIn = onSwitchToSignIn || (() => navigate('/login'));
 
-  // Xóa lỗi cũ khi vào trang
   useEffect(() => {
-    dispatch(clearError());
-  }, [dispatch]);
-
-  // Chuyển trang sau khi đăng ký thành công
-  useEffect(() => {
-    if (user && success) {
-      const timer = setTimeout(() => onSwitchToSignIn(), 2000);
-      return () => clearTimeout(timer);
+    if (!success) {
+      return undefined;
     }
-  }, [user, success, onSwitchToSignIn]);
+
+    const timer = setTimeout(() => goToSignIn(), 2000);
+    return () => clearTimeout(timer);
+  }, [success, goToSignIn]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(registerUser({
+    dispatch(registerThunk({
       fullname: formData.fullName,
       email: formData.email,
       account: formData.accountName,
       password: formData.password,
       role: formData.role.toUpperCase(),
       location_id: formData.assignedStore
-    })).then((res) => {
-      if (!res.error) setSuccess(true);
+    })).unwrap().then(() => {
+      setSuccess(true);
     });
   };
 
@@ -99,11 +95,11 @@ const SignUp = ({ onSwitchToSignIn }) => {
           {/* Nút Submit */}
           <button 
             type="submit" 
-            disabled={isLoading}
+            disabled={loading}
             className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-teal-200"
           >
             <UserPlus size={18} />
-            {isLoading ? 'Đang xử lý...' : 'Tạo tài khoản'}
+            {loading ? 'Đang xử lý...' : 'Tạo tài khoản'}
           </button>
         </form>
 

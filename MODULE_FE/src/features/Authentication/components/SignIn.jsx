@@ -1,45 +1,58 @@
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { useDispatch, useSelector } from 'react-redux'; // 1. Import hooks
-import { useNavigate, Link } from 'react-router-dom'; // Để chuyển trang sau khi login
-import { loginUser } from '../auth.thunk'; // 2. Import thunk
-import { clearError } from '../authSlice'; // 3. Import action xóa lỗi
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom'; 
+import { loginThunk } from '../auth.thunk'; 
+
 
 const SignIn = ({ onSwitchToSignUp }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // 4. Lấy trạng thái từ Redux store
-  const { isLoading, error, isLogin } = useSelector((state) => state.auth);
+  const { loading, isLogin } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
-    identifier: '', // Đây sẽ đóng vai trò là "account" gửi lên BE
+    identifier: '', 
+    password: '',
+  });
+  const [formErrors, setFormErrors] = useState({
+    identifier: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // 5. Nếu đăng nhập thành công (isLogin = true), chuyển hướng về Dashboard
   useEffect(() => {
     if (isLogin) {
-      navigate('/'); // Hoặc trang chủ của bạn
+      navigate('/'); 
     }
   }, [isLogin, navigate]);
 
-  // 6. Xóa lỗi cũ khi vừa vào trang
-  useEffect(() => {
-    dispatch(clearError());
-  }, [dispatch]);
+  const validateForm = () => {
+    const nextErrors = {
+      identifier: '',
+      password: '',
+    };
+
+    if (!formData.identifier?.trim()) {
+      nextErrors.identifier = 'Vui lòng nhập tài khoản';
+    }
+
+    if (!formData.password?.trim()) {
+      nextErrors.password = 'Vui lòng nhập mật khẩu';
+    }
+
+    setFormErrors(nextErrors);
+    return !nextErrors.identifier && !nextErrors.password;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.identifier || !formData.password) {
+    if (!validateForm()) {
       return;
     }
 
-    // 7. Dispatch thunk loginUser
-    // Chúng ta truyền object đúng cấu trúc BE cần: { account, password }
-    dispatch(loginUser({ 
+    dispatch(loginThunk({ 
       account: formData.identifier, 
       password: formData.password 
     }));
@@ -57,14 +70,25 @@ const SignIn = ({ onSwitchToSignUp }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium tracking-tight text-slate-700 mb-1.5">
-            Tên tài khoản hoặc Email
+            Tài khoản
           </label>
+          {formErrors.identifier && (
+            <p className="mb-1.5 text-xs text-rose-600">{formErrors.identifier}</p>
+          )}
           <input
             type="text"
             value={formData.identifier}
-            onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-            placeholder="admin hoặc admin@spacelens.vn"
-            className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500"
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, identifier: value });
+              if (formErrors.identifier) {
+                setFormErrors((prev) => ({ ...prev, identifier: '' }));
+              }
+            }}
+            placeholder="admin, manager_test_1store"
+            className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500 ${
+              formErrors.identifier ? 'border-rose-300' : 'border-slate-300'
+            }`}
             required
           />
         </div>
@@ -73,13 +97,24 @@ const SignIn = ({ onSwitchToSignUp }) => {
           <label className="block text-sm font-medium tracking-tight text-slate-700 mb-1.5">
             Mật khẩu
           </label>
+          {formErrors.password && (
+            <p className="mb-1.5 text-xs text-rose-600">{formErrors.password}</p>
+          )}
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({ ...formData, password: value });
+                if (formErrors.password) {
+                  setFormErrors((prev) => ({ ...prev, password: '' }));
+                }
+              }}
               placeholder="Nhập mật khẩu"
-              className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500"
+              className={`w-full px-3 py-2.5 pr-10 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500 ${
+                formErrors.password ? 'border-rose-300' : 'border-slate-300'
+              }`}
               required
             />
             <button
@@ -92,20 +127,13 @@ const SignIn = ({ onSwitchToSignUp }) => {
           </div>
         </div>
 
-        {/* 8. Hiển thị lỗi từ Redux */}
-        {error && (
-          <div className="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-sm">
-            {error}
-          </div>
-        )}
-
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={loading}
           className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium tracking-tight rounded-lg py-2.5 flex items-center justify-center gap-2 transition-colors"
         >
           <LogIn size={18} />
-          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
 

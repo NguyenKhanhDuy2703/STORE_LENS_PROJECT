@@ -4,7 +4,7 @@ const { success, error } = require("../utils/response");
 const assetService = require("../service/asset.service");
 
 const getAssetController = catchAsync(async (req, res) => {
-    const { locationId, categoryName, zoneId, zoneName, page = 1, limit = 10 } = req.query;
+    const { locationId, categoryName, productId, zoneId, zoneName, page = 1, limit = 10 } = req.query;
 
     if (!locationId) {
         return error({
@@ -17,6 +17,7 @@ const getAssetController = catchAsync(async (req, res) => {
     const result = await assetService.getAsset({
         locationId,
         categoryName,
+        productId,
         zoneId,
         zoneName,
         page: parseInt(page),
@@ -32,12 +33,37 @@ const getAssetController = catchAsync(async (req, res) => {
 });
 
 const addAndUpdateAssetController = catchAsync(async (req, res) => {
-    const { locationId, categoryName, nameProduct, brand, price, unit, stockQuantity, status, assetAttributes } = req.body;
+    const {
+        locationId,
+        categoryName: rawCategoryName,
+        category_name,
+        productId: rawProductId,
+        product_id,
+        nameProduct: rawNameProduct,
+        name_product,
+        zoneName: rawZoneName,
+        zone_name,
+        brand,
+        price,
+        unit,
+        stockQuantity: rawStockQuantity,
+        stock_quantity,
+        status,
+        assetAttributes: rawAssetAttributes,
+        asset_attributes,
+    } = req.body;
 
-    if (!locationId || !categoryName) {
+    const categoryName = rawCategoryName || category_name;
+    const productId = rawProductId || product_id;
+    const nameProduct = rawNameProduct || name_product;
+    const zoneName = rawZoneName || zone_name;
+    const stockQuantity = rawStockQuantity ?? stock_quantity;
+    const assetAttributes = rawAssetAttributes || asset_attributes;
+
+    if (!locationId || !productId) {
         return error({
             res,
-            message: "Location ID and Category Name are required",
+            message: "Location ID and Product ID are required",
             code: StatusCodes.BAD_REQUEST
         });
     }
@@ -45,7 +71,9 @@ const addAndUpdateAssetController = catchAsync(async (req, res) => {
     const result = await assetService.addAndUpdateAsset({
         locationId,
         categoryName,
+        productId,
         nameProduct,
+        zoneName,
         brand,
         price,
         unit,
@@ -63,19 +91,19 @@ const addAndUpdateAssetController = catchAsync(async (req, res) => {
 });
 
 const deleteAssetController = catchAsync(async (req, res) => {
-    const { locationId, categoryName } = req.query;
+    const { locationId, productId } = req.query;
 
-    if (!locationId || !categoryName) {
+    if (!locationId || !productId) {
         return error({
             res,
-            message: "Location ID and Category Name are required",
+            message: "Location ID and Product ID are required",
             code: StatusCodes.BAD_REQUEST
         });
     }
 
     const result = await assetService.deleteAsset({
         locationId,
-        categoryName
+        productId
     });
 
     return success({
@@ -86,8 +114,46 @@ const deleteAssetController = catchAsync(async (req, res) => {
     });
 });
 
+const getMestricAssetByLocationID = catchAsync(async (req, res) => {
+    const locationId = req.query.locationId || req.query.location_id;
+
+    if (!locationId) {
+        return error({
+            res,
+            message: "Location ID is required",
+            code: StatusCodes.BAD_REQUEST
+        });
+    }
+
+    const result = await assetService.getMestric({ locationId });
+
+    return success({
+        res,
+        data: result,
+        message: "Asset metrics retrieved successfully",
+        code: StatusCodes.OK
+    });
+});
+
+const addAndUpdateAssetControllerWithValidation = catchAsync(async (req, res) => {
+    try {
+        return await addAndUpdateAssetController(req, res);
+    } catch (err) {
+        if (err?.message === "Category Name is required for a new asset") {
+            return error({
+                res,
+                message: "Category Name is required for a new asset",
+                code: StatusCodes.BAD_REQUEST
+            });
+        }
+        throw err;
+    }
+});
+
+
 module.exports = {
     getAssetController,
-    addAndUpdateAssetController,
-    deleteAssetController
+    addAndUpdateAssetController: addAndUpdateAssetControllerWithValidation,
+    deleteAssetController,
+    getMestricAssetByLocationID
 };

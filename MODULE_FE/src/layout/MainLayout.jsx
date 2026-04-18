@@ -1,28 +1,96 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
 import { GlobalFilter } from '../components/functionComponent/GlobalFilter';
-import { fetchStores } from '../redux/slices/storesSlice';
+import Loading from '../components/common/Loading';
 
 export const MainLayout = () => {
   const location = useLocation();
-  const dispatch = useDispatch();
-  const { isLogin } = useSelector(state => state.auth);
+  const previousPathRef = useRef(location.pathname);
+  const [isRouteTransitioning, setIsRouteTransitioning] = useState(false);
+
+  const dashboardLoading = useSelector((state) => {
+    const dashboardState = state.dashboard || {};
+    return Boolean(
+      dashboardState.kpiMetricsLoading ||
+      dashboardState.hourlyCustomerFlowLoading ||
+      dashboardState.revenueLast7DaysLoading ||
+      dashboardState.zoneAnalyticsLoading
+    );
+  });
+
+  const heatmapLoading = useSelector((state) => Boolean(state.heatmap?.isLoading));
+  const customerRuleLoading = useSelector((state) => Boolean(state.customerRules?.loading));
+  const cameraZoneLoading = useSelector((state) => Boolean(state.cameraZones?.loading));
+  const memberLoading = useSelector((state) => Boolean(state.memberSegmentation?.loading));
+
+  const isRouteDataLoading = useMemo(() => {
+    if (location.pathname === '/' || location.pathname.includes('/dashboard')) {
+      return dashboardLoading;
+    }
+
+    if (location.pathname.includes('/heatmap')) {
+      return heatmapLoading;
+    }
+
+    if (location.pathname.includes('/config/rules')) {
+      return customerRuleLoading;
+    }
+
+    if (location.pathname.includes('/config/zones')) {
+      return cameraZoneLoading;
+    }
+
+    if (location.pathname.includes('/management/customers')) {
+      return memberLoading;
+    }
+
+    return false;
+  }, [
+    location.pathname,
+    dashboardLoading,
+    heatmapLoading,
+    customerRuleLoading,
+    cameraZoneLoading,
+    memberLoading,
+  ]);
+
+  useEffect(() => {
+    if (previousPathRef.current !== location.pathname) {
+      previousPathRef.current = location.pathname;
+      setIsRouteTransitioning(true);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isRouteTransitioning) {
+      return;
+    }
+
+    if (isRouteDataLoading) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsRouteTransitioning(false);
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [isRouteTransitioning, isRouteDataLoading]);
+
+  const shouldShowRouteLoading = isRouteTransitioning || isRouteDataLoading;
 
   const showGlobalFilter = location.pathname === '/' || 
+                          location.pathname.includes('/dashboard') ||
+                          location.pathname.includes('/management/assets') ||
                           location.pathname.includes('/dwell-time') ||
                           location.pathname.includes('/config/rules');
 
-  useEffect(() => {
-    if (isLogin) {
-      dispatch(fetchStores());
-    }
-  }, [isLogin, dispatch]);
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+      <Loading isLoading={shouldShowRouteLoading} text="Đang tải dữ liệu trang..." />
      
       <Header />
 
@@ -34,7 +102,7 @@ export const MainLayout = () => {
                 <span className="hover:text-teal-600 cursor-pointer transition-colors">SpaceLens</span>
                 <span className="mx-2 text-slate-300">/</span>
                 <span className="text-slate-600">
-                  {location.pathname === '/' ? 'Tổng quan' : 'Phân tích'}
+                  {location.pathname === '/' || location.pathname.includes('/dashboard') ? 'Tổng quan' : 'Phân tích'}
                 </span>
              </div>
           </div>
@@ -43,7 +111,7 @@ export const MainLayout = () => {
           <GlobalFilter />
         )}
 
-        <main className={`mx-auto w-full max-w-[1760px] px-6 pb-12 flex-grow lg:px-10 2xl:px-14 ${!showGlobalFilter ? 'mt-6' : 'mt-4'}`}>
+        <main className={`mx-auto w-full max-w-[1760px] px-6 pb-12 grow lg:px-10 2xl:px-14 ${!showGlobalFilter ? 'mt-6' : 'mt-4'}`}>
           <Outlet />
         </main>
       </div>

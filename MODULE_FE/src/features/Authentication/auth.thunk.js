@@ -1,58 +1,105 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { login, signup, logout, getToken } from "../../services/authen.api"; // Đường dẫn tới file service của bạn
+import { login, signup, logout, getProfile } from "../../services/auth.api";
+import { getLocationAllocationById } from "../../services/location.api";
 
-// 1. Thunk xử lý Đăng nhập
-export const loginUser = createAsyncThunk(
+const getErrorMessage = (error, fallbackMessage) =>
+    error?.message || fallbackMessage;
+
+const resolveUser = (sessionPayload) => {
+    if (!sessionPayload) {
+        return null;
+    }
+
+    if (sessionPayload.user) {
+        return sessionPayload.user;
+    }
+
+    return sessionPayload;
+};
+
+export const loginThunk = createAsyncThunk(
     "auth/login",
     async (credentials, { rejectWithValue }) => {
         try {
-            // credentials bao gồm { account, password }
-            const response = await login(credentials);
-            // Lưu ý: service đã return response.data nên ở đây ta nhận được object data luôn
-            return response.data; 
+            await login(credentials);
+            const session = await getProfile();
+            const user = resolveUser(session);
+
+            if (!user) {
+                throw new Error("Cannot resolve authenticated user after login");
+            }
+
+            // Fetch allocation info for the user's location if location_id exists
+            let allocation = null;
+            if (user.location_id) {
+                try {
+                    allocation = await getLocationAllocationById(user.location_id);
+                } catch (allocationError) {
+                    console.warn("Failed to fetch allocation info, continuing without it:", allocationError);
+                    // Don't fail the login if allocation fetch fails
+                }
+            }
+
+            return { user, allocation };
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(getErrorMessage(error, "Failed to login"));
         }
     }
 );
 
-// 2. Thunk xử lý Đăng ký
-export const registerUser = createAsyncThunk(
+export const checkAuthThunk = createAsyncThunk(
+    "auth/checkAuth",
+    async (_, { rejectWithValue }) => {
+        try {
+            const session = await getProfile();
+            const user = resolveUser(session);
+
+            if (!user) {
+                throw new Error("Session is empty");
+            }
+
+            // Fetch allocation info for the user's location if location_id exists
+            let allocation = null;
+            if (user.location_id) {
+                try {
+                    allocation = await getLocationAllocationById(user.location_id);
+                } catch (allocationError) {
+                    console.warn("Failed to fetch allocation info, continuing without it:", allocationError);
+                    // Don't fail the session check if allocation fetch fails
+                }
+            }
+
+            return { user, allocation };
+        } catch (error) {
+            return rejectWithValue(getErrorMessage(error, "Session expired or invalid token"));
+        }
+    }
+);
+
+export const registerThunk = createAsyncThunk(
     "auth/register",
     async (userData, { rejectWithValue }) => {
         try {
-            // userData bao gồm { account, password, email, location_id, fullname }
-            const response = await signup(userData);
-            return response.data;
+            return await signup(userData);
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(getErrorMessage(error, "Failed to signup"));
         }
     }
 );
 
-// 3. Thunk xử lý Đăng xuất
-export const logoutUser = createAsyncThunk(
+export const logoutThunk = createAsyncThunk(
     "auth/logout",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await logout();
-            return response;
+            await logout();
+            return null;
         } catch (error) {
-            return rejectWithValue(error.message);
+            return rejectWithValue(getErrorMessage(error, "Failed to logout"));
         }
     }
 );
 
-// 4. Thunk kiểm tra trạng thái Token (Dùng khi F5 hoặc bắt đầu vào App)
-export const fetchCurrentUser = createAsyncThunk(
-    "auth/fetchCurrentUser",
-    async (_, { rejectWithValue }) => {
-        try {
-            const response = await getToken();
-            // Trả về thông tin user từ token hợp lệ
-            return response.data; 
-        } catch (error) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const loginUser = loginThunk;
+export const fetchCurrentUser = checkAuthThunk;
+export const registerUser = registerThunk;
+export const logoutUser = logoutThunk;

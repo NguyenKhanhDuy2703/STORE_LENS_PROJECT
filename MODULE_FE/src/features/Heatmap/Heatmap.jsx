@@ -10,6 +10,7 @@ const Heatmap = () => {
   const { currentHeatmap, infoHeatmapMatrix, timeLine, backgroundImage, loading: isLoading } = useSelector(
     (state) => state.heatmap || {}
   );
+  const { locationId, userLocationId } = useSelector((state) => state.filter);
 
   // Display options state
   const [heatmapVisible, setHeatmapVisible] = useState(true);
@@ -76,15 +77,21 @@ const Heatmap = () => {
       }
     : mockHeatmap;
 
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
+
   useEffect(() => {
+    if (!effectiveLocationId) {
+      return;
+    }
+
     dispatch(
       fetchMatrixHeatmap({
-        locationId: 'LOC_TEST_001',
+        locationId: effectiveLocationId,
         cameraId: selectedCamera,
         date: new Date().toISOString().split('T')[0],
       })
     );
-  }, [dispatch, selectedCamera]);
+  }, [dispatch, selectedCamera, effectiveLocationId]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
