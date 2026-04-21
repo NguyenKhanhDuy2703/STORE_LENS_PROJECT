@@ -1,5 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getListZone , createAndUpdateZone , deleteZone } from "../../services/zone.api";
+import { getCameraDashboardData } from "../../services/camera.api";
 
 export const fetchListZone = createAsyncThunk(
   "cameraZone/fetchList",

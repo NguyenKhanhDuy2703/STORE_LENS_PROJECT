@@ -24,6 +24,7 @@ const asyncLocationStasController = catchAsync( async (req , res) => {
 })
 const  asyncZoneStatsController = catchAsync( async (req , res) => {
         const { locationId , zoneId } = req.params;
+        const { cameraCode } = req.query;
         if (!locationId || !zoneId){
             error({
                 res,
@@ -31,7 +32,7 @@ const  asyncZoneStatsController = catchAsync( async (req , res) => {
                 code : StatusCodes.BAD_REQUEST
             })
         }
-        await zoneStatsWorker.process({locationId , zoneId})
+        await zoneStatsWorker.process({ locationId, zoneId, cameraCode })
         success({
             res,
             data : null,

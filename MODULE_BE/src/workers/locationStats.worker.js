@@ -47,7 +47,6 @@ const locationStatsWorker = {
     
   },
   async kpisProcessor({ locationId, today, nextDay }) {
-    // Tính toán KPIs từ dữ liệu Session và BusinessEvent
     const totalVisitors = await Session.countDocuments({
       location_id: locationId,
     });

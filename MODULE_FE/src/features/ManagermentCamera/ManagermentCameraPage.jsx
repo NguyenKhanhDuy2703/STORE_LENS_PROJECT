@@ -16,7 +16,7 @@ import {
   showConfirmDeleteAlert,
   showCompactErrorAlert,
   showCompactSuccessAlert,
-} from '../../untils/swal';
+} from '../../utils/swal';
 
 const ManagermentCameraPage = () => {
   const dispatch = useDispatch();

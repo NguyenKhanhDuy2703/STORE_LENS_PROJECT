@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-
-// Hàm format thời gian nội bộ (để không phụ thuộc file utils)
-const formatSecondsLocal = (sec) => {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-};
+import formatDuration from '../../../utils/formatDuration';
 
 const TableDownTime = () => {
   // 1. DỮ LIỆU GIẢ (MOCK DATA)
@@ -85,7 +79,7 @@ const TableDownTime = () => {
 
                   {/* Thời gian TB */}
                   <td className="px-6 py-5 font-medium text-slate-600 tracking-tight">
-                    {formatSecondsLocal(row.avgTime)}
+                    {formatDuration(row.avgTime)}
                   </td>
 
                   {/* Số lượt dừng */}

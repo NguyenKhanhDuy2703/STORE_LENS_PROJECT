@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { fetchMatrixHeatmap } from "./heatmap.thunk";
+import { fetchMatrixHeatmap, fetchCameraWithZones } from "./heatmap.thunk";
 
 const heatmapHelper = (item, backgroundImage) => {
   return {
@@ -25,7 +25,10 @@ const HeatmapSlice = createSlice({
     currentHeatmap: null, 
     backgroundImage: "", 
     isLoading: false,
+    cameraList: [],
+    cameraListLoading: false,
     error: null,
+    cameraListError: null,
   },
   reducers: {
     setCurrentHeatmap: (state, action) => {
@@ -34,15 +37,28 @@ const HeatmapSlice = createSlice({
         (item) => item.timeStamp === timeStamp,
       );
     },
+    clearHeatmapData: (state) => {
+      state.infoHeatmapMatrix = [];
+      state.timeLine = [];
+      state.currentHeatmap = null;
+      state.backgroundImage = "";
+      state.error = null;
+      state.isLoading = false;
+    },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchMatrixHeatmap.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
+        state.infoHeatmapMatrix = [];
+        state.timeLine = [];
+        state.currentHeatmap = null;
+        state.backgroundImage = "";
       })
       .addCase(fetchMatrixHeatmap.fulfilled, (state, action) => {
         const rawData = action.payload.heatmapData || [];
-        const snapshotUrl = action.payload.url_image_snapshot;
+        const snapshotUrl = action.payload.url_image_snapshot || "";
         state.infoHeatmapMatrix = [];
         state.timeLine = [];
         state.backgroundImage = snapshotUrl;
@@ -54,17 +70,36 @@ const HeatmapSlice = createSlice({
 
         if (state.infoHeatmapMatrix.length > 0) {
           state.currentHeatmap = state.infoHeatmapMatrix[state.infoHeatmapMatrix.length - 1];
+        } else {
+          state.currentHeatmap = null;
         }
 
         state.isLoading = false;
         state.error = null;
       })
       .addCase(fetchMatrixHeatmap.rejected, (state, action) => {
+        state.infoHeatmapMatrix = [];
+        state.timeLine = [];
+        state.currentHeatmap = null;
+        state.backgroundImage = "";
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || "Không có dữ liệu heatmap";
+      })
+      .addCase(fetchCameraWithZones.pending, (state) => {
+        state.cameraListLoading = true;
+        state.cameraListError = null;
+      })
+      .addCase(fetchCameraWithZones.fulfilled, (state, action) => {
+        state.cameraListLoading = false;
+        state.cameraList = Array.isArray(action.payload) ? action.payload : [];
+        state.cameraListError = null;
+      })
+      .addCase(fetchCameraWithZones.rejected, (state, action) => {
+        state.cameraListLoading = false;
+        state.cameraListError = action.payload;
       });
   },
 });
 
-export const { setCurrentHeatmap } = HeatmapSlice.actions;
+export const { setCurrentHeatmap, clearHeatmapData } = HeatmapSlice.actions;
 export default HeatmapSlice.reducer;

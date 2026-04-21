@@ -23,7 +23,14 @@ const SECONDARY_LOCATION_CODE = (process.env.SEED_SECONDARY_LOCATION_CODE || 'LO
 const TEST_USER_PASSWORD = process.env.SEED_TEST_PASSWORD || '123456';
 const FRONT_CAMERA_CODE = 'CAM_FRONT_057601';
 const CHECKOUT_CAMERA_CODE = 'CAM_CHECKOUT_057601';
+const ZONE_IDS = {
+    checkout: 'ZONE_CHECKOUT_MAIN',
+    entrance: 'ZONE_ENTRANCE_MAIN',
+    sale: 'ZONE_SALE_MAIN',
+    premium: 'ZONE_PREMIUM_MAIN'
+};
 const SHOULD_CLEAN = process.argv.includes('--clean');
+const KEEP_LOCATION_CAMERA = process.argv.includes('--keep-location-camera');
 
 async function ensureTestAccounts({ primaryLocationId, secondaryLocationId }) {
     const hashedPassword = await hashPassword(TEST_USER_PASSWORD);
@@ -102,10 +109,11 @@ function createHeatmapSeries({ locationId, cameraId, date, count = 5, intervalMs
     }));
 }
 
-async function cleanupLocationData(locationId, zoneIds) {
-    await Promise.all([
+async function cleanupLocationData(locationId, zoneIds, options = {}) {
+    const { keepLocationCamera = false } = options;
+
+    const deleteTasks = [
         Asset.deleteMany({ location_id: locationId }),
-        Camera.deleteMany({ location_id: locationId }),
         Zone.deleteMany({ location_id: locationId }),
         Session.deleteMany({ location_id: locationId }),
         InteractionLog.deleteMany({ location_id: locationId }),
@@ -115,7 +123,13 @@ async function cleanupLocationData(locationId, zoneIds) {
         Heatmap.deleteMany({ location_id: locationId }),
         FlowPatterns.deleteMany({ location_id: locationId }),
         CustomerCareRule.deleteMany({ location_id: locationId })
-    ]);
+    ];
+
+    if (!keepLocationCamera) {
+        deleteTasks.push(Camera.deleteMany({ location_id: locationId }));
+    }
+
+    await Promise.all(deleteTasks);
 
     if (Array.isArray(zoneIds) && zoneIds.length > 0) {
         await ZoneStats.deleteMany({ zone_id: { $in: zoneIds } });
@@ -178,8 +192,11 @@ async function seed() {
     const existingZoneIds = existingZones.map((z) => z.zone_id);
 
     if (SHOULD_CLEAN) {
-        await cleanupLocationData(locationId, existingZoneIds);
+        await cleanupLocationData(locationId, existingZoneIds, { keepLocationCamera: KEEP_LOCATION_CAMERA });
         console.log(`[seed] Cleaned old fake data for ${locationId}`);
+        if (KEEP_LOCATION_CAMERA) {
+            console.log('[seed] Keep mode: preserved location/camera data');
+        }
     }
 
     const uniqueSuffix = Date.now().toString().slice(-6);
@@ -335,7 +352,7 @@ async function seed() {
         }
     ]);
 
-    const cameras = await Camera.insertMany([
+    const defaultCameras = [
         {
             location_id: locationId,
             camera_name: 'Front Door Cam',
@@ -362,11 +379,36 @@ async function seed() {
             status: 'active',
             installation_date: getCurrnetDateVN()
         }
-    ]);
+    ];
+
+    if (KEEP_LOCATION_CAMERA) {
+        await Promise.all(defaultCameras.map((cameraDoc) => Camera.updateOne(
+            {
+                location_id: locationId,
+                camera_code: cameraDoc.camera_code
+            },
+            { $setOnInsert: cameraDoc },
+            { upsert: true }
+        )));
+    }
+
+    const cameras = KEEP_LOCATION_CAMERA
+        ? await Camera.find({
+            location_id: locationId,
+            camera_code: { $in: [FRONT_CAMERA_CODE, CHECKOUT_CAMERA_CODE] }
+        }).sort({ camera_code: 1 })
+        : await Camera.insertMany(defaultCameras);
+
+    const frontCamera = cameras.find((camera) => camera.camera_code === FRONT_CAMERA_CODE);
+    const checkoutCamera = cameras.find((camera) => camera.camera_code === CHECKOUT_CAMERA_CODE);
+
+    if (!frontCamera || !checkoutCamera) {
+        throw new Error('Failed to initialize default cameras for seed data');
+    }
 
     const cameraCodeByName = {
-        frontDoor: cameras[0].camera_code,
-        checkout: cameras[1].camera_code
+        frontDoor: frontCamera.camera_code,
+        checkout: checkoutCamera.camera_code
     };
 
     const zones = await Zone.insertMany([
@@ -374,7 +416,7 @@ async function seed() {
             location_id: locationId,
             camera_id: cameraCodeByName.frontDoor,
             zone_name: 'Quầy thanh toán',
-            zone_id: `ZONE_CHECKOUT_${uniqueSuffix}`,
+            zone_id: ZONE_IDS.checkout,
             category_name: 'Thanh toán',
             function_type: 'Checkout Counter',
             polygon_coordinates: [[100, 120], [450, 120], [450, 400], [100, 400]]
@@ -383,7 +425,7 @@ async function seed() {
             location_id: locationId,
             camera_id: cameraCodeByName.frontDoor,
             zone_name: 'Lối vào chính',
-            zone_id: `ZONE_ENTRANCE_${uniqueSuffix}`,
+            zone_id: ZONE_IDS.entrance,
             category_name: 'Đồ uống',
             function_type: 'Main Entrance',
             polygon_coordinates: [[500, 130], [880, 130], [880, 430], [500, 430]]
@@ -392,7 +434,7 @@ async function seed() {
             location_id: locationId,
             camera_id: cameraCodeByName.checkout,
             zone_name: 'Khu vực giảm giá',
-            zone_id: `ZONE_SALE_${uniqueSuffix}`,
+            zone_id: ZONE_IDS.sale,
             category_name: 'Bánh kẹo',
             function_type: 'Sale Area',
             polygon_coordinates: [[50, 80], [600, 80], [600, 360], [50, 360]]
@@ -401,15 +443,16 @@ async function seed() {
             location_id: locationId,
             camera_id: cameraCodeByName.checkout,
             zone_name: 'Mỹ phẩm cao cấp',
-            zone_id: `ZONE_PREMIUM_${uniqueSuffix}`,
+            zone_id: ZONE_IDS.premium,
             category_name: 'Gia dụng',
             function_type: 'Premium Products',
             polygon_coordinates: [[100, 100], [800, 100], [800, 500], [100, 500]]
         }
     ]);
 
-    const sessionUuid1 = `${locationId}_${cameras[0]._id}_1001`;
-    const sessionUuid2 = `${locationId}_${cameras[0]._id}_1002`;
+    const sessionUuid1 = `${locationId}_${frontCamera._id}_1001_${uniqueSuffix}`;
+    const sessionUuid2 = `${locationId}_${frontCamera._id}_1002_${uniqueSuffix}`;
+    const sessionUuid3 = `${locationId}_${checkoutCamera._id}_1003_${uniqueSuffix}`;
 
     await Session.insertMany([
         {
@@ -455,6 +498,28 @@ async function seed() {
                     dwell_time_seconds: 420
                 }
             ]
+        },
+        {
+            location_id: locationId,
+            session_uuid: sessionUuid3,
+            person_id: 'P1003',
+            entry_time: new Date(today.getTime() + (11 * 60 + 2) * 60 * 1000),
+            exit_time: new Date(today.getTime() + (11 * 60 + 31) * 60 * 1000),
+            total_dwell_time_seconds: 1320,
+            zone_sequence: [
+                {
+                    zone_id: zones[3].zone_id,
+                    entry_time: new Date(today.getTime() + (11 * 60 + 3) * 60 * 1000),
+                    exit_time: new Date(today.getTime() + (11 * 60 + 18) * 60 * 1000),
+                    dwell_time_seconds: 900
+                },
+                {
+                    zone_id: zones[0].zone_id,
+                    entry_time: new Date(today.getTime() + (11 * 60 + 18) * 60 * 1000),
+                    exit_time: new Date(today.getTime() + (11 * 60 + 25) * 60 * 1000),
+                    dwell_time_seconds: 420
+                }
+            ]
         }
     ]);
 
@@ -471,6 +536,17 @@ async function seed() {
             status: 'ended'
         },
         {
+            session_uuid: sessionUuid1,
+            location_id: locationId,
+            zone_id: zones[2].zone_id,
+            asset_id: String(assets[3]._id),
+            event_type: 'stop',
+            start_time: new Date(today.getTime() + (9 * 60 + 15) * 60 * 1000),
+            last_heartbeat: new Date(today.getTime() + (9 * 60 + 18) * 60 * 1000),
+            duration_seconds: 180,
+            status: 'ended'
+        },
+        {
             session_uuid: sessionUuid2,
             location_id: locationId,
             zone_id: zones[1].zone_id,
@@ -479,6 +555,39 @@ async function seed() {
             start_time: new Date(today.getTime() + (10 * 60 + 6) * 60 * 1000),
             last_heartbeat: new Date(today.getTime() + (10 * 60 + 14) * 60 * 1000),
             duration_seconds: 480,
+            status: 'ended'
+        },
+        {
+            session_uuid: sessionUuid2,
+            location_id: locationId,
+            zone_id: zones[2].zone_id,
+            asset_id: String(assets[4]._id),
+            event_type: 'stop',
+            start_time: new Date(today.getTime() + (10 * 60 + 16) * 60 * 1000),
+            last_heartbeat: new Date(today.getTime() + (10 * 60 + 20) * 60 * 1000),
+            duration_seconds: 240,
+            status: 'ended'
+        },
+        {
+            session_uuid: sessionUuid3,
+            location_id: locationId,
+            zone_id: zones[3].zone_id,
+            asset_id: String(assets[10]._id),
+            event_type: 'stop',
+            start_time: new Date(today.getTime() + (11 * 60 + 5) * 60 * 1000),
+            last_heartbeat: new Date(today.getTime() + (11 * 60 + 18) * 60 * 1000),
+            duration_seconds: 780,
+            status: 'ended'
+        },
+        {
+            session_uuid: sessionUuid3,
+            location_id: locationId,
+            zone_id: zones[0].zone_id,
+            asset_id: String(assets[0]._id),
+            event_type: 'stop',
+            start_time: new Date(today.getTime() + (11 * 60 + 19) * 60 * 1000),
+            last_heartbeat: new Date(today.getTime() + (11 * 60 + 25) * 60 * 1000),
+            duration_seconds: 360,
             status: 'ended'
         }
     ]);
@@ -508,7 +617,7 @@ async function seed() {
             event_code: `INV_${uniqueSuffix}_002`,
             type: 'SALE',
             total_amount: assets[1].price + assets[2].price,
-            discount: 1500000,
+            discount: 15000,
             payment_method: 'Cash',
             status: 'COMPLETED',
             date: new Date(today.getTime() + (10 * 60 + 20) * 60 * 1000),
@@ -532,7 +641,7 @@ async function seed() {
     ]);
 
     const totalRevenue = businessEvents.reduce((sum, event) => sum + event.total_amount - event.discount, 0);
-    const totalVisitors = 2;
+    const totalVisitors = 3;
     const totalEvents = businessEvents.length;
 
     await LocationStats.updateOne(
@@ -583,31 +692,33 @@ async function seed() {
         {
             location_id: locationId,
             zone_id: zones[0].zone_id,
+            camera_code: zones[0].camera_id,
             date: today,
             trend: 'up',
             performance: {
-                people_count: 24,
-                total_sales_value: assets[0].price,
-                total_events: 12,
-                conversion_rate: 50,
-                avg_dwell_time: 28,
-                total_stop_events: 8,
+                people_count: 42,
+                total_sales_value: 180000,
+                total_events: 18,
+                conversion_rate: 42.86,
+                avg_dwell_time: 310,
+                total_stop_events: 16,
                 top_asset_id: String(assets[0]._id),
-                peak_hour: 10
+                peak_hour: 11
             }
         },
         {
             location_id: locationId,
             zone_id: zones[1].zone_id,
+            camera_code: zones[1].camera_id,
             date: today,
             trend: 'stable',
             performance: {
-                people_count: 20,
-                total_sales_value: assets[1].price,
-                total_events: 10,
-                conversion_rate: 45,
-                avg_dwell_time: 35,
-                total_stop_events: 7,
+                people_count: 55,
+                total_sales_value: 220000,
+                total_events: 22,
+                conversion_rate: 40,
+                avg_dwell_time: 120,
+                total_stop_events: 20,
                 top_asset_id: String(assets[1]._id),
                 peak_hour: 11
             }
@@ -615,17 +726,35 @@ async function seed() {
         {
             location_id: locationId,
             zone_id: zones[2].zone_id,
+            camera_code: zones[2].camera_id,
             date: today,
-            trend: 'up',
+            trend: 'down',
             performance: {
-                people_count: 18,
-                total_sales_value: totalRevenue,
-                total_events: 9,
-                conversion_rate: 60,
-                avg_dwell_time: 18,
-                total_stop_events: 12,
+                people_count: 30,
+                total_sales_value: 70000,
+                total_events: 10,
+                conversion_rate: 33.33,
+                avg_dwell_time: 450,
+                total_stop_events: 14,
                 top_asset_id: String(assets[2]._id),
                 peak_hour: 12
+            }
+        },
+        {
+            location_id: locationId,
+            zone_id: zones[3].zone_id,
+            camera_code: zones[3].camera_id,
+            date: today,
+            trend: 'stable',
+            performance: {
+                people_count: 24,
+                total_sales_value: 45000,
+                total_events: 7,
+                conversion_rate: 29.17,
+                avg_dwell_time: 140,
+                total_stop_events: 9,
+                top_asset_id: String(assets[10]._id),
+                peak_hour: 11
             }
         }
     ]);
@@ -633,7 +762,7 @@ async function seed() {
     await Heatmap.insertMany([
         ...createHeatmapSeries({
             locationId,
-            cameraId: cameras[0].camera_code,
+            cameraId: frontCamera.camera_code,
             date: today,
             count: 6,
             intervalMs: 30 * 1000
@@ -716,8 +845,14 @@ async function seed() {
     console.log(`[seed] secondary_location_code=${secondaryLocation.location_code}`);
     console.log(`[seed] assets=${assets.length}, cameras=${cameras.length}, zones=${zones.length}`);
     console.log(`[seed] zone-camera mapping: ${zones.map((z) => `${z.zone_id}->${z.camera_id}`).join(', ')}`);
-    console.log(`[seed] events=${businessEvents.length}, sessions=2`);
+    console.log(`[seed] events=${businessEvents.length}, sessions=3`);
     console.log(`[seed] configRules=${configRules.length}`);
+    console.log('[seed] hourly traffic test queries:');
+    console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&type=today`);
+    console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&zoneId=${ZONE_IDS.checkout}&type=today`);
+    console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&zoneId=${ZONE_IDS.entrance}&type=today`);
+    console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&zoneId=${ZONE_IDS.sale}&type=today`);
+    console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&zoneId=${ZONE_IDS.premium}&type=today`);
 
     const testUsers = await User.find({
         $or: [
