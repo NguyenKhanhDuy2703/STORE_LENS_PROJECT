@@ -7,8 +7,24 @@ const zoneSchema = require("../schemas/zone.schema");
 const assetSchema = require("../schemas/asset.schema");
 
 const zoneStatsWorker = {
-  async process({ locationId, zoneId }) {
+  async process({ locationId, zoneId, cameraCode }) {
     const { startDate: today, endDate: nextDay } = dateUtil.dateUtil({ type: "today" });
+
+    let resolvedCameraCode = cameraCode;
+    if (!resolvedCameraCode) {
+      const zone = await zoneSchema.findOne(
+        {
+          location_id: locationId,
+          zone_id: zoneId,
+        },
+        {
+          _id: 0,
+          camera_id: 1,
+        },
+      );
+      resolvedCameraCode = zone?.camera_id || null;
+    }
+
     await zoneStatsSchema.updateOne(
       {
         location_id: locationId,
@@ -16,6 +32,9 @@ const zoneStatsWorker = {
         date: today,
       },
       {
+        $set: {
+          camera_code: resolvedCameraCode,
+        },
         $setOnInsert: {
           location_id: locationId,
           zone_id: zoneId,

@@ -1,11 +1,7 @@
 import { Eye, Layers } from 'lucide-react';
 
-const cameras = [
-  { id: 'CAM_FRONT_057601', label: 'Camera Front - Cửa chính' },
-  { id: 'CAM_CHECKOUT_057601', label: 'Camera Checkout - Quầy thanh toán' },
-];
-
 const LeftSidebar = ({
+  cameraOptions = [],
   heatmapVisible,
   setHeatmapVisible,
   zoneOverlay,
@@ -47,7 +43,7 @@ const LeftSidebar = ({
           Camera
         </label>
         <div className="space-y-1.5">
-          {cameras.map((cam) => (
+          {cameraOptions.map((cam) => (
             <button
               key={cam.id}
               onClick={() => setSelectedCamera(cam.id)}
@@ -60,6 +56,9 @@ const LeftSidebar = ({
               {cam.label}
             </button>
           ))}
+          {cameraOptions.length === 0 && (
+            <p className="text-xs text-slate-500">Chưa có camera cho cơ sở này.</p>
+          )}
         </div>
       </div>
 

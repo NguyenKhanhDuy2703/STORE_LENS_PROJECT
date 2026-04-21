@@ -1,6 +1,4 @@
-import React from 'react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-
 const StatCard = ({ title, value, trend, isUp, icon, bgColor }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
     <div className="flex justify-between items-start">

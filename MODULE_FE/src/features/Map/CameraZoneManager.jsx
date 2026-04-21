@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react"; // Thêm useRef, useEffect
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import { Camera, HelpCircle, Upload, Trash2, X } from "lucide-react";
 import { Stage, Layer, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
@@ -12,19 +12,42 @@ import ZonesList from "./components/ZonesList";
 import ZoneForm from "./components/ZoneForm";
 import { DrawingPoints as ToolDrawZone } from "./components/ToolDrawZone";
 import { useZoneDrawing } from "../shared/zones/useZoneDrawing";
-const DUMMY_CAMERAS = [
-  { cameraCode: "CAM_FRONT_057601", cameraName: "Front Door Cam" },
-  { cameraCode: "CAM_CHECKOUT_057601", cameraName: "Checkout Cam" },
-];
+import { denormalizePoints, getRelativePointer, normalizePoints } from "../../utils/coordinateUtils";
+import { getCameraWithZonesByLocationId } from "../../services/camera.api";
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_CANVAS_WIDTH = 1200;
+const MAX_CANVAS_HEIGHT = 700;
+
+const pointsFlatToObjects = (flatPoints = []) => {
+  if (!Array.isArray(flatPoints)) return [];
+  const points = [];
+  for (let index = 0; index < flatPoints.length; index += 2) {
+    points.push({
+      x: Number(flatPoints[index] ?? 0),
+      y: Number(flatPoints[index + 1] ?? 0),
+    });
+  }
+  return points;
+};
+
+const pointsObjectsToFlat = (points = []) => {
+  if (!Array.isArray(points)) return [];
+  return points.flatMap((point) => [Number(point?.x ?? 0), Number(point?.y ?? 0)]);
+};
+
+const isNormalizedObjects = (points = []) => {
+  if (!Array.isArray(points) || points.length === 0) return false;
+  return points.every((point) => point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1);
+};
 
 const CameraZoneManager = () => {
   const [showGuide, setShowGuide] = useState(true);
-  const [selectedCameraCode, setSelectedCameraCode] = useState(DUMMY_CAMERAS[0].cameraCode);
+  const [cameraOptions, setCameraOptions] = useState([]);
+  const [selectedCameraCode, setSelectedCameraCode] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const fileInputRef = useRef(null);
 
-  const selectedCamera = DUMMY_CAMERAS.find((cam) => cam.cameraCode === selectedCameraCode);
+  const selectedCamera = cameraOptions.find((cam) => cam.cameraCode === selectedCameraCode);
   const cameraZonesState = useSelector((state) => state.cameraZones);
   const { locationId, userLocationId } = useSelector((state) => state.filter);
   const selectedCameraState = cameraZonesState?.selectedCamera;
@@ -39,33 +62,86 @@ const CameraZoneManager = () => {
   const [stageScale] = useState(1);
   const [stageCenter] = useState({ x: 0, y: 0 });
 
+  const stageDisplaySize = useMemo(() => {
+    if (!imageSize.width || !imageSize.height) {
+      return { width: 0, height: 0 };
+    }
+
+    const ratio = Math.min(
+      MAX_CANVAS_WIDTH / imageSize.width,
+      MAX_CANVAS_HEIGHT / imageSize.height,
+      1,
+    );
+
+    return {
+      width: Math.round(imageSize.width * ratio),
+      height: Math.round(imageSize.height * ratio),
+    };
+  }, [imageSize]);
+
   const {
     currentPoints,
     addPointFromStage,
     resetPoints,
     removeLastPoint,
     setCurrentPoints,
-  } = useZoneDrawing({ imageSize, stageScale, stageCenter });
+  } = useZoneDrawing({ imageSize: stageDisplaySize, stageScale, stageCenter });
 
   const isEditing = Boolean(editingZoneId);
 
   const parseZonePoints = (coordinates) => {
     if (!coordinates) return [];
+
+    const containerSize = {
+      width: stageDisplaySize.width || imageSize.width,
+      height: stageDisplaySize.height || imageSize.height,
+    };
+
+    const normalizeToDisplayFlat = (pointObjects) => {
+      if (!Array.isArray(pointObjects) || pointObjects.length === 0) {
+        return [];
+      }
+
+      const displayPoints = isNormalizedObjects(pointObjects)
+        ? denormalizePoints(pointObjects, containerSize)
+        : pointObjects;
+
+      return pointsObjectsToFlat(displayPoints);
+    };
+
     if (typeof coordinates === "string") {
       try {
         const parsed = JSON.parse(coordinates);
-        return Array.isArray(parsed) ? parsed : [];
+        if (Array.isArray(parsed)) {
+          const pointObjects = Array.isArray(parsed[0])
+            ? parsed.map((point) => ({ x: Number(point[0] ?? 0), y: Number(point[1] ?? 0) }))
+            : pointsFlatToObjects(parsed);
+          return normalizeToDisplayFlat(pointObjects);
+        }
+        return [];
       } catch {
         return [];
       }
     }
     if (Array.isArray(coordinates)) {
       if (coordinates.length > 0 && typeof coordinates[0] === "object") {
-        return coordinates.flatMap((point) => [point.x ?? 0, point.y ?? 0]);
+        return normalizeToDisplayFlat(
+          coordinates.map((point) => ({ x: Number(point.x ?? 0), y: Number(point.y ?? 0) })),
+        );
       }
-      return coordinates;
+      return normalizeToDisplayFlat(pointsFlatToObjects(coordinates));
     }
     return [];
+  };
+
+  const getNormalizedFlatPoints = () => {
+    const containerSize = {
+      width: stageDisplaySize.width || imageSize.width,
+      height: stageDisplaySize.height || imageSize.height,
+    };
+
+    const normalized = normalizePoints(pointsFlatToObjects(currentPoints), containerSize);
+    return pointsObjectsToFlat(normalized);
   };
 
   const handleCancelDrawing = () => {
@@ -97,7 +173,7 @@ const CameraZoneManager = () => {
         {
           zoneName: draftZone.zoneName,
           zoneId: editingZoneId,
-          coordinates: JSON.stringify(currentPoints),
+          coordinates: JSON.stringify(getNormalizedFlatPoints()),
           categoryName: draftZone.categoryName,
         },
       ],
@@ -115,8 +191,8 @@ const CameraZoneManager = () => {
         categoryName: draftZone.categoryName,
         category_name: draftZone.categoryName,
         color: draftZone.color,
-        coordinates: currentPoints,
-        polygon_coordinates: currentPoints,
+        coordinates: getNormalizedFlatPoints(),
+        polygon_coordinates: getNormalizedFlatPoints(),
       };
       dispatch(editZone({ cameraCode: selectedCameraCode, zoneData: updatedZone }));
       console.log("Zone updated to backend and redux:", updatedZone);
@@ -134,6 +210,55 @@ const CameraZoneManager = () => {
 
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCameraOptions = async () => {
+      if (!effectiveLocationId) {
+        if (isMounted) {
+          setCameraOptions([]);
+          setSelectedCameraCode("");
+        }
+        return;
+      }
+
+      try {
+        const cameras = await getCameraWithZonesByLocationId(effectiveLocationId);
+        const options = (Array.isArray(cameras) ? cameras : [])
+          .filter((camera) => camera?.camera_code)
+          .map((camera) => ({
+            cameraCode: camera.camera_code,
+            cameraName: camera.camera_name || camera.camera_code,
+          }));
+
+        if (!isMounted) return;
+
+        setCameraOptions(options);
+
+        if (options.length === 0) {
+          setSelectedCameraCode("");
+          return;
+        }
+
+        setSelectedCameraCode((prevSelectedCameraCode) => {
+          const hasCurrentSelection = options.some((camera) => camera.cameraCode === prevSelectedCameraCode);
+          return hasCurrentSelection ? prevSelectedCameraCode : options[0].cameraCode;
+        });
+      } catch (error) {
+        if (!isMounted) return;
+        setCameraOptions([]);
+        setSelectedCameraCode("");
+        console.error("Failed to load camera list:", error);
+      }
+    };
+
+    fetchCameraOptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveLocationId]);
 
   useEffect(() => {
     if (selectedCameraCode && effectiveLocationId) {
@@ -175,7 +300,7 @@ const CameraZoneManager = () => {
     if (currentPoints.length >= 8) return;
     const stage = e.target.getStage();
     if (!stage) return;
-    const pointer = stage.getPointerPosition();
+    const pointer = getRelativePointer(e.evt, stage.container());
     if (!pointer) return;
     addPointFromStage({ stageX: pointer.x, stageY: pointer.y });
   };
@@ -192,7 +317,7 @@ const CameraZoneManager = () => {
         {
           zoneName: draftZone.zoneName,
           zoneId,
-          coordinates: JSON.stringify(currentPoints),
+          coordinates: JSON.stringify(getNormalizedFlatPoints()),
           categoryName: draftZone.categoryName,
         },
       ],
@@ -210,11 +335,10 @@ const CameraZoneManager = () => {
         categoryName: draftZone.categoryName,
         category_name: draftZone.categoryName,
         color: draftZone.color,
-        coordinates: currentPoints,
-        polygon_coordinates: currentPoints,
+        coordinates: getNormalizedFlatPoints(),
+        polygon_coordinates: getNormalizedFlatPoints(),
       };
       dispatch(addZone(localZone));
-      console.log("Zone saved to backend and redux:", localZone);
       resetPoints();
       setDraftZone({ zoneName: "", categoryName: "", color: "#3B82F6" });
     } catch (error) {
@@ -228,17 +352,17 @@ const CameraZoneManager = () => {
     }
   };
   return (
-    <div className="min-h-screen w-full bg-gray-50 p-6">
-      <div className="grid grid-cols-12 gap-4">
+    <div className="min-h-screen w-full bg-gray-50 px-1 py-3 sm:px-2 lg:px-3">
+      <div className="mx-auto w-full max-w-[1860px] grid grid-cols-12 gap-3 md:gap-4">
         {/* Sidebar */}
-        <div className="col-span-3 space-y-4">
+        <div className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-4">
               <div className="text-sm uppercase tracking-[0.2em] text-gray-500 font-semibold">Sidebar Camera</div>
               <div className="mt-1 text-lg font-semibold text-gray-900">Danh sách camera</div>
             </div>
-            <div className="space-y-2">
-              {DUMMY_CAMERAS.map((camera) => (
+            <div className="space-y-2 max-h-[38vh] overflow-y-auto pr-1 lg:max-h-[74vh]">
+              {cameraOptions.map((camera) => (
                 <button
                   key={camera.cameraCode}
                   onClick={() => setSelectedCameraCode(camera.cameraCode)}
@@ -256,19 +380,24 @@ const CameraZoneManager = () => {
                   </div>
                 </button>
               ))}
+              {cameraOptions.length === 0 && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                  Chưa có camera cho cơ sở này.
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="col-span-9 space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-100">
+        <div className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 md:p-5 lg:p-6 shadow-sm">
+            <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{selectedCamera?.cameraName || "Chọn camera"}</h1>
                 <p className="mt-1 text-sm text-gray-500">Khu vực thiết lập vùng quản lý (Zones)</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <button
                   onClick={() => setShowGuide(true)}
                   className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
@@ -307,17 +436,17 @@ const CameraZoneManager = () => {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-8 gap-4">
-              <div className="col-span-5 space-y-4">
-                <div className="relative flex h-[520px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-slate-50 overflow-hidden">
+            <div className="mt-5 grid grid-cols-12 gap-3 lg:gap-4">
+              <div className="col-span-12 xl:col-span-9 space-y-4">
+                <div className="relative flex h-[620px] xl:h-[700px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-slate-50 overflow-hidden">
                   {previewImageUrl && imageSize.width > 0 && imageSize.height > 0 ? (
-                    <Stage width={imageSize.width} height={imageSize.height} className="bg-white" onClick={handleStageClick}>
+                    <Stage width={stageDisplaySize.width} height={stageDisplaySize.height} className="bg-white" onClick={handleStageClick}>
                       <Layer>
-                        <KonvaImage image={loadedImage} />
+                        <KonvaImage image={loadedImage} width={stageDisplaySize.width} height={stageDisplaySize.height} />
                         <ZoneRenderer
                           zones={selectedCameraState?.zones?.zones || []}
                           coordinateMode="auto"
-                          imageSize={imageSize}
+                          imageSize={stageDisplaySize}
                           showLabels={true}
                           showHandles={false}
                           isEditing={false}
@@ -372,8 +501,8 @@ const CameraZoneManager = () => {
               </div>
 
               {/* Zone List */}
-              <div className="col-span-3">
-                <div className="flex h-[520px] flex-col rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="col-span-12 xl:col-span-3">
+                <div className="flex h-[380px] xl:h-[700px] flex-col rounded-2xl border border-gray-200 bg-white p-4">
                   <h2 className="text-sm font-semibold text-gray-900">Danh sách vùng</h2>
                   <div className="mt-4 flex-1 overflow-y-auto">
                     <ZonesList

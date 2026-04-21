@@ -1,5 +1,5 @@
 const CameraSchema = require('../schemas/camera.schema');
-
+const ZoneSchema = require('../schemas/zone.schema');
 const cameraService = {
     async getCameraDashboardData({locationId}) {
         try {
@@ -183,6 +183,90 @@ const cameraService = {
                     },
                 }
             );
+        } catch (error) {
+            throw error;
+        }
+    },
+    async getCameraAndZoneInfo({ locationId }) {
+        try {
+            const cameras = await ZoneSchema.aggregate([
+                { $match: { location_id: locationId } },
+                {
+                    $lookup: {
+                        from: 'cameras',
+                        localField: 'camera_id',
+                        foreignField: 'camera_code',
+                        as: 'camera_info'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$camera_info',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        camera_code: '$camera_id',
+                        zone_id: 1,
+                        zone_name: 1,
+                        camera_name: '$camera_info.camera_name'
+                    }
+                }
+            ]);
+
+            return cameras;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    async getCameraWithZonesByAllcationId({ allcationId, allocationId, locationId }) {
+        try {
+            const finalLocationId = (allcationId || allocationId || locationId || '').toString().trim();
+
+            if (!finalLocationId) {
+                throw new Error('allcationId (or allocationId/locationId) is required');
+            }
+
+            const cameras = await CameraSchema.aggregate([
+                {
+                    $match: {
+                        location_id: finalLocationId
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'zones',
+                        let: {
+                            cameraCode: '$camera_code',
+                            locationId: '$location_id'
+                        },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ['$camera_id', '$$cameraCode'] },
+                                            { $eq: ['$location_id', '$$locationId'] }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                $sort: { created_at: -1 }
+                            }
+                        ],
+                        as: 'zones'
+                    }
+                },
+                {
+                    $sort: { created_at: -1 }
+                }
+            ]);
+
+            return cameras;
         } catch (error) {
             throw error;
         }
