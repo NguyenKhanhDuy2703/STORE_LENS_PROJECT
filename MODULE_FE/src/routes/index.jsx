@@ -23,7 +23,7 @@ import Settings from "../features/Settings/Settings";
 import CameraZoneManager from "../features/Map/CameraZoneManager";
 import ManagerUser from "../features/ManagerUser/ManagerUser";
 import AssetManagement from "../features/AssetManagement/AssetManagement";
-
+import Notification from "../features/Notification/Notification";
 const AppRouter = () => {
   const { isLogin, loading } = useSelector((state) => state.auth);
   const location = useLocation();
@@ -62,7 +62,7 @@ const AppRouter = () => {
         <Route path="heatmap" element={<Heatmap />} />
         <Route path="dwell-time" element={<Downtime />} />
         <Route path="settings" element={<Settings />} />
-
+        <Route path="notification" element={<Notification />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

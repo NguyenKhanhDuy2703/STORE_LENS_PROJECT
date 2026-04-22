@@ -3,11 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux'; // Thêm cái này
 import { logoutUser } from '../../features/Authentication/auth.thunk';
-import { 
-  LayoutDashboard, BarChart3, MapPin, 
+import {
+  LayoutDashboard, BarChart3, MapPin,
   ChevronDown, Settings,
   Flame, Clock, Camera, LogOut, Users,
-  Package
+  Package, Bell
 } from 'lucide-react';
 import NotificationPopover from './NotificationPopover';
 
@@ -15,7 +15,7 @@ export const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { user, allocation } = useSelector((state) => state.filter);
 
 
@@ -62,7 +62,7 @@ export const Header = () => {
     <header className="sticky top-0 z-[120] w-full h-16 border-b border-slate-200 bg-white shadow-sm overflow-visible">
       <div className="mx-auto h-full px-4 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          
+
           {/* LEFT: Logo & Nav */}
           <div className="flex items-center gap-8">
             <Link to="/" className="flex items-center gap-2 group shrink-0">
@@ -74,12 +74,11 @@ export const Header = () => {
 
             <nav className="hidden lg:flex items-center gap-1 border-l border-slate-200 pl-6 relative z-[121]">
               {navItems.map((item) => (
-                <Link 
+                <Link
                   key={item.path}
-                  to={item.path} 
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-                    isActive(item.path) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
-                  }`}
+                  to={item.path}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${isActive(item.path) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -88,11 +87,10 @@ export const Header = () => {
 
               {/* Dropdown Quản lý */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setIsManagementOpen(!isManagementOpen); setIsConfigOpen(false); }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-                    managementItems.some(item => isActive(item.path)) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${managementItems.some(item => isActive(item.path)) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
                 >
                   <BarChart3 size={18} />
                   <span>Quản lý</span>
@@ -116,11 +114,10 @@ export const Header = () => {
 
               {/* Dropdown Cấu hình */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => { setIsConfigOpen(!isConfigOpen); setIsManagementOpen(false); }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-                    configItems.some(item => isActive(item.path)) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium ${configItems.some(item => isActive(item.path)) ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
                 >
                   <Settings size={18} />
                   <span>Cấu hình</span>
@@ -151,7 +148,15 @@ export const Header = () => {
               <span className="text-emerald-700 text-xs font-semibold uppercase">Trực tuyến</span>
             </div>
 
-            <NotificationPopover />
+            <div className="relative">
+              <button
+                onClick={() => navigate('/notification')}
+                className="relative p-2 rounded-lg hover:bg-slate-100 transition"
+              >
+                <Bell size={20} className="text-slate-600" />
+
+              </button>
+            </div>
 
             {/* Profile Menu */}
             <div className="relative z-[121]">
