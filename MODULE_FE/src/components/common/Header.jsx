@@ -36,7 +36,8 @@ export const Header = () => {
   const managementItems = [
     { label: 'Quản lý khách hàng', path: '/quan-ly-khach-hang', icon: <Users size={18} /> },
     { label: 'Quản lý khu vực', path: '/management/area', icon: <MapPin size={18} /> },
-    { label: 'Quản lý tài sản', path: '/management/asset', icon: <Package size={18} /> }
+    { label: 'Quản lý tài sản', path: '/management/asset', icon: <Package size={18} /> },
+    { label: 'Quản lý hội viên', path: '/quan-ly-hoi-vien', icon: <Users size={18} /> }
   ];
 
   // Configuration menu items

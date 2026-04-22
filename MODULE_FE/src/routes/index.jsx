@@ -8,7 +8,7 @@ import Downtime from "../features/Downtime/Downtime";
 import ManagermentCameraPage from "../features/ManagermentCamera/ManagermentCameraPage";
 import MemberSegmentation from "../features/MemberSegmentation/MemberSegmentation";
 import Settings from "../features/Settings/Settings";
-
+import ManagermentMember from "../features/ManagermentMember/ManagermentMember";
 import Map from "../features/Map/Map";
 import ManagerUser from "../features/ManagerUser/ManagerUser";
 import { MainLayout } from "../layout/MainLayout";
@@ -24,6 +24,7 @@ const AppRouter = () => {
         <Route index element={<Dashboard />} />
         {/* Các trang con */}
         <Route path="quan-ly-khach-hang" element={<MemberSegmentation />} />
+        <Route path="quan-ly-hoi-vien" element={<ManagermentMember />} />
         <Route path="management/area" element={<AnalyticsArea />} />
         <Route path="config/rules" element={<AnalyticsRules />} />
         <Route path="heatmap" element={<Heatmap />} />
@@ -43,7 +44,6 @@ const AppRouter = () => {
         <Route path="analytics/area" element={<Navigate to="/management/area" replace />} />
         <Route path="analytics/rules" element={<Navigate to="/config/rules" replace />} />
         
-
         <Route path="*" element={<NotFound />} />
 
       </Route>
