@@ -12,6 +12,7 @@ const zoneRoutes = require("./zone.routes");
 const configRuleRoutes = require("./customerConfigrule.routes");
 const locationRoutes = require("./allocation.routes");
 const assetRoutes = require("./asset.routes");
+const notificationRoutes = require("./notification.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -30,6 +31,7 @@ const routes = (app) => {
   app.use(`${version}/customer-config-rule` , configRuleRoutes);
   app.use(`${version}/location`, locationRoutes);
   app.use(`${version}/asset` , assetRoutes);
+  app.use(`${version}/notification`, notificationRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success({
       res,

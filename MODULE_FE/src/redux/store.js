@@ -8,7 +8,7 @@ import authReducer from "../features/Authentication/auth.slice";
 import globalReducer from "./slices/global.slice";
 import assetReducer from "../features/AssetManagement/asset.slice";
 import cameraReducer from "../features/ManagermentCamera/camera.slice";
-
+import notificationReducer from "../features/Notification/notification.slice";
 const store = configureStore({
   reducer: {
     customerRules : customerRuleReducer,
@@ -19,6 +19,7 @@ const store = configureStore({
     filter: globalReducer,
     asset: assetReducer,
     camera: cameraReducer,
+    notification: notificationReducer,
   },
 });
 
