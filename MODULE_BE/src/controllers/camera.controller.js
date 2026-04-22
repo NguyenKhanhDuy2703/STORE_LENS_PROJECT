@@ -75,8 +75,49 @@ const cameraService = require("../service/camera.service");
         return success({ res, data, message: "Dashboard data retrieved successfully", code: StatusCodes.OK });
     });
 
+    const getCameraAndZoneInfoController = catchAsync(async (req, res) => {
+        const { locationId } = req.query;
+
+        if (!locationId) {
+            return error({ res, message: "Location ID is required", code: StatusCodes.BAD_REQUEST });
+        }
+
+        const data = await cameraService.getCameraAndZoneInfo({ locationId });
+
+        return success({
+            res,
+            data,
+            message: "Camera and zone info retrieved successfully",
+            code: StatusCodes.OK
+        });
+    });
+
+    const getCameraWithZonesByAllcationIdController = catchAsync(async (req, res) => {
+        const { allcationId, allocationId, locationId } = req.query;
+        const finalLocationId = allcationId || allocationId || locationId;
+
+        if (!finalLocationId) {
+            return error({ res, message: "allcationId (or allocationId/locationId) is required", code: StatusCodes.BAD_REQUEST });
+        }
+
+        const data = await cameraService.getCameraWithZonesByAllcationId({
+            allcationId,
+            allocationId,
+            locationId
+        });
+
+        return success({
+            res,
+            data,
+            message: "Camera list with full zones retrieved successfully",
+            code: StatusCodes.OK
+        });
+    });
+
     module.exports = {
         upsertCameraController,
         deleteCameraController,
-        getCameraController
+        getCameraController,
+        getCameraAndZoneInfoController,
+        getCameraWithZonesByAllcationIdController
     };

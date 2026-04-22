@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Copy, Pencil, Trash2, Power, Store, Video } from 'lucide-react';
 import { CameraStatusBadge } from './CameraStatusBadge';
-import { showCompactSuccessAlert } from '../../../untils/swal';
+import { showCompactSuccessAlert } from '../../../utils/swal';
 
 export const CameraTableRow = ({ camera, onDelete, onEdit, onTogglePower, isToggling }) => {
   const [copied, setCopied] = useState(false);

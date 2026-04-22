@@ -13,7 +13,7 @@ import {
   showConfirmDeleteAlert,
   showCompactSuccessAlert,
   showCompactErrorAlert,
-} from '../../untils/swal';
+} from '../../utils/swal';
 
 const PAGE_SIZE = 5;
 

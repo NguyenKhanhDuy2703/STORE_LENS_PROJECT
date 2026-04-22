@@ -3,11 +3,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GlobalFilter } from '@/components/functionComponent/GlobalFilter';
 import LeftSidebar from './components/LeftSidebar';
 import HeatmapCanvas from './components/HeatMapContent';
-import { fetchMatrixHeatmap } from './heatmap.thunk';
+import { fetchCameraWithZones, fetchMatrixHeatmap } from './heatmap.thunk';
+import { clearHeatmapData } from './heatmap.slice';
 
 const Heatmap = () => {
   const dispatch = useDispatch();
-  const { currentHeatmap, infoHeatmapMatrix, timeLine, backgroundImage, loading: isLoading } = useSelector(
+  const { currentHeatmap, infoHeatmapMatrix, timeLine, backgroundImage, isLoading, cameraList } = useSelector(
     (state) => state.heatmap || {}
   );
   const { locationId, userLocationId } = useSelector((state) => state.filter);
@@ -16,71 +17,68 @@ const Heatmap = () => {
   const [heatmapVisible, setHeatmapVisible] = useState(true);
   const [zoneOverlay, setZoneOverlay] = useState(true);
  
-  const [selectedCamera, setSelectedCamera] = useState('CAM_FRONT_057601');
+  const [selectedCamera, setSelectedCamera] = useState('');
 
-  const mockZones = [
-    {
-      zoneId: "zone_1",
-      zoneName: "Lối vào chính",
-      categoryName: "Khu vực vào",
-      color: "#22c55e",
-      coordinates: [
-        [120, 80],
-        [520, 80],
-        [520, 260],
-        [120, 260],
-      ],
-    },
-    {
-      zoneId: "zone_2",
-      zoneName: "Quầy lễ tân",
-      categoryName: "Khu vực dịch vụ",
-      color: "#fb7185",
-      coordinates: [
-        [700, 90],
-        [1120, 90],
-        [1120, 280],
-        [700, 280],
-      ],
-    },
-    {
-      zoneId: "zone_3",
-      zoneName: "Lối đi giữa",
-      categoryName: "Lưu thông",
-      color: "#38bdf8",
-      coordinates: [
-        [260, 340],
-        [970, 340],
-        [970, 520],
-        [260, 520],
-      ],
-    },
-  ];
+  const cameraOptions = Array.isArray(cameraList)
+    ? cameraList.map((camera) => ({
+        id: camera.camera_code,
+        label: camera.camera_name || camera.camera_code,
+      }))
+    : [];
 
-  const mockHeatmap = {
-    cameraCode: selectedCamera,
-    timeStamp: "mocked-zone",
-    heatmapMatrix: [],
-    gridSize: 16,
-    frameWidth: 1280,
-    frameHeight: 720,
-    widthMatrix: 80,
-    heightMatrix: 45,
-    zones: mockZones,
-    backgroundImage: backgroundImage,
-  };
+  const selectedCameraDetail = Array.isArray(cameraList)
+    ? cameraList.find((camera) => camera.camera_code === selectedCamera)
+    : null;
+
+  const selectedCameraZones = Array.isArray(selectedCameraDetail?.zones)
+    ? selectedCameraDetail.zones.map((zone) => {
+        return {
+          id: zone.zone_id,
+          zoneId: zone.zone_id,
+          zoneName: zone.zone_name,
+          categoryName: zone.category_name,
+          cameraCode: zone.camera_id,
+          polygon_coordinates: zone.polygon_coordinates,
+        };
+    })
+    : [];
+
+  const frameZones = Array.isArray(currentHeatmap?.zones) ? currentHeatmap.zones : [];
+  const displayZones = selectedCameraZones.length > 0 ? selectedCameraZones : frameZones;
 
   const displayHeatmap = currentHeatmap
     ? {
         ...currentHeatmap,
-        zones: Array.isArray(currentHeatmap.zones) && currentHeatmap.zones.length > 0 ? currentHeatmap.zones : mockZones,
+        zones: displayZones,
       }
-    : mockHeatmap;
+    : null;
 
   const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
 
   useEffect(() => {
     if (!effectiveLocationId) {
+      dispatch(clearHeatmapData());
+      return;
+    }
+
+    dispatch(fetchCameraWithZones(effectiveLocationId));
+  }, [dispatch, effectiveLocationId]);
+
+  useEffect(() => {
+    if (cameraOptions.length === 0) {
+      setSelectedCamera('');
+      return;
+    }
+
+    const hasSelectedCamera = cameraOptions.some((camera) => camera.id === selectedCamera);
+    if (!hasSelectedCamera) {
+      setSelectedCamera(cameraOptions[0].id);
+    }
+  }, [cameraOptions, selectedCamera]);
+
+  useEffect(() => {
+    if (!effectiveLocationId || !selectedCamera) {
+      dispatch(clearHeatmapData());
       return;
     }
 
@@ -103,6 +101,7 @@ const Heatmap = () => {
       
         <div className="w-[250px] shrink-0">
           <LeftSidebar
+            cameraOptions={cameraOptions}
             selectedCamera={selectedCamera}
             setSelectedCamera={setSelectedCamera}
             heatmapVisible={heatmapVisible}
@@ -119,7 +118,7 @@ const Heatmap = () => {
             <HeatmapCanvas
               cameraCode={selectedCamera}
               currentHeatmap={displayHeatmap}
-              heatmapFrames={infoHeatmapMatrix.length > 0 ? infoHeatmapMatrix : [mockHeatmap]}
+              heatmapFrames={infoHeatmapMatrix}
               backgroundImage={backgroundImage}
               timeLine={timeLine}
               isLoading={isLoading}

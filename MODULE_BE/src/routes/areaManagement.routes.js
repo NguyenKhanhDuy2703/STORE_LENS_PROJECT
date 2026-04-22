@@ -6,8 +6,8 @@ const {
     getAreaManagementZonePerformanceController 
 } = require('../controllers/areaManagement.controller');
 
-router.get('/kpis/:locationId/:zoneId', getAreaManagementMetricsController);
-router.get('/hourly-traffic/:locationId/:zoneId', getAreaManagementHourlyTrafficController);
-router.get('/performance-details/:locationId', getAreaManagementZonePerformanceController);
+router.get('/kpis', getAreaManagementMetricsController);
+router.get('/hourly-traffic', getAreaManagementHourlyTrafficController);
+router.get('/performance-details', getAreaManagementZonePerformanceController);
 
 module.exports = router;
