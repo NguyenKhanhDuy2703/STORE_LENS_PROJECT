@@ -1,29 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom'; 
+import { loginThunk } from '../auth.thunk'; 
+
 
 const SignIn = ({ onSwitchToSignUp }) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const { loading, isLogin } = useSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
+    identifier: '', 
+    password: '',
+  });
+  const [formErrors, setFormErrors] = useState({
     identifier: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLogin) {
+      navigate('/'); 
+    }
+  }, [isLogin, navigate]);
+
+  const validateForm = () => {
+    const nextErrors = {
+      identifier: '',
+      password: '',
+    };
+
+    if (!formData.identifier?.trim()) {
+      nextErrors.identifier = 'Vui lòng nhập tài khoản';
+    }
+
+    if (!formData.password?.trim()) {
+      nextErrors.password = 'Vui lòng nhập mật khẩu';
+    }
+
+    setFormErrors(nextErrors);
+    return !nextErrors.identifier && !nextErrors.password;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
 
-    if (!formData.identifier || !formData.password) {
-      setError('Vui lòng nhập đầy đủ thông tin đăng nhập');
-      setLoading(false);
+    if (!validateForm()) {
       return;
     }
 
-    console.log('Sign In', formData);
-    setLoading(false);
+    dispatch(loginThunk({ 
+      account: formData.identifier, 
+      password: formData.password 
+    }));
   };
 
   return (
@@ -38,14 +70,25 @@ const SignIn = ({ onSwitchToSignUp }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium tracking-tight text-slate-700 mb-1.5">
-            Tên tài khoản hoặc Email
+            Tài khoản
           </label>
+          {formErrors.identifier && (
+            <p className="mb-1.5 text-xs text-rose-600">{formErrors.identifier}</p>
+          )}
           <input
             type="text"
             value={formData.identifier}
-            onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-            placeholder="admin hoặc admin@spacelens.vn"
-            className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500"
+            onChange={(e) => {
+              const value = e.target.value;
+              setFormData({ ...formData, identifier: value });
+              if (formErrors.identifier) {
+                setFormErrors((prev) => ({ ...prev, identifier: '' }));
+              }
+            }}
+            placeholder="admin, manager_test_1store"
+            className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500 ${
+              formErrors.identifier ? 'border-rose-300' : 'border-slate-300'
+            }`}
             required
           />
         </div>
@@ -54,13 +97,24 @@ const SignIn = ({ onSwitchToSignUp }) => {
           <label className="block text-sm font-medium tracking-tight text-slate-700 mb-1.5">
             Mật khẩu
           </label>
+          {formErrors.password && (
+            <p className="mb-1.5 text-xs text-rose-600">{formErrors.password}</p>
+          )}
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({ ...formData, password: value });
+                if (formErrors.password) {
+                  setFormErrors((prev) => ({ ...prev, password: '' }));
+                }
+              }}
               placeholder="Nhập mật khẩu"
-              className="w-full px-3 py-2.5 pr-10 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500"
+              className={`w-full px-3 py-2.5 pr-10 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-teal-500 ${
+                formErrors.password ? 'border-rose-300' : 'border-slate-300'
+              }`}
               required
             />
             <button
@@ -73,12 +127,6 @@ const SignIn = ({ onSwitchToSignUp }) => {
           </div>
         </div>
 
-        {error && (
-          <div className="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-sm">
-            {error}
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={loading}
@@ -89,18 +137,11 @@ const SignIn = ({ onSwitchToSignUp }) => {
         </button>
       </form>
 
-      <div className="mt-6 p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-600 shadow-sm">
-        <p className="font-medium tracking-tight text-slate-700 mb-1">Tài khoản mẫu:</p>
-        <p className="tabular-nums">SuperAdmin: superadmin / 123456</p>
-        <p className="tabular-nums">Admin: admin / 123456</p>
-        <p className="tabular-nums">Manager: manager / 123456</p>
-      </div>
-
       <p className="text-sm text-slate-600 mt-5 text-center">
         Chưa có tài khoản?{' '}
-        <button type="button" className="text-teal-600 font-medium tracking-tight" onClick={onSwitchToSignUp}>
+        <Link to="/register" className="text-teal-600 font-medium tracking-tight hover:text-teal-500 transition-colors">
           Đăng ký
-        </button>
+        </Link>
       </p>
     </div>
   );

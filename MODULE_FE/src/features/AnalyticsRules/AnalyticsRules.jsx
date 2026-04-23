@@ -1,140 +1,290 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import RuleForm from "./components/RuleForm";
 import RuleTable from "./components/RuleTable";
+import { fetchCustomerRules  ,addAndUpdateCustomerRule , removeCustomerRule} from "./analyticsRules.think";
+import { useDispatch , useSelector } from "react-redux";
+import {addAndUpdateRule , deleteRule , toggleRule} from "./analyticsRules.slice"
+import Swal from 'sweetalert2';
+const selectZonesFromStore = (state) => {
+  const candidates = [
+    state?.zones,
+    state?.zone,
+    state?.map,
+    state?.mapZones,
+    state?.area,
+  ];
 
-const MOCK_CUSTOMER_CARE_RULES = [
-  {
-    id: 1,
-    location_id: "demo-location",
-    category: "retention",
-    rule_name: "Chăm sóc nhóm đi tập ít",
-    condition: "Nhóm đi tập ít",
-    value: 6,
-    unit: "ngày",
-    action: "Nhắc lịch tập qua Zalo",
-    isActive: true,
-  },
-  {
-    id: 2,
-    location_id: "demo-location",
-    category: "zone",
-    rule_name: "Cảnh báo khu máy chạy bộ",
-    condition: "Khu máy chạy bộ",
-    value: 20,
-    unit: "người",
-    action: "Thông báo quản lý",
-    isActive: true,
-  },
-  {
-    id: 3,
-    location_id: "demo-location",
-    category: "revenue",
-    rule_name: "Phân tệp khách VIP",
-    condition: "Chi tiêu tích lũy",
-    value: 5000000,
-    unit: "VNĐ",
-    action: "Phân tệp VIP",
-    isActive: true,
-  },
-];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (Array.isArray(candidate)) return candidate;
+    if (Array.isArray(candidate.zones)) return candidate.zones;
+    if (Array.isArray(candidate.data)) return candidate.data;
+  }
 
+  return [];
+};
 const AnalyticsRules = () => {
-  const [customerCareRules, setCustomerCareRules] = useState(MOCK_CUSTOMER_CARE_RULES);
-  // Snapshot used as the "saved" baseline for cancel/dirty-check behaviors.
-  const [savedRules, setSavedRules] = useState(MOCK_CUSTOMER_CARE_RULES);
+  const [activeTab, setActiveTab] = useState("business");
+  const [customerCareRules, setCustomerCareRules] = useState([]);
+  const notifySuccess = (title, text) =>
+    Swal.fire({
+      icon: "success",
+      title,
+      text,
+      confirmButtonText: "Đóng",
+    });
 
-  const addRule = (newRule) => {
-    const rule = {
-      ...newRule,
-      id: Date.now(),
-      location_id: "demo-location",
-      rule_name: `${newRule.category} - ${newRule.condition}`,
-      created_at: new Date().toISOString(),
-    };
+  const notifyError = (title, text) =>
+    Swal.fire({
+      icon: "error",
+      title,
+      text,
+      confirmButtonText: "Đóng",
+    });
 
-    setCustomerCareRules((prevRules) => [...prevRules, rule]);
-  };
+  const dispatch = useDispatch();
+  const { locationId, userLocationId } = useSelector((state) => state.filter);
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
+  const {rules} = useSelector((state) => state.customerRules);
+  const zones = useSelector(selectZonesFromStore);
+  useEffect(() => {
+      if (!effectiveLocationId) return;
 
-  const deleteRule = (id) => {
-    if (window.confirm("Bạn muốn xóa quy tắc này?")) {
-      setCustomerCareRules((prevRules) => prevRules.filter((rule) => rule.id !== id));
+      const fetchRules = async () => {
+        try{
+          await dispatch(fetchCustomerRules({locationId : effectiveLocationId})).unwrap();
+        }catch(error){
+          console.error("Failed to fetch customer care rules:", error);
+          notifyError("Không tải được quy tắc", error?.message || "Vui lòng thử lại sau.");
+        }
+      }
+      fetchRules();
+  },[dispatch, effectiveLocationId])
+
+  useEffect(() => {
+    if (Array.isArray(rules)) {
+      setCustomerCareRules(rules);
     }
+  }, [rules]);
+
+  const addRule = async(newRule) => {
+    if (!effectiveLocationId) return;
+
+    const saveRule = {
+      locationId: effectiveLocationId,
+      category: newRule.category,
+      ruleId: `TEMP_${Date.now()}`,
+      ruleName: newRule.ruleName,
+      zoneId: newRule.zoneId || "",
+      logic: {
+        metricName: newRule.metricName,
+        threshold: newRule.threshold,
+        operator: newRule.operator,
+        unit: newRule.unit,
+      },
+      nameZone: newRule.zoneName,
+      action: newRule.action,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    dispatch(addAndUpdateRule(saveRule)); 
   };
 
-  const toggleRule = (id) => {
-    setCustomerCareRules((prevRules) =>
-      prevRules.map((rule) =>
-        rule.id === id
-          ? { ...rule, isActive: !rule.isActive }
-          : rule
-      )
-    );
+  const handleDeleteRules = (ruleId) => {
+    console.log("Attempting to delete rule with ID:", ruleId);
+    Swal.fire({
+      title: 'Bạn có chắc muốn xóa quy tắc này?',
+      text: "",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+      preConfirm: async () =>{
+        try {
+          if (!effectiveLocationId) return;
+          return await dispatch(removeCustomerRule({locationId : effectiveLocationId , ruleId})).unwrap();
+        }catch(error){
+          Swal.showValidationMessage(`Lỗi khi xóa quy tắc: ${error?.message || "Không xác định"}`);
+          throw error;
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        try {
+          dispatch(deleteRule(ruleId));
+          notifySuccess('Đã xóa!', 'Quy tắc đã được xóa.');
+        } catch (error) {
+          notifyError('Xóa thất bại', error?.message || 'Không thể xóa quy tắc.');
+        }
+      }
+    });
+  };
+
+  const handleToggleRule = (ruleId) => {
+    dispatch(toggleRule(ruleId));
   };
 
   const activeRuleCount = customerCareRules.filter((rule) => rule.isActive).length;
-  const hasAllRuleGroups = ["retention", "zone", "revenue"].every((group) =>
-    customerCareRules.some((rule) => rule.category === group)
-  );
-  // Simple dirty-check for enabling/disabling action buttons.
-  const hasChanges = JSON.stringify(customerCareRules) !== JSON.stringify(savedRules);
-
-  const handleCancel = () => {
-    setCustomerCareRules(savedRules.map((rule) => ({ ...rule })));
-  };
-
-  const handleSaveConfig = () => {
-    if (!hasAllRuleGroups) {
-      window.alert("Cần có đủ 3 nhóm quy tắc: Hội viên, Khu vực, Doanh thu trước khi lưu.");
-      return;
+ 
+ 
+ 
+  const handleCancel = async() => {
+    if (!effectiveLocationId) return;
+    try {
+      await dispatch(fetchCustomerRules({locationId : effectiveLocationId})).unwrap();
+      notifySuccess('Đã hủy thay đổi', 'Các thay đổi chưa lưu đã được hủy bỏ.');
+    } catch (error) {
+      notifyError('Hủy thất bại', error?.message || 'Không thể tải lại cấu hình gốc.');
     }
-
-    setSavedRules(customerCareRules.map((rule) => ({ ...rule })));
-    window.alert("Đã lưu cấu hình quy tắc.");
   };
+
+  const handleSaveConfig = async () => {
+    if (!effectiveLocationId) return;
+
+    const confirmation = await Swal.fire({
+    title: 'Lưu cấu hình?',
+    text: 'Bạn có muốn lưu các thay đổi hiện tại không?',
+    icon: 'question',
+    allowOutsideClick: false, 
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận lưu',
+    cancelButtonText: 'Hủy',
+    showLoaderOnConfirm: true,
+    preConfirm: async () => {
+      try {
+        return await dispatch(addAndUpdateCustomerRule({locationId : effectiveLocationId , ruleData:rules})).unwrap();
+      } catch (error) {
+        Swal.showValidationMessage(`Lỗi khi lưu cấu hình: ${error?.message || "Không xác định"}`);
+        throw error;
+      }
+    }
+    });
+
+    if (confirmation.isConfirmed) {
+      notifySuccess('Lưu thành công', 'Cấu hình đã được lưu thành công.');
+    }
+  };
+
+  const tabConfig = {
+    business: {
+      title: "Quy tắc Doanh thu & Khách hàng",
+      categories: ["retention", "revenue"],
+      showZoneField: false,
+      requireZoneField: false,
+    },
+    zone: {
+      title: "Quy tắc Khu vực (Zone)",
+      categories: ["zone"],
+      showZoneField: true,
+      requireZoneField: true,
+    },
+  };
+
+  const currentTab = tabConfig[activeTab];
+  const filteredRules = customerCareRules.filter((rule) =>
+    currentTab.categories.includes(rule.category)
+  );
+  const retentionRules = customerCareRules.filter((rule) => rule.category === "retention");
+  const revenueRules = customerCareRules.filter((rule) => rule.category === "revenue");
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 pb-28">
-      {/* RETENTION RULES SECTION */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-        <div className="lg:col-span-4">
-          <RuleForm category="retention" onAdd={addRule} />
+      <div className="mb-6">
+        <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("business")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              activeTab === "business"
+                ? "bg-teal-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Doanh thu & Khach hang
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("zone")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              activeTab === "zone"
+                ? "bg-teal-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            Zone
+          </button>
         </div>
-        <div className="lg:col-span-8">
-          <RuleTable 
-            rules={customerCareRules.filter((rule) => rule.category === "retention")} 
-            onDelete={deleteRule} 
-            onToggle={toggleRule} 
-          />
-        </div>
-      </section>
+      </div>
 
-      {/* ZONE RULES SECTION */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12 border-t border-slate-200 pt-12">
-        <div className="lg:col-span-4">
-          <RuleForm category="zone" onAdd={addRule} />
+      <section className="mb-12">
+        <div className="mb-3">
+          <h2 className="text-xl font-semibold tracking-tight text-slate-900">{currentTab.title}</h2>
         </div>
-        <div className="lg:col-span-8">
-          <RuleTable 
-            rules={customerCareRules.filter((rule) => rule.category === "zone")} 
-            onDelete={deleteRule} 
-            onToggle={toggleRule} 
-          />
-        </div>
-      </section>
 
-      {/* REVENUE RULES SECTION */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12 border-t border-slate-200 pt-12">
-        <div className="lg:col-span-4">
-          <RuleForm category="revenue" onAdd={addRule} />
-        </div>
-        <div className="lg:col-span-8">
-          <RuleTable 
-            rules={customerCareRules.filter((rule) => rule.category === "revenue")} 
-            onDelete={deleteRule} 
-            onToggle={toggleRule} 
-          />
-        </div>
+        {activeTab === "business" ? (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-4">
+                <RuleForm
+                  categories={["retention"]}
+                  onAdd={addRule}
+                  zones={zones}
+                  showZoneField={false}
+                  requireZoneField={false}
+                />
+              </div>
+              <div className="lg:col-span-8">  
+                <RuleTable
+                  rules={retentionRules}
+                  onDelete={handleDeleteRules}
+                  onToggle={handleToggleRule}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 border-t border-slate-200 pt-6">
+              <div className="lg:col-span-4">
+                <RuleForm
+                  categories={["revenue"]}
+                  onAdd={addRule}
+                  zones={zones}
+                  showZoneField={false}
+                  requireZoneField={false}
+                />
+              </div>
+              <div className="lg:col-span-8">
+              
+                <RuleTable
+                  rules={revenueRules}
+                  onDelete={handleDeleteRules}
+                  onToggle={handleToggleRule}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4">
+              <RuleForm
+                categories={currentTab.categories}
+                onAdd={addRule}
+                zones={zones}
+                showZoneField={currentTab.showZoneField}
+                requireZoneField={currentTab.requireZoneField}
+              />
+            </div>
+            <div className="lg:col-span-8">
+              <RuleTable
+                rules={filteredRules}
+                onDelete={handleDeleteRules}
+                onToggle={handleToggleRule}
+              />
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Sticky action bar */}
@@ -149,7 +299,6 @@ const AnalyticsRules = () => {
             <button
               type="button"
               onClick={handleCancel}
-              disabled={!hasChanges}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium tracking-tight text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Hủy bỏ
@@ -157,7 +306,7 @@ const AnalyticsRules = () => {
             <button
               type="button"
               onClick={handleSaveConfig}
-              disabled={!hasChanges || !hasAllRuleGroups}
+        
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium tracking-tight text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               Lưu cấu hình

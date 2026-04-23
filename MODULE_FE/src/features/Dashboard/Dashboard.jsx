@@ -1,7 +1,6 @@
 import StatsCards from './components/StatsCards';
 import Charts from './components/Charts';
 import AreaDetails from './components/AreaDetails';
-
 const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-teal-100">
@@ -18,10 +17,7 @@ const Dashboard = () => {
         </div>
 
         {/* Zone Performance Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
-          <AreaDetails.TopZones />
-          <AreaDetails.Performance />
-        </div>
+        <AreaDetails.ZoneAnalyticsDashboard />
       </main>
     </div>
   );

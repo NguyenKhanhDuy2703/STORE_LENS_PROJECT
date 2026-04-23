@@ -7,8 +7,6 @@ const { StatusCodes } = require("http-status-codes");
 
 const register = async (userData) => {
     const { account, password, email, location_id, fullname } = userData;
-
-    // Validate input
     const trimmedAccount = account.toString().trim();
     const trimmedEmail = email.toString().trim();
     const trimmedPassword = password.trim();
@@ -18,7 +16,7 @@ const register = async (userData) => {
         error({message: "Account and Email is exist", code: StatusCodes.BAD_REQUEST});
     }
     
-    const location = await locationModel.findById(location_id);
+    const location = await locationModel.findOne({ location_code: location_id });
     if (!location) {
         error({message: "The locations is not exist", code: StatusCodes.BAD_REQUEST});
     }
@@ -36,7 +34,6 @@ const register = async (userData) => {
 };
 
 const login = async (account, password) => {
-    // Validate input types
     if (typeof account !== 'string' || typeof password !== 'string') {
         error({message: "Invalid input types", code: StatusCodes.BAD_REQUEST});
     }

@@ -1,114 +1,114 @@
-import { useMemo, useState } from 'react';
-import { Search, Edit2, Trash2, Package, TrendingUp, TrendingDown, Filter, ChevronDown, X, Save } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatCurrency';
-
-const MOCK_PRODUCTS = [
-  {
-    product_id: 'SP001',
-    name_product: 'Sữa tươi không đường',
-    category_name: 'Đồ uống',
-    brand: 'Vinamilk',
-    unit: 'Hộp',
-    price: 32000,
-    stock_quantity: 120,
-    status: true,
-  },
-  {
-    product_id: 'SP002',
-    name_product: 'Nước khoáng',
-    category_name: 'Đồ uống',
-    brand: 'Lavie',
-    unit: 'Chai',
-    price: 10000,
-    stock_quantity: 80,
-    status: true,
-  },
-  {
-    product_id: 'SP003',
-    name_product: 'Bánh quy bơ',
-    category_name: 'Bánh kẹo',
-    brand: 'Cosy',
-    unit: 'Hộp',
-    price: 55000,
-    stock_quantity: 25,
-    status: true,
-  },
-  {
-    product_id: 'SP004',
-    name_product: 'Mì ăn liền vị bò',
-    category_name: 'Đồ khô',
-    brand: 'Hảo Hảo',
-    unit: 'Gói',
-    price: 4500,
-    stock_quantity: 0,
-    status: false,
-  },
-  {
-    product_id: 'SP005',
-    name_product: 'Nước rửa tay',
-    category_name: 'Gia dụng',
-    brand: 'Lifebuoy',
-    unit: 'Chai',
-    price: 78000,
-    stock_quantity: 15,
-    status: true,
-  },
-  {
-    product_id: 'SP006',
-    name_product: 'Bột giặt',
-    category_name: 'Gia dụng',
-    brand: 'Ariel',
-    unit: 'Túi',
-    price: 135000,
-    stock_quantity: 60,
-    status: true,
-  },
-  {
-    product_id: 'SP007',
-    name_product: 'Snack khoai tây',
-    category_name: 'Bánh kẹo',
-    brand: 'Oishi',
-    unit: 'Gói',
-    price: 12000,
-    stock_quantity: 8,
-    status: true,
-  },
-  {
-    product_id: 'SP008',
-    name_product: 'Dầu ăn',
-    category_name: 'Đồ khô',
-    brand: 'Neptune',
-    unit: 'Chai',
-    price: 69000,
-    stock_quantity: 42,
-    status: true,
-  },
-];
+import { useEffect, useMemo, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Search, Filter, ChevronDown } from 'lucide-react';
+import { fetchAssets, addOrUpdateAssetThunk, deleteAssetThunk, fetchAssetMetricThunk } from './asset.thunk';
+import { clearSuccessMessage } from './asset.slice';
+import MetricsAsset from './components/MetricsAsset';
+import FormAddOrUpdate from './components/FormAddOrUpdate';
+import TableAssets from './components/TableAssets';
+import {
+  showErrorAlert,
+  showWarningAlert,
+  showSuccessAlert,
+  showConfirmDeleteAlert,
+  showCompactSuccessAlert,
+  showCompactErrorAlert,
+} from '../../utils/swal';
 
 const PAGE_SIZE = 5;
 
+const createEmptyAssetForm = (locationId = '') => ({
+  locationId,
+  product_id: '',
+  category_name: '',
+  name_product: '',
+  zone_name: '',
+  brand: '',
+  price: '',
+  unit: '',
+  stock_quantity: '',
+  status: true,
+  asset_attributes: {
+    maintenance_date: '',
+    color: '',
+    custom_note: '',
+  },
+});
+
+const FALLBACK_CATEGORY_OPTIONS = ['Nhóm mặc định'];
+const FALLBACK_ZONE_OPTIONS = ['Khu vực mặc định'];
+
+
 const AssetManagement = () => {
+  const dispatch = useDispatch();
+  
+  // ✅ Lấy locationId từ global filter state
+  const locationId = useSelector(state => state.filter.locationId);
+  
+  // ✅ Lấy asset data từ Redux store
+  const { listAsset, isLoading, error, isSaving, saveError, metric, metricLoading, metricError } = useSelector(state => state.asset);
+
+  // ✅ Local component state: filter & modal
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedZone, setSelectedZone] = useState('all');
   const [editingProduct, setEditingProduct] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isCreateMode, setIsCreateMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    if (locationId) {
+      dispatch(fetchAssets({
+        locationId: locationId,
+        categoryName: 'all',
+        zoneId: 'all',
+        page: 1,
+        limit: 100,
+      }));
+
+      dispatch(fetchAssetMetricThunk(locationId));
+    }
+  }, [locationId, dispatch]);
+
+  useEffect(() => {
+    if (saveError) {
+      showErrorAlert({
+        title: 'Lưu thất bại',
+        text: saveError,
+      });
+    }
+  }, [saveError]);
+
+  useEffect(() => {
+    if (metricError) {
+      showErrorAlert({
+        title: 'Không tải được metric',
+        text: metricError,
+      });
+    }
+  }, [metricError]);
   const categories = useMemo(() => {
-    return [...new Set(MOCK_PRODUCTS.map((item) => item.category_name))];
-  }, []);
+    const derived = [...new Set(listAsset.map((item) => item.category_name).filter(Boolean))];
+    return derived.length > 0 ? derived : FALLBACK_CATEGORY_OPTIONS;
+  }, [listAsset]);
+  const zones = useMemo(() => {
+    const derived = [...new Set(listAsset.map((item) => item.zone_name).filter(Boolean))];
+    return derived.length > 0 ? derived : FALLBACK_ZONE_OPTIONS;
+  }, [listAsset]);
 
   const filteredProducts = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
-    return MOCK_PRODUCTS.filter((product) => {
+    return listAsset.filter((product) => {
       const matchedKeyword =
         keyword === '' ||
         product.name_product.toLowerCase().includes(keyword) ||
         product.product_id.toLowerCase().includes(keyword);
       const matchedCategory = selectedCategory === 'all' || product.category_name === selectedCategory;
-      return matchedKeyword && matchedCategory;
+      const matchedZone = selectedZone === 'all' || product.zone_name === selectedZone;
+      return matchedKeyword && matchedCategory && matchedZone;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [listAsset, searchTerm, selectedCategory, selectedZone]);
 
   const totalItems = filteredProducts.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -118,80 +118,172 @@ const AssetManagement = () => {
     return filteredProducts.slice(start, start + PAGE_SIZE);
   }, [filteredProducts, currentPage]);
 
-  const inventoryValue = useMemo(() => {
-    return MOCK_PRODUCTS.reduce((sum, p) => sum + p.price * p.stock_quantity, 0);
-  }, []);
-
-  const handleEdit = (product) => {
-    setEditingProduct({ ...product });
+  const openCreateModal = () => {
+    setIsCreateMode(true);
+    const emptyForm = createEmptyAssetForm(locationId);
+    emptyForm.category_name = categories[0] || '';
+    emptyForm.zone_name = zones[0] || '';
+    setEditingProduct(emptyForm);
     setShowEditModal(true);
   };
 
-  const handleSaveEdit = () => {
-    setShowEditModal(false);
-    setEditingProduct(null);
+  const handleEdit = (product) => {
+    setIsCreateMode(false);
+    setEditingProduct({
+      locationId,
+      product_id: product.product_id || '',
+      category_name: product.category_name || '',
+      name_product: product.name_product || '',
+      zone_name: product.zone_name || '',
+      brand: product.brand || '',
+      price: product.price ?? '',
+      unit: product.unit || '',
+      stock_quantity: product.stock_quantity ?? '',
+      status: Boolean(product.status),
+      asset_attributes: product.asset_attributes || {
+        maintenance_date: '',
+        color: '',
+        custom_note: '',
+      },
+    });
+    setShowEditModal(true);
   };
 
-  const handleDelete = () => {
-    // Mock UI only: no API/Redux side effects.
-    window.alert('Chế độ mock UI: chưa thực hiện xóa thật.');
+  const handleAssetFieldChange = (field, value) => {
+    setEditingProduct((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleAssetAttributeChange = (field, value) => {
+    setEditingProduct((prev) => ({
+      ...prev,
+      asset_attributes: {
+        ...(prev?.asset_attributes || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!locationId || !editingProduct?.product_id || !editingProduct?.category_name || !editingProduct?.name_product) {
+      showWarningAlert({
+        title: 'Thiếu thông tin',
+        text: 'Vui lòng nhập mã định danh, nhóm phân loại và tên hiển thị.',
+      });
+      return;
+    }
+
+    try {
+      await dispatch(addOrUpdateAssetThunk({
+        ...editingProduct,
+        locationId,
+      })).unwrap();
+
+      await dispatch(fetchAssets({
+        locationId,
+        categoryName: 'all',
+        zoneId: 'all',
+        page: 1,
+        limit: 100,
+      })).unwrap();
+
+      setShowEditModal(false);
+      setEditingProduct(null);
+      setIsCreateMode(false);
+      dispatch(clearSuccessMessage());
+
+      showSuccessAlert({
+        title: isCreateMode ? 'Đã thêm tài sản' : 'Đã cập nhật tài sản',
+        text: isCreateMode ? 'Tài sản mới đã được lưu lên BE.' : 'Thông tin tài sản đã được cập nhật lên BE.',
+      });
+    } catch (error) {
+      showErrorAlert({
+        title: isCreateMode ? 'Thêm thất bại' : 'Cập nhật thất bại',
+        text: error?.message || 'Không thể lưu tài sản.',
+      });
+    }
+  };
+
+  const handleDelete = async (product) => {
+    const result = await showConfirmDeleteAlert();
+
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await dispatch(deleteAssetThunk({
+          locationId: product.location_id,
+          assetId: product.product_id,
+        })).unwrap();
+
+        showCompactSuccessAlert({
+          title: 'Đã xóa',
+          text: 'Sản phẩm đã được xóa thành công.',
+        });
+
+        dispatch(fetchAssets({
+          locationId,
+          page: currentPage,
+          limit: PAGE_SIZE,
+        }));
+
+        if (locationId && locationId !== 'all') {
+          dispatch(fetchAssetMetricThunk(locationId));
+        }
+      } catch (error) {
+        showCompactErrorAlert({
+          title: 'Lỗi',
+          text: error || 'Không thể xóa sản phẩm. Vui lòng thử lại.',
+        });
+      }
+    }
   };
 
   const goToPage = (pageNum) => {
     setCurrentPage(Math.max(1, Math.min(totalPages, pageNum)));
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-600">Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl p-6 max-w-md text-center shadow-sm border border-red-200">
+          <p className="text-red-600 font-medium mb-2">⚠️ Lỗi tải dữ liệu</p>
+          <p className="text-slate-600 text-sm">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              showErrorAlert({
+                title: 'Không tải được dữ liệu',
+                text: error,
+              });
+            }}
+            className="mt-4 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 transition-colors"
+          >
+            Xem chi tiết
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs text-green-600 font-medium">+12%</span>
-            </div>
-            <p className="text-[10px] font-medium text-slate-500 tracking-tight mb-0.5">Tổng sản phẩm</p>
-            <p className="text-xl font-semibold text-slate-900 tracking-tight tabular-nums">{MOCK_PRODUCTS.length}</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-9 h-9 bg-green-500 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs text-blue-600 font-medium">87.3%</span>
-            </div>
-            <p className="text-[10px] font-medium text-slate-500 tracking-tight mb-0.5">Đang kinh doanh</p>
-            <p className="text-xl font-semibold text-slate-900 tracking-tight tabular-nums">{MOCK_PRODUCTS.filter((p) => p.status).length}</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-9 h-9 bg-red-500 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs text-red-600 font-medium">Cảnh báo</span>
-            </div>
-            <p className="text-[10px] font-medium text-slate-500 tracking-tight mb-0.5">Hết hàng</p>
-            <p className="text-xl font-semibold text-slate-900 tracking-tight tabular-nums">{MOCK_PRODUCTS.filter((p) => p.stock_quantity === 0).length}</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs text-green-600 font-medium">+5.2%</span>
-            </div>
-            <p className="text-[10px] font-medium text-slate-500 tracking-tight mb-0.5">Giá trị kho</p>
-            <p className="text-xl font-semibold text-slate-900 tracking-tight tabular-nums">{formatCurrency(inventoryValue)}</p>
-          </div>
-        </div>
+      <div className="max-w-[96rem] mx-auto px-2 sm:px-3 py-4">
+        <MetricsAsset metric={metric} metricLoading={metricLoading} metricError={metricError} />
 
         <div className="bg-white rounded-xl p-3 mb-4 shadow-sm border border-slate-200">
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 items-end">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
@@ -206,7 +298,7 @@ const AssetManagement = () => {
               />
             </div>
 
-            <div className="relative sm:w-48">
+            <div className="relative sm:w-52">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
               <select
                 value={selectedCategory}
@@ -223,177 +315,67 @@ const AssetManagement = () => {
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-medium text-slate-500 tracking-tight">
-                  <th className="text-left py-2 px-3 border-r border-slate-200">Mã SP</th>
-                  <th className="text-left py-2 px-3 border-r border-slate-200">Tên sản phẩm</th>
-                  <th className="text-left py-2 px-3 border-r border-slate-200">Danh mục</th>
-                  <th className="text-left py-2 px-3 border-r border-slate-200">Thương hiệu</th>
-                  <th className="text-right py-2 px-3 border-r border-slate-200">Giá bán</th>
-                  <th className="text-center py-2 px-3 border-r border-slate-200">Tồn kho</th>
-                  <th className="text-center py-2 px-3 border-r border-slate-200">Trạng thái</th>
-                  <th className="text-center py-2 px-3">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedProducts.length > 0 ? (
-                  pagedProducts.map((product) => (
-                    <tr key={product.product_id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      <td className="py-2 px-3">
-                        <span className="text-xs text-teal-600 font-medium tracking-tight tabular-nums bg-teal-50 px-2 py-0.5 rounded">
-                          {product.product_id}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-teal-100 to-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Package className="w-4 h-4 text-teal-600" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-slate-900 truncate tracking-tight">{product.name_product}</p>
-                            <p className="text-xs text-slate-500">{product.unit}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className="inline-flex px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium border border-blue-200 tracking-tight">
-                          {product.category_name}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className="text-sm text-slate-700 font-medium tracking-tight">{product.brand}</span>
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        <span className="font-medium text-sm text-slate-900 tracking-tight tabular-nums">{formatCurrency(product.price)}</span>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <span className={`font-medium text-base tracking-tight tabular-nums ${
-                          product.stock_quantity === 0 ? 'text-red-600' :
-                          product.stock_quantity < 100 ? 'text-orange-600' :
-                          'text-green-600'
-                        }`}>
-                          {product.stock_quantity}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${
-                          product.status
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : 'bg-slate-100 text-slate-600 border-slate-300'
-                        }`}>
-                          {product.status ? '✓ Đang bán' : '⊗ Ngưng'}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => handleEdit(product)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors">
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={handleDelete} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="text-center py-12">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                          <Package className="w-6 h-6 text-slate-400" />
-                        </div>
-                        <p className="text-sm text-slate-500 tracking-tight">Không tìm thấy sản phẩm</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {totalItems > 0 && (
-            <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-slate-50">
-              <div className="text-xs text-slate-600 tabular-nums tracking-tight">
-                Hiển thị <span className="font-medium text-teal-600">{(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, totalItems)}</span> / <span className="font-medium">{totalItems}</span>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-xs bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
-                >
-                  ← Trước
-                </button>
-
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <button
-                    key={pageNum}
-                    onClick={() => goToPage(pageNum)}
-                    className={`px-3 py-1 text-xs rounded-lg transition-colors font-medium ${
-                      currentPage === pageNum
-                        ? 'bg-teal-600 text-white'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
+            <div className="relative sm:w-52">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+              <select
+                value={selectedZone}
+                onChange={(e) => {
+                  setSelectedZone(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+              >
+                <option value="all">Tất cả vùng</option>
+                {zones.map((zone) => (
+                  <option key={zone} value={zone}>{zone}</option>
                 ))}
-
-                <button
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-xs bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
-                >
-                  Sau →
-                </button>
-              </div>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             </div>
-          )}
+
+            <button
+              type="button"
+              onClick={openCreateModal}
+              disabled={!locationId}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-500 disabled:cursor-not-allowed disabled:bg-slate-300 sm:ml-auto"
+            >
+              Thêm tài sản
+            </button>
+          </div>
         </div>
+
+        <TableAssets
+          pagedProducts={pagedProducts}
+          searchTerm={searchTerm}
+          selectedCategory={selectedCategory}
+          selectedZone={selectedZone}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={PAGE_SIZE}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onGoToPage={goToPage}
+        />
       </div>
 
-      {showEditModal && editingProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200">
-                  <h3 className="text-lg font-medium tracking-tight text-slate-900">Chỉnh sửa sản phẩm (Mock UI)</h3>
-              <button onClick={() => setShowEditModal(false)} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-medium text-slate-700 mb-1 tracking-tight">Mã sản phẩm</label>
-                  <input type="text" value={editingProduct.product_id} disabled className="w-full px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-slate-700 mb-1 tracking-tight">Đơn vị</label>
-                  <input type="text" value={editingProduct.unit} onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })} className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-200 bg-slate-50">
-              <button onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors tracking-tight">
-                Hủy
-              </button>
-              <button onClick={handleSaveEdit} className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-500 transition-colors flex items-center gap-2 tracking-tight">
-                <Save className="w-4 h-4" />
-                Lưu thay đổi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FormAddOrUpdate
+        isOpen={showEditModal}
+        isCreateMode={isCreateMode}
+        editingProduct={editingProduct}
+        isSaving={isSaving}
+        categoryOptions={categories}
+        zoneOptions={zones}
+        onClose={() => {
+          setShowEditModal(false);
+          setIsCreateMode(false);
+          setEditingProduct(null);
+        }}
+        onSave={handleSaveEdit}
+        onFieldChange={handleAssetFieldChange}
+        onAttributeChange={handleAssetAttributeChange}
+      />
     </div>
   );
 };

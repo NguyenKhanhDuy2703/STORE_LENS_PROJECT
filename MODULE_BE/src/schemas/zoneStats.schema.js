@@ -15,6 +15,7 @@ const performanceSchema = new Schema({
 const zoneStatsSchema = new Schema({
     location_id: { type: String, ref: 'Location', required: true },
     zone_id: { type: String, ref: 'Zone', required: true },
+    camera_code: { type: String, trim: true },
     date: { type: Date, required: true },
     trend: { type: String, trim: true },
     performance: performanceSchema

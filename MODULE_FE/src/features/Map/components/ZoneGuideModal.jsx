@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, CheckCircle, AlertTriangle, Image as ImageIcon, Maximize, Layers } from 'lucide-react';
 
 const ZoneGuideModal = ({ isOpen, onClose }) => {
@@ -8,19 +7,19 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-slideUp">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50">
-          <h3 className="text-lg font-medium tracking-tight text-blue-800 flex items-center gap-2">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-blue-50">
+          <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
             <AlertTriangle size={24} className="text-blue-600" />
             Quy tắc vẽ Zone chuẩn cho AI
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1 rounded-full transition">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:bg-gray-200 p-1 rounded-full transition">
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
         <div className="p-6 space-y-6">
-          <p className="text-slate-600 text-sm italic">
+          <p className="text-gray-600 text-sm italic">
             Để hệ thống AI (Tracking & Heatmap) hoạt động chính xác, vui lòng tuân thủ các nguyên tắc sau:
           </p>
 
@@ -32,8 +31,8 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
                   <ImageIcon size={20} />
                 </div>
                 <div>
-                  <h4 className="font-medium tracking-tight text-slate-900 text-sm">1. Tỷ lệ ảnh chuẩn</h4>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">1. Tỷ lệ ảnh chuẩn</h4>
+                  <p className="text-xs text-gray-600 mt-1">
                     Bắt buộc dùng ảnh <strong>Snapshot từ Camera</strong> (thường là 16:9). Không dùng ảnh bị cắt, ảnh dọc hoặc sơ đồ 2D.
                   </p>
                 </div>
@@ -47,8 +46,8 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
                   <Layers size={20} />
                 </div>
                 <div>
-                  <h4 className="font-medium tracking-tight text-slate-900 text-sm">2. Vẽ dưới mặt sàn</h4>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">2. Vẽ dưới mặt sàn</h4>
+                  <p className="text-xs text-gray-600 mt-1">
                     Vẽ vùng bao quanh <strong>khu vực đi lại</strong> của khách hàng. Không vẽ trùm lên nóc kệ hàng hay trần nhà.
                   </p>
                 </div>
@@ -62,8 +61,8 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
                   <Maximize size={20} />
                 </div>
                 <div>
-                  <h4 className="font-medium tracking-tight text-slate-900 text-sm">3. Kích thước đủ lớn</h4>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">3. Kích thước đủ lớn</h4>
+                  <p className="text-xs text-gray-600 mt-1">
                     Vùng vẽ phải đủ rộng để chứa trọn vẹn <strong>ít nhất 1 người</strong>. Tránh vẽ các đường quá mảnh hoặc vùng quá nhỏ.
                   </p>
                 </div>
@@ -77,8 +76,8 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
                   <CheckCircle size={20} />
                 </div>
                 <div>
-                  <h4 className="font-medium tracking-tight text-slate-900 text-sm">4. Tránh chồng lấn</h4>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <h4 className="font-semibold text-gray-900 text-sm">4. Tránh chồng lấn</h4>
+                  <p className="text-xs text-gray-600 mt-1">
                     Hạn chế vẽ các vùng đè lên nhau để tránh việc một người bị tính trùng lặp ở nhiều khu vực.
                   </p>
                 </div>
@@ -88,10 +87,10 @@ const ZoneGuideModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
           <button 
             onClick={onClose}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium tracking-tight rounded-lg transition shadow-md"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-md"
           >
             Đã hiểu, bắt đầu vẽ
           </button>
