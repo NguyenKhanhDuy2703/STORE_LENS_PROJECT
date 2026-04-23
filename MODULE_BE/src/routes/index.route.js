@@ -26,7 +26,7 @@ const routes = (app) => {
       { user: req.user },
       "get token successfully",
     );
-  });
+  }); 
   app.get(`${version}/healthy`, (req, res) => {
     try {
       success({

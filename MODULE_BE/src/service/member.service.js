@@ -1,40 +1,13 @@
+const mongoose = require('mongoose');
+const User = require('../schemas/user.schema');
 const Session = require('../schemas/session.schema');
-const BusinessEvent = require('../schemas/businessEvent.schema');
+const InteractionLog = require('../schemas/interactionLog.schema');
+const Zone = require('../schemas/zone.schema');
 const { ApiError } = require('../utils/exceptions');
 const httpStatus = require('http-status-codes');
 
-const SEGMENT_RULES = [
-    {
-        tag: "LOYAL_MEMBER",
-        label: "Loyal Member",
-        minVisits: 10,
-        minDwellTime: 45,
-        minSpending: 2000000,
-        priority: 1
-    },
-    {
-        tag: "POTENTIAL_MEMBER",
-        label: "Potential Member",
-        minVisits: 3,
-        minDwellTime: 20,
-        minSpending: 500000,
-        priority: 2
-    },
-    {
-        tag: "OCCASIONAL_VISITOR",
-        label: "Occasional Visitor",
-        minVisits: 0,
-        minDwellTime: 0,
-        minSpending: 0,
-        priority: 3
-    }
-];
-
-const SEGMENT_LABELS = {
-  LOYAL_MEMBER: 'Khách thân thiết',
-  POTENTIAL_MEMBER: 'Khách tiềm năng',
-  OCCASIONAL_VISITOR: 'Khách vãng lai'
-};
+const MONTHLY_TARGET_SESSIONS = 20;
+const DEFAULT_AVATAR = null;
 
 const validateInput = (locationId) => {
   if (!locationId) {
@@ -42,131 +15,241 @@ const validateInput = (locationId) => {
   }
 };
 
-/* Get aggregated session data with zone insights */
-const getRawSessionData = async (locationId) => {
-  return await Session.aggregate([
-    { $match: { location_id: locationId } },
-    { $project: { person_id: 1, session_uuid: 1, total_dwell_time_seconds: 1, entry_time: 1, zone_sequence: 1 } },
-    { $unwind: { path: "$zone_sequence", preserveNullAndEmptyArrays: true } },
-    { $lookup: { from: "zones", localField: "zone_sequence.zone_id", foreignField: "zone_id", as: "zoneInfo" } },
-    { $unwind: { path: "$zoneInfo", preserveNullAndEmptyArrays: true } },
-    {
-      $group: {
-        _id: { person_id: "$person_id", session_uuid: "$session_uuid" },
-        totalDwellSeconds: { $first: "$total_dwell_time_seconds" },
-        entryTime: { $first: "$entry_time" },
-        zoneEntries: { $push: { zoneName: "$zoneInfo.zone_name", durationSeconds: "$zone_sequence.dwell_time_seconds" } }
-      }
-    },
-    {
-      $group: {
-        _id: "$_id.person_id",
-        totalVisits: { $sum: 1 },
-        totalDwellSeconds: { $sum: { $ifNull: ["$totalDwellSeconds", 0] } },
-        lastVisit: { $max: "$entryTime" },
-        zoneEntries: { $push: "$zoneEntries" },
-        recentVisits: { $sum: { $cond: { if: { $gte: ["$entryTime", { $dateSubtract: { startDate: "$$NOW", unit: "day", amount: 30 } }] }, then: 1, else: 0 } } }
-      }
-    },
-    {
-      $project: {
-        totalVisits: 1,
-        totalDwellSeconds: 1,
-        lastVisit: 1,
-        zoneEntries: { $reduce: { input: "$zoneEntries", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } },
-        recentVisits: 1
-      }
-    }
-  ]);
+const getPeriodBoundaries = () => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return { now, monthStart, nextMonthStart, sevenDaysAgo };
 };
 
-/* Calculate total spending per person from BusinessEvents */
-const calculateSpending = async (locationId) => {
-  const spendingData = await BusinessEvent.aggregate([
-    { $match: { location_id: locationId } },
-    { $lookup: { from: "sessions", localField: "event_code", foreignField: "session_uuid", as: "session" } },
-    { $unwind: { path: "$session", preserveNullAndEmptyArrays: false } },
-    { $group: { _id: "$session.person_id", totalSpending: { $sum: "$total_amount" } } }
-  ]);
+const getStatusBadge = (lastVisit, activeSessionCount, now) => {
+  if (activeSessionCount > 0) {
+    return { status: 'ACTIVE', color: 'green', label: 'Active Training' };
+  }
 
-  const spendingMap = {};
-  spendingData.forEach(item => spendingMap[item._id] = item.totalSpending);
-  return spendingMap;
+  if (!lastVisit) {
+    return { status: 'NO_VISITS', color: 'red', label: 'No visits yet' };
+  }
+
+  const diffDays = (now.getTime() - new Date(lastVisit).getTime()) / (1000 * 60 * 60 * 24);
+  if (diffDays <= 7) {
+    return { status: 'REST_LESS_THAN_7_DAYS', color: 'gold', label: 'Resting < 7 days' };
+  }
+
+  return { status: 'REST_MORE_THAN_7_DAYS', color: 'red', label: 'Resting > 7 days' };
 };
 
-/* Process raw data into member objects */
-const processMembers = (rawData, spendingMap) => {
-  const processedMembers = rawData.map(member => {
-    const avgDwellMinutes = (member.totalDwellSeconds / member.totalVisits) / 60;
-    const spending = spendingMap[member._id] || 0;
+const buildSuggestion = (sessionCountThisWeek, activeSessionCount) => {
+  if (activeSessionCount > 0) {
+    return 'Customer is currently training. Continue supporting them.';
+  }
 
-    const zoneTotals = {};
-    (member.zoneEntries || []).forEach(entry => {
-      if (!entry || !entry.zoneName || !entry.durationSeconds) return;
-      zoneTotals[entry.zoneName] = (zoneTotals[entry.zoneName] || 0) + entry.durationSeconds;
-    });
+  if (sessionCountThisWeek === 0) {
+    return 'Customer has not visited this week. Please send a reminder message.';
+  }
 
-    const matchedRule = SEGMENT_RULES.find(rule =>
-      member.totalVisits >= rule.minVisits &&
-      avgDwellMinutes >= rule.minDwellTime &&
-      spending >= rule.minSpending
-    ) || SEGMENT_RULES[SEGMENT_RULES.length - 1];
+  if (sessionCountThisWeek < 2) {
+    return 'Customer visited less than twice this week. Follow up soon.';
+  }
 
-    return {
-      _id: `USR-${member._id.toString().slice(-4)}`,
-      memberCode: member._id.toString().slice(-4),
-      name: null,
-      segmentName: SEGMENT_LABELS[matchedRule.tag] || matchedRule.label,
-      chestShoulder: zoneTotals['Khu tập ngực - vai'] ? Math.round(zoneTotals['Khu tập ngực - vai'] / 60) : 0,
-      back: zoneTotals['Khu tập lưng'] ? Math.round(zoneTotals['Khu tập lưng'] / 60) : 0,
-      legsGlutes: zoneTotals['Khu tập chân - mông'] ? Math.round(zoneTotals['Khu tập chân - mông'] / 60) : 0,
-      visitsPerMonth: member.recentVisits,
-      dwellTime: `${Math.round(avgDwellMinutes)} phút`,
-      note: "Automatically categorized by system rules."
-    };
-  });
-  return processedMembers;
+  return 'Customer visited this week. Maintain the current care plan.';
 };
 
-/* Calculate segment summaries */
-const calculateSegments = (processedMembers, spendingMap) => {
-  return SEGMENT_RULES.map(rule => {
-    const membersForTag = processedMembers.filter(m => m.segmentName === (SEGMENT_LABELS[rule.tag] || rule.label));
-    const totalSpend = membersForTag.reduce((sum, item) => sum + (spendingMap[item._id] || 0), 0);
-    return {
-      _id: rule.tag,
-      segmentName: SEGMENT_LABELS[rule.tag] || rule.label,
-      memberCount: membersForTag.length,
-      avgSpend: membersForTag.length ? Math.round(totalSpend / membersForTag.length) : 0
-    };
-  }).filter(seg => seg.memberCount > 0);
-};
+const buildMemberItem = (user, sessionStats, now) => {
+  const personId = user._id.toString();
+  const code = user.memberCode || personId.slice(-6).toUpperCase();
+  const lastVisit = sessionStats.lastVisit || null;
+  const activeSessionCount = sessionStats.activeSessionCount || 0;
+  const monthlySessions = sessionStats.totalSessionsThisMonth || 0;
+  const status = getStatusBadge(lastVisit, activeSessionCount, now);
 
-const buildOverview = (processedMembers) => {
   return {
-    totalMembers: processedMembers.length,
-    loyalCount: processedMembers.filter(m => m.segmentName === 'Khách thân thiết').length,
-    potentialCount: processedMembers.filter(m => m.segmentName === 'Khách tiềm năng').length,
-    returningRate: processedMembers.length > 0
-      ? ((processedMembers.filter(m => m.visitsPerMonth > 1).length / processedMembers.length) * 100).toFixed(2)
-      : 0
+    customerId: personId,
+    customerCode: code,
+    name: user.name || user.fullName || user.account || user.email || `Customer ${code}`,
+    avatar: user.avatar || DEFAULT_AVATAR,
+    contactPhone: user.phone || null,
+    birthday: user.birthday || null,
+    frequencyText: `${monthlySessions}/${MONTHLY_TARGET_SESSIONS} sessions`,
+    sessionsThisMonth: monthlySessions,
+    status: status.label,
+    statusColor: status.color,
+    lastVisit,
+    quickNote: user.note || user.comment || '',
   };
 };
 
-const getMemberSegmentation = async (locationId) => {
+const buildOverview = async (locationId, customerIds, monthStart, nextMonthStart, sevenDaysAgo, totalCustomers) => {
+  const activeCustomerIds = await Session.distinct('person_id', {
+    location_id: locationId,
+    entry_time: { $gte: sevenDaysAgo },
+    person_id: { $in: customerIds }
+  });
+
+  const absenteeismRate = totalCustomers > 0
+    ? Number((((totalCustomers - activeCustomerIds.length) / totalCustomers) * 100).toFixed(2))
+    : 0;
+
+  return {
+    totalMembers: totalCustomers,
+    newMembersThisMonth: totalCustomers > 0 ? await User.countDocuments({
+      role: 'USER',
+      location_id: locationId,
+      created_at: { $gte: monthStart, $lt: nextMonthStart }
+    }) : 0,
+    absenteeismRate,
+  };
+};
+
+const getMemberDashboard = async (locationId) => {
   validateInput(locationId);
 
-  const [rawData, spendingMap] = await Promise.all([
-    getRawSessionData(locationId),
-    calculateSpending(locationId)
-  ]);
-  const processedMembers = processMembers(rawData, spendingMap);
-  const segments = calculateSegments(processedMembers, spendingMap);
-  const overview = buildOverview(processedMembers);
+  const { now, monthStart, nextMonthStart, sevenDaysAgo } = getPeriodBoundaries();
+  const customers = await User.find({ role: 'USER', location_id: locationId }).lean();
+  console.log('Customers found:', customers.length, customers.map(c => ({ id: c._id, name: c.name })));
+  const customerIds = customers.map(customer => customer._id.toString());
 
-  return { members: processedMembers, overview, segments };
+  const sessionStatsList = await Session.aggregate([
+    { $match: { location_id: locationId, person_id: { $in: customerIds } } },
+    {
+      $group: {
+        _id: '$person_id',
+        totalSessionsThisMonth: {
+          $sum: {
+            $cond: [
+              { $and: [
+                { $gte: ['$entry_time', monthStart] },
+                { $lt: ['$entry_time', nextMonthStart] }
+              ] },
+              1,
+              0
+            ]
+          }
+        },
+        lastVisit: { $max: '$entry_time' },
+        activeSessionCount: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $lte: ['$entry_time', now] },
+                  {
+                    $or: [
+                      { $eq: ['$exit_time', null] },
+                      { $gt: ['$exit_time', now] }
+                    ]
+                  }
+                ]
+              },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  console.log('Session stats:', sessionStatsList);
+
+  const sessionStatsMap = sessionStatsList.reduce((acc, item) => {
+    acc[item._id] = item;
+    return acc;
+  }, {});
+
+  const members = customers.map(user => buildMemberItem(user, sessionStatsMap[user._id.toString()] || {}, now));
+  const overview = await buildOverview(locationId, customerIds, monthStart, nextMonthStart, sevenDaysAgo, customers.length);
+
+  return {
+    overview,
+    members,
+  };
+};
+
+const getMemberDetail = async (locationId, personId) => {
+  validateInput(locationId);
+
+    const userQuery = {
+    role: 'USER',
+    location_id: locationId,
+    $or: [
+      { account: personId },
+      { email: personId }
+    ]
+  };
+
+  if (mongoose.Types.ObjectId.isValid(personId)) {
+    userQuery.$or.unshift({ _id: personId });
+  }
+
+  const user = await User.findOne(userQuery).lean();
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found for the requested location');
+  }
+
+  const { now, sevenDaysAgo } = getPeriodBoundaries();
+  const sessions = await Session.find({
+    location_id: locationId,
+    person_id: personId
+  })
+    .sort({ entry_time: -1 })
+    .limit(5)
+    .lean();
+
+  const sessionUuids = sessions.map(session => session.session_uuid).filter(Boolean);
+  const frequentZones = await InteractionLog.aggregate([
+    { $match: { location_id: locationId, session_uuid: { $in: sessionUuids } } },
+    { $lookup: { from: 'zones', localField: 'zone_id', foreignField: 'zone_id', as: 'zone' } },
+    { $unwind: { path: '$zone', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: { $ifNull: ['$zone.zone_name', '$zone_id'] },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { count: -1 } },
+    { $limit: 3 }
+  ]);
+
+  const recentSessionCount = await Session.countDocuments({
+    location_id: locationId,
+    person_id: personId,
+    entry_time: { $gte: sevenDaysAgo }
+  });
+
+  const activeSessionCount = await Session.countDocuments({
+    location_id: locationId,
+    person_id: personId,
+    entry_time: { $lte: now },
+    $or: [
+      { exit_time: null },
+      { exit_time: { $gt: now } }
+    ]
+  });
+
+  const detail = {
+    customerId: user._id.toString(),
+    customerCode: user._id.toString().slice(-6).toUpperCase(),
+    name: user.name || user.fullName || user.account || user.email,
+    contactPhone: user.phone || null,
+    birthday: user.birthday || null,
+    quickNote: user.note || user.comment || '',
+    recentVisits: sessions.map(session => ({
+      sessionId: session.session_uuid,
+      entryTime: session.entry_time,
+      exitTime: session.exit_time,
+      date: session.entry_time ? session.entry_time.toISOString().split('T')[0] : null
+    })),
+    frequentZones: frequentZones.map(zone => ({ name: zone._id, count: zone.count })),
+    careSuggestion: buildSuggestion(recentSessionCount, activeSessionCount)
+  };
+
+  return detail;
 };
 
 module.exports = {
-  getMemberSegmentation
+  getMemberDashboard,
+  getMemberDetail
 };
