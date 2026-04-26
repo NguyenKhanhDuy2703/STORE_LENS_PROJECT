@@ -21,10 +21,17 @@ const initialState = {
 const memberSlice = createSlice({
     name: "memberSegmentation",
     initialState,
-    reducers: {},
+    reducers: {
+        clearError: (state) => {
+            state.error = null;
+        }
+    },
     extraReducers: (builder) => {
         builder
-            .addCase(fetchGetMembers.pending, (state) => { state.loading = true; })
+            .addCase(fetchGetMembers.pending, (state) => { 
+                state.loading = true; 
+                state.error = null;
+            })
             .addCase(fetchGetMembers.fulfilled, (state, action) => {
                 state.loading = false;
                 // Chỉ ghi đè nếu BE trả về dữ liệu thật (action.payload.data.length > 0)
@@ -34,10 +41,11 @@ const memberSlice = createSlice({
             })
             .addCase(fetchGetMembers.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload;
+                state.error = action.payload|| "Không thể tải danh sách hội viên";
             })
             .addCase(fetchGetSegments.pending, (state) => {
                 state.loading = true;
+                state.error = null;
             })
             .addCase(fetchGetSegments.fulfilled, (state, action) => {
                 state.loading = false;
@@ -47,9 +55,10 @@ const memberSlice = createSlice({
             })
             .addCase(fetchGetSegments.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload;
+                state.error = action.payload || "Không thể tải dữ liệu phân cụm";
             });
     }
 });
 
+export const { clearError } = memberSlice.actions;
 export default memberSlice.reducer;

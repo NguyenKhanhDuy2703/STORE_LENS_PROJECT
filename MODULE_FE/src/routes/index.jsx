@@ -20,6 +20,8 @@ import Downtime from "../features/Downtime/Downtime";
 import ManagermentCameraPage from "../features/ManagermentCamera/ManagermentCameraPage";
 import MemberSegmentation from "../features/MemberSegmentation/MemberSegmentation";
 import Settings from "../features/Settings/Settings";
+import ManagermentMember from "../features/ManagermentMember/ManagermentMember";
+import Map from "../features/Map/Map";
 import CameraZoneManager from "../features/Map/CameraZoneManager";
 import ManagerUser from "../features/ManagerUser/ManagerUser";
 import AssetManagement from "../features/AssetManagement/AssetManagement";
@@ -35,6 +37,27 @@ const AppRouter = () => {
 
   return (
     <Routes>
+      <Route path="/login" element={<Authentication />} />
+
+      <Route path="/" element={<MainLayout />}>
+        <Route index element={<Dashboard />} />
+        {/* Các trang con */}
+        <Route path="quan-ly-khach-hang" element={<MemberSegmentation />} />
+        <Route path="quan-ly-hoi-vien" element={<ManagermentMember />} />
+        <Route path="management/area" element={<AnalyticsArea />} />
+        <Route path="config/rules" element={<AnalyticsRules />} />
+        <Route path="heatmap" element={<Heatmap />} />
+        <Route path="dwell-time" element={<Downtime />} />
+        <Route path="config/camera" element={<ManagermentCameraPage />} />
+        <Route path="config/zone" element={<Map />} />
+        <Route path="quan-ly-nguoi-dung" element={<ManagerUser />} />
+        <Route path="management/asset" element={<AssetManagement />} />
+        {/* Legacy redirects */}
+        <Route path="management/customer" element={<Navigate to="/quan-ly-khach-hang" replace />} />
+        <Route path="customer-management" element={<Navigate to="/quan-ly-khach-hang" replace />} />
+        <Route path="user-management" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
+        <Route path="management/users" element={<Navigate to="/quan-ly-nguoi-dung" replace />} />
+        <Route path="settings" element={<Settings />} />
       <Route 
         path="/login" 
         element={isLogin ? <Navigate to="/dashboard" replace /> : <Authentication />} 
@@ -46,6 +69,7 @@ const AppRouter = () => {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         
+        <Route path="*" element={<NotFound />} />
         <Route path="management">
           <Route path="customers" element={<MemberSegmentation />} />
           <Route path="areas" element={<AnalyticsArea />} />

@@ -7,6 +7,7 @@ const cameraAIRoutes = require("./cameraAI.routes");
 const dashboardRoutes = require("./dashboard.routes");
 const areaManagementRoutes = require("./areaManagement.routes");
 const asynLocationRoutes = require("./asyn.routes");
+const memberRoutes = require("./member.routes");
 const heatmapRoutes = require("./heatmap.routes");
 const zoneRoutes = require("./zone.routes");
 const configRuleRoutes = require("./customerConfigrule.routes");
@@ -24,6 +25,7 @@ const routes = (app) => {
   
   app.use(`${version}/auth`, authRoutes);
   app.use(`${version}/camera`, cameraAIRoutes);
+  app.use(`${version}/member`, memberRoutes);
   app.use(`${version}/dashboard`, dashboardRoutes);
   app.use(`${version}/area-management`, areaManagementRoutes);
   app.use(`${version}/async` , asynLocationRoutes);
