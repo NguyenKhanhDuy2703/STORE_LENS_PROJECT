@@ -1,15 +1,10 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, Moon, Zap, Star } from 'lucide-react';
+import formatDuration from '../../../utils/formatDuration';
 
 // --- 1. MOCK UTILS (Thay thế cho các file utils bên ngoài nếu cần) ---
 const formatCurrency = (val) => 
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-
-const formatSeconds = (sec) => {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-};
 
 // Map Type sang Icon và Style
 const STATUS_CONFIG = {
@@ -134,7 +129,7 @@ const RevenueEfficiencyTable = () => {
                         </div>
                       </div>
                       <span className="text-sm font-medium text-slate-900 min-w-[70px] text-center tabular-nums tracking-tight">
-                        {formatSeconds(row.avgTime)}
+                        {formatDuration(row.avgTime)}
                       </span>
                     </div>
                   </td>

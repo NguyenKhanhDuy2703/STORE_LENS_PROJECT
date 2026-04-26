@@ -6,7 +6,6 @@ const userSchema = new Schema({
     password: { type: String, required: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     role: { type: String, enum: ['ADMIN', 'USER', 'MANAGER','ADMIN_SUPER'], default: 'USER' },
-    // Manager/Staff sẽ bị giới hạn chỉ xem được dữ liệu của location này
     location_id: { type: String ,ref: 'Location' , required: function() { return this.role !== 'ADMIN_SUPER'; } },
 }, { 
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

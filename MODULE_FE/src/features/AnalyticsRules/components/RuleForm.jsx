@@ -1,90 +1,73 @@
 
-import { Users, MapPin, BarChart3, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
+import { CATEGORIES, METRIC_OPTIONS, OPERATOR_OPTIONS , ZONE_OPTIONS} from "../../../constants/ruleConfig";
+import { Plus } from "lucide-react";
 
-const CUSTOM_OPTION_VALUE = '__custom__';
+const RuleForm = ({onAdd,
+  categories = ["retention"],
+  zones = [],
+  showZoneField = true,
+  requireZoneField = false,
+}) => {
 
-const CATEGORIES = {
-  RETENTION: {
-    id: 'retention',
-    label: 'Hội viên',
-    icon: Users,
-    iconClass: 'text-indigo-500',
-    unit: 'ngày',
-    thresholdLabel: 'Số ngày đến tập trong 30 ngày gần nhất',
-    valuePlaceholder: 'Ví dụ: 8',
-    conditionOptions: [
-      'Nhóm đi tập ít',
-      'Nhóm đi tập đều',
-      'Nhóm đi tập thường xuyên'
-    ],
-    actionOptions: [
-      'Nhắc lịch tập qua Zalo',
-      'Gọi điện tư vấn lộ trình tập',
-      'Tặng ưu đãi gói PT cá nhân'
-    ]
-  },
-  ZONE: {
-    id: 'zone',
-    label: 'Khu vực',
-    icon: MapPin,
-    iconClass: 'text-teal-500',
-    unit: 'người',
-    thresholdLabel: 'Số khách trong khu vực',
-    valuePlaceholder: 'Ví dụ: 20',
-    conditionOptions: [
-      'Khu máy chạy bộ',
-      'Khu vực thanh toán',
-      'Khu tạ'
-    ],
-    actionOptions: [
-      'Thông báo quản lý',
-      'Điều phối thêm nhân sự',
-      'Mở thêm quầy phục vụ'
-    ]
-  },
-  REVENUE: {
-    id: 'revenue',
-    label: 'Doanh thu ',
-    icon: BarChart3,
-    iconClass: 'text-amber-500',
-    unit: 'VNĐ',
-    thresholdLabel: 'Giá trị doanh thu ngưỡng',
-    valuePlaceholder: 'Ví dụ: 5000000',
-    conditionOptions: [
-      'Chi tiêu tích lũy',
-      'Giá trị đơn trung bình',
-      'Doanh thu theo tháng'
-    ],
-    actionOptions: [
-      'Phân tệp VIP',
-      'Phân tệp Tiềm năng',
-      'Phân tệp Cần kích hoạt lại'
-    ]
-  }
-};
+  const normalizedCategories = Array.isArray(categories) && categories.length > 0 ? categories : ["retention"];
+  const defaultCategory = normalizedCategories[0];
 
-const RuleForm = ({ onAdd, category }) => {
-  const [formData, setFormData] = useState({ condition: '', conditionCustom: '', value: '', action: '', actionCustom: '' });
-  const config = CATEGORIES[category.toUpperCase()] || CATEGORIES.RETENTION;
-  // If user selects "Thêm mới...", use the free-text input instead of dropdown value.
-  const selectedCondition = formData.condition === CUSTOM_OPTION_VALUE ? formData.conditionCustom.trim() : formData.condition;
-  const selectedAction = formData.action === CUSTOM_OPTION_VALUE ? formData.actionCustom.trim() : formData.action;
+  const [formData, setFormData] = useState({
+    category: defaultCategory,
+    ruleName: "",
+    metricName: "",
+    operator: ">",
+    threshold: "",
+    zoneName: "",
+    action: "",
+  });
+
+  const currentCategory = normalizedCategories.includes(formData.category) ? formData.category : defaultCategory;
+  const config = CATEGORIES[currentCategory.toUpperCase()] || CATEGORIES.RETENTION;
+
+  useEffect(() => {
+    if (!normalizedCategories.includes(formData.category)) {
+      setFormData((prev) => ({ ...prev, category: defaultCategory, action: "" }));
+    }
+  }, [defaultCategory, formData.category, normalizedCategories]);
+
+  const selectedMetric = useMemo(
+    () => METRIC_OPTIONS.find((item) => item.value === formData.metricName),
+    [formData.metricName]
+  );
+
+  const selectedAction = formData.action;
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Keep validation simple: only submit when all business fields are present.
-    if (!selectedCondition || !formData.value || !selectedAction) return;
+    if (!formData.ruleName || !formData.metricName || !formData.operator || !formData.threshold || !selectedAction) return;
+    if (requireZoneField && !formData.zoneName) return;
 
     onAdd({
-      condition: selectedCondition,
-      value: Number(formData.value),
+      ruleName: formData.ruleName.trim(),
+      metricName: formData.metricName,
+      operator: formData.operator,
+      threshold: Number(formData.threshold),
+      zoneName: formData.zoneName || "",
       action: selectedAction,
-      category: category.toLowerCase(),
-      unit: config.unit,
-      isActive: true
+      zoneId: formData.zoneName || "",
+      category: currentCategory.toLowerCase(),
+      unit: selectedMetric?.unit || "",
+
+      isActive: true,
     });
-    setFormData({ condition: '', conditionCustom: '', value: '', action: '', actionCustom: '' });
+    setFormData({
+      category: defaultCategory,
+      ruleName: "",
+      metricName: "",
+      operator: ">",
+      threshold: "",
+      zoneId: "",
+      zoneName: "",
+      action: "",
+    });
   };
 
   return (
@@ -95,75 +78,108 @@ const RuleForm = ({ onAdd, category }) => {
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
+        {normalizedCategories.length > 1 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Nhóm quy tắc</label>
+            <select
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value, action: "" })}
+            >
+              {normalizedCategories.map((categoryKey) => {
+                const categoryConfig = CATEGORIES[categoryKey.toUpperCase()] || CATEGORIES.RETENTION;
+                return (
+                  <option key={categoryKey} value={categoryKey}>
+                    {categoryConfig.label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Điều kiện</label>
-          <select 
+          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Tên quy tắc</label>
+          <input
+            type="text"
             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
-            value={formData.condition}
-            onChange={(e) => setFormData({
-              ...formData,
-              condition: e.target.value,
-              conditionCustom: e.target.value === CUSTOM_OPTION_VALUE ? formData.conditionCustom : ''
-            })}
-          >
-            <option value="">Chọn điều kiện...</option>
-            {config.conditionOptions.map((condition) => (
-              <option key={condition} value={condition}>{condition}</option>
-            ))}
-            <option value={CUSTOM_OPTION_VALUE}>Thêm mới...</option>
-          </select>
-          {formData.condition === CUSTOM_OPTION_VALUE && (
-            <input
-              type="text"
-              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
-              placeholder="Nhập điều kiện mới"
-              value={formData.conditionCustom}
-              onChange={(e) => setFormData({ ...formData, conditionCustom: e.target.value })}
-            />
-          )}
+            placeholder="Ví dụ: Zone dwell time warning"
+            value={formData.ruleName}
+            onChange={(e) => setFormData({ ...formData, ruleName: e.target.value })}
+          />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">{config.thresholdLabel}</label>
-          <div className="relative flex items-center gap-2">
+          <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Metric</label>
+          <select
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
+            value={formData.metricName}
+            onChange={(e) => setFormData({ ...formData, metricName: e.target.value })}
+          >
+            <option value="">Chọn metric...</option>
+            {METRIC_OPTIONS.map((metric) => (
+              <option key={metric.value} value={metric.value}>{metric.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-4">
+            <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Operator</label>
+            <select
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
+              value={formData.operator}
+              onChange={(e) => setFormData({ ...formData, operator: e.target.value })}
+            >
+              {OPERATOR_OPTIONS.map((operator) => (
+                <option key={operator} value={operator}>{operator}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-8">
+            <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Ngưỡng</label>
             <input 
               type="number"
               className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm tabular-nums tracking-tight outline-none focus:ring-1 focus:ring-teal-500"
               placeholder={config.valuePlaceholder}
               min="0"
-              value={formData.value}
-              onChange={(e) => setFormData({...formData, value: e.target.value})}
+              value={formData.threshold}
+              onChange={(e) => setFormData({...formData, threshold: e.target.value})}
             />
-            <span className="text-xs font-medium text-slate-500 whitespace-nowrap tracking-tight">{config.unit}</span>
           </div>
         </div>
+
+        {showZoneField && (
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">
+              Vùng {requireZoneField ? "*" : ""}
+            </label>
+            <select
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
+              value={formData.zoneName}
+              onChange={(e) => setFormData({ ...formData, zoneName: e.target.value })}
+              required={requireZoneField}
+            >
+              <option value="">Chọn vùng...</option>
+              {ZONE_OPTIONS.map((zone) => (
+                <option key={zone.zoneName} value={zone.zoneId}>{zone.zoneName}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="block text-xs font-medium text-slate-400 mb-2 tracking-tight">Hành động</label>
           <select 
             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
             value={formData.action}
-            onChange={(e) => setFormData({
-              ...formData,
-              action: e.target.value,
-              actionCustom: e.target.value === CUSTOM_OPTION_VALUE ? formData.actionCustom : ''
-            })}
+            onChange={(e) => setFormData({ ...formData, action: e.target.value })}
           >
             <option value="">Chọn hành động...</option>
             {config.actionOptions.map((action) => (
               <option key={action} value={action}>{action}</option>
             ))}
-            <option value={CUSTOM_OPTION_VALUE}>Thêm mới...</option>
           </select>
-          {formData.action === CUSTOM_OPTION_VALUE && (
-            <input
-              type="text"
-              className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-teal-500 tracking-tight"
-              placeholder="Nhập hành động mới"
-              value={formData.actionCustom}
-              onChange={(e) => setFormData({ ...formData, actionCustom: e.target.value })}
-            />
-          )}
         </div>
 
         <div className="pt-2">
@@ -174,10 +190,10 @@ const RuleForm = ({ onAdd, category }) => {
       </form>
 
       {/* Rule preview in natural language */}
-      {selectedCondition && (
+      {selectedMetric && formData.threshold && (
         <div className="mt-6 p-3 bg-slate-50 rounded-lg border border-dashed border-slate-200">
           <p className="text-xs text-slate-500 tracking-tight">
-            "Hệ thống sẽ <span className="text-teal-600 font-medium">{selectedAction || '...'}</span> khi <span className="text-indigo-600 font-medium">{selectedCondition}</span> đạt từ <span className="font-medium tabular-nums tracking-tight">{formData.value || '0'} {config.unit}</span> trở lên."
+            "Hệ thống sẽ <span className="text-teal-600 font-medium">{selectedAction || "..."}</span> khi <span className="text-indigo-600 font-medium">{selectedMetric.label}</span> <span className="font-medium">{formData.operator}</span> <span className="font-medium tabular-nums tracking-tight">{formData.threshold || "0"}</span> {selectedMetric.unit}."
           </p>
         </div>
       )}
