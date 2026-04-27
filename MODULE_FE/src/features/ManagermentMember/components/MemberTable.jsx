@@ -1,19 +1,6 @@
-export function MemberTable({ members, onSelectMember, selectedMemberId }) {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active':   return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'inactive': return 'bg-muted text-muted-foreground border-border';
-      default:         return 'bg-muted text-muted-foreground border-border';
-    }
-  };
+import StatusBadge from '../../../components/common/StatusBadge';
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'active':   return 'Đang hoạt động';
-      case 'inactive': return 'Không hoạt động';
-      default:         return 'Không xác định';
-    }
-  };
+export function MemberTable({ members, onSelectMember, selectedMemberId }) {
 
   return (
     <div className="bg-card rounded-2xl shadow-md border border-border overflow-hidden">
@@ -68,9 +55,7 @@ export function MemberTable({ members, onSelectMember, selectedMemberId }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full font-medium border ${getStatusColor(member.status)}`}>
-                    {getStatusText(member.status)}
-                  </span>
+                  <StatusBadge status={member.status} type="member" />
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-muted-foreground">{member.note}</div>

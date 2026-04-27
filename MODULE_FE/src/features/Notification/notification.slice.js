@@ -14,8 +14,12 @@ const notificationSlice = createSlice({
         // Thêm alert realtime từ socket vào đầu danh sách — không cần refetch
         addRealtimeAlert(state, action) {
             const newAlert = action.payload;
-            // Tránh duplicate nếu socket gửi lại
-            const exists = state.data.some((n) => n._id === newAlert._id);
+            if (!newAlert) return;
+            // Tránh duplicate — check cả _id và message+created_at
+            const exists = state.data.some(
+                (n) => n._id === newAlert._id ||
+                       (n.message === newAlert.message && n.created_at === newAlert.created_at)
+            );
             if (!exists) {
                 state.data = [newAlert, ...state.data];
                 state.unreadCount += 1;
@@ -31,8 +35,12 @@ const notificationSlice = createSlice({
             })
             .addCase(fetchNotifications.fulfilled, (state, action) => {
                 state.loading = false;
-                state.data = action.payload;
-                state.unreadCount = action.payload.filter((n) => !n.is_read).length;
+                // Merge: ưu tiên data từ API, giữ lại item từ socket chưa có trong DB
+                const apiData = action.payload ?? [];
+                const apiIds = new Set(apiData.map((n) => n._id).filter(Boolean));
+                const socketOnly = state.data.filter((n) => n._id && !apiIds.has(n._id));
+                state.data = [...socketOnly, ...apiData];
+                state.unreadCount = state.data.filter((n) => !n.is_read).length;
             })
             .addCase(fetchNotifications.rejected, (state, action) => {
                 state.loading = false;

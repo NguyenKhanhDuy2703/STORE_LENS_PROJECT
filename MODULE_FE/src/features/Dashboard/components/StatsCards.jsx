@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { DollarSign, Users, TrendingUp, Loader2, AlertTriangle } from 'lucide-react';
+import { formatCurrency as formatCurrencyVND } from '../../../utils/formatCurrency';
 import { fetchKPIMetrics } from '../dashboard.thunk';
 import { updateRealtimePeople } from '../dashboard.slice';
 import socket from '../../../services/socket';
@@ -63,11 +64,7 @@ const StatsCards = () => {
   const missingFields = ['total_revenue', 'total_customers', 'conversion_rate', 'current_visitors', 'waiting_queue']
     .filter((field) => kpiMetrics?.[field] === undefined || kpiMetrics?.[field] === null);
 
-  const formatCurrency = (value) => {
-    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-    if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-    return value.toString();
-  };
+  const formatCurrency = (value) => formatCurrencyVND(value);
 
   const formatNumber = (value) => value.toLocaleString('vi-VN');
 
@@ -79,22 +76,23 @@ const StatsCards = () => {
 
   const maxZoneCount = topZones[0]?.count ?? 0;
 
+  // MetricCard dùng design tokens thay vì hardcode slate/teal
   const MetricCard = ({ label, value, icon: Icon, iconBg }) => (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 flex justify-between items-start shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-card border border-border rounded-2xl p-6 flex justify-between items-start shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex-1">
-        <p className="text-[10px] font-medium text-slate-400 tracking-tight mb-2">{label}</p>
-        <h2 className="text-4xl font-semibold text-slate-900 tabular-nums tracking-tight">{value}</h2>
+        <p className="text-muted-foreground mb-2">{label}</p>
+        <h2 className="text-4xl font-semibold text-foreground tabular-nums tracking-tight">{value}</h2>
       </div>
-      <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center shrink-0`}>
-        <Icon size={24} className="text-white" />
+      <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center shrink-0 shadow-sm`}>
+        <Icon size={22} className="text-white" />
       </div>
     </div>
   );
 
   if (kpiMetricsLoading && !kpiMetrics) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-center">
-        <Loader2 className="animate-spin text-teal-600" size={28} />
+      <div className="bg-card border border-border rounded-2xl p-6 flex items-center justify-center">
+        <Loader2 className="animate-spin text-accent" size={28} />
       </div>
     );
   }
@@ -105,7 +103,7 @@ const StatsCards = () => {
         <AlertTriangle className="text-rose-600 mt-0.5" size={20} />
         <div>
           <p className="text-sm font-medium text-rose-700">Không tải được KPI từ API</p>
-          <p className="text-sm text-rose-600">{kpiMetricsError}. Bạn có thể fake dữ liệu tạm thời trong component này.</p>
+          <p className="text-sm text-rose-600">{kpiMetricsError}</p>
         </div>
       </div>
     );
@@ -113,65 +111,32 @@ const StatsCards = () => {
 
   return (
     <div className="space-y-3">
-      {missingFields.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm text-amber-800">
-          Một số field KPI chưa có dữ liệu thật: {missingFields.join(', ')}. Tạm dùng dữ liệu fake và cần note lại để chỉnh DB sau.
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Revenue */}
-        <MetricCard
-          label="Tổng Doanh Thu"
-          value={formatCurrency(stats.total_revenue)}
-          icon={DollarSign}
-          iconBg="bg-teal-600"
-        />
-
-        {/* Total Customers */}
-        <MetricCard
-          label="Tổng Khách Hàng"
-          value={formatNumber(stats.total_customers)}
-          icon={Users}
-          iconBg="bg-teal-600"
-        />
-
-        {/* Conversion Rate */}
-        <MetricCard
-          label="Tỷ Lệ Chuyển Đổi"
-          value={`${stats.conversion_rate.toFixed(1)}%`}
-          icon={TrendingUp}
-          iconBg="bg-teal-600"
-        />
+        <MetricCard label="Tổng Doanh Thu"     value={formatCurrency(stats.total_revenue)}          icon={DollarSign} iconBg="bg-gradient-accent" />
+        <MetricCard label="Tổng Khách Hàng"    value={formatNumber(stats.total_customers)}           icon={Users}      iconBg="bg-gradient-accent" />
+        <MetricCard label="Tỷ Lệ Chuyển Đổi"  value={`${stats.conversion_rate.toFixed(1)}%`}        icon={TrendingUp}  iconBg="bg-gradient-accent" />
 
         {/* Live Status Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-
-          {/* Header: Live badge + timestamp */}
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-              <span className="text-teal-600 text-[10px] font-semibold tracking-tight uppercase">Trực tiếp</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-600">Trực tiếp</span>
             </div>
-            <span className="text-[9px] text-slate-400">
+            <span className="text-muted-foreground">
               {lastUpdatedRef.current.toLocaleTimeString('vi-VN')}
             </span>
           </div>
 
-          {/* Tổng khách hiện tại */}
-          <p className="text-[10px] font-medium text-slate-400 tracking-tight mb-0.5">Khách trong cửa hàng</p>
-          <h2 className="text-4xl font-semibold text-slate-900 tabular-nums tracking-tight mb-3">
+          <p className="text-muted-foreground mb-0.5">Khách trong cửa hàng</p>
+          <h2 className="text-4xl font-semibold text-foreground tabular-nums tracking-tight mb-3">
             {stats.current_visitors}
           </h2>
 
-          {/* Zone breakdown */}
-          <div className="border-t border-slate-100 pt-3 flex-1">
+          <div className="border-t border-border pt-3 flex-1">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium text-slate-400 tracking-tight">Theo khu vực</p>
-              <Link
-                to="/management/areas"
-                className="text-[10px] text-teal-600 hover:text-teal-700 font-medium shrink-0"
-              >
+              <p className="text-muted-foreground">Theo khu vực</p>
+              <Link to="/management/areas" className="text-accent hover:text-accent/80 font-medium shrink-0">
                 Xem tất cả →
               </Link>
             </div>
@@ -181,40 +146,32 @@ const StatsCards = () => {
                 {topZones.map(({ zoneId, count }) => {
                   const barWidth = maxZoneCount > 0 ? Math.round((count / maxZoneCount) * 100) : 0;
                   const dotColor = getZoneDotColor(count, maxZoneCount);
-                  const barColor = dotColor === 'bg-rose-500'
-                    ? 'bg-rose-400'
-                    : dotColor === 'bg-amber-400'
-                      ? 'bg-amber-400'
-                      : 'bg-slate-300';
+                  const barColor = dotColor === 'bg-rose-500' ? 'bg-rose-400'
+                    : dotColor === 'bg-amber-400' ? 'bg-amber-400' : 'bg-slate-300';
 
                   return (
                     <div key={zoneId}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
-                          <span className="text-[10px] text-slate-600 truncate">{zoneId}</span>
+                          <span className="text-muted-foreground truncate">{zoneId}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-800 tabular-nums shrink-0 ml-2">
-                          {count}
-                        </span>
+                        <span className="font-semibold text-foreground tabular-nums shrink-0 ml-2">{count}</span>
                       </div>
-                      <div className="h-1 rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                          style={{ width: `${barWidth}%` }}
-                        />
+                      <div className="h-1 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${barWidth}%` }} />
                       </div>
                     </div>
                   );
                 })}
                 {Object.keys(stats.zone_counts).length > 3 && (
-                  <p className="text-[10px] text-slate-400 pt-0.5">
+                  <p className="text-muted-foreground pt-0.5">
                     +{Object.keys(stats.zone_counts).length - 3} khu vực khác
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-400 italic">Chưa có dữ liệu khu vực</p>
+              <p className="text-muted-foreground italic">Chưa có dữ liệu khu vực</p>
             )}
           </div>
         </div>

@@ -1,12 +1,5 @@
 import { AlertTriangle, CheckCircle, Moon, Star, Zap } from 'lucide-react';
-
-const formatCurrencyVND = (value) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-};
+import { formatCurrency as formatCurrencyVND } from '../../../utils/formatCurrency';
 
 const formatSeconds = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
