@@ -5,12 +5,25 @@ class ZoneAnalysis:
     def __init__(self):
         self.status_person_run = {}
 
+    def _to_pixel_points(self, points, frame_w: int, frame_h: int):
+        """Convert points to absolute pixel coords.
+        If all values are in [0, 1] → treat as normalized ratios and scale up.
+        Otherwise → already absolute pixels, cast to int.
+        """
+        if not points:
+            return points
+        flat = [v for pair in points for v in pair]
+        is_normalized = all(0.0 <= v <= 1.0 for v in flat)
+        if is_normalized and frame_w > 0 and frame_h > 0:
+            return [[int(x * frame_w), int(y * frame_h)] for x, y in points]
+        return [[int(x), int(y)] for x, y in points]
+
     def pointpolygon(self, point, polygon_points):
-        pt = (float(point[0]), float(point[1]))    
-        contour = np.array(polygon_points, dtype=np.int32).reshape((-1, 1, 2)) 
+        pt = (float(point[0]), float(point[1]))
+        contour = np.array(polygon_points, dtype=np.int32).reshape((-1, 1, 2))
         return cv2.pointPolygonTest(contour, pt, False) >= 0
 
-    def analyze(self, point, list_zones, track_id=None):
+    def analyze(self, point, list_zones, track_id=None, frame_w: int = 0, frame_h: int = 0):
         hit_zones = []
         events = []
         if not list_zones or track_id is None:
@@ -25,11 +38,12 @@ class ZoneAnalysis:
             else:
                 zone_id = getattr(zone, "zone_id", "unknown")
 
-
-            if points and self.pointpolygon(point, points):
-                current_zone_id = zone_id
-                hit_zones.append(zone_id)
-                break
+            if points:
+                pixel_points = self._to_pixel_points(points, frame_w, frame_h)
+                if self.pointpolygon(point, pixel_points):
+                    current_zone_id = zone_id
+                    hit_zones.append(zone_id)
+                    break
 
         last_zone_id = self.status_person_run.get(track_id, "OUTSIDE")
 
@@ -53,7 +67,7 @@ class ZoneAnalysis:
         if track_id in self.status_person_run:
             del self.status_person_run[track_id]
 
-    def draw_zones(self, frame, list_zones):
+    def draw_zones(self, frame, list_zones, frame_w: int = 0, frame_h: int = 0):
         if list_zones is None or frame is None:
             return frame
 
@@ -63,7 +77,8 @@ class ZoneAnalysis:
             if not points:
                 continue
 
-            contour = np.array(points, dtype=np.int32).reshape((-1, 1, 2))
+            pixel_points = self._to_pixel_points(points, frame_w, frame_h)
+            contour = np.array(pixel_points, dtype=np.int32).reshape((-1, 1, 2))
             cv2.polylines(frame, [contour], isClosed=True, color=(255, 255, 0), thickness=2)
             cv2.putText(
                 frame,

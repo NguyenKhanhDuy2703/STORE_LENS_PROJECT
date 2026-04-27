@@ -14,7 +14,7 @@ const Authentication = () => {
         <div className="mb-6 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium tracking-tight text-slate-600 shadow-sm">
             <span className="h-2 w-2 rounded-full bg-teal-500" />
-            SpaceLens Access
+            SpaceLens Truy cập
           </div>
         </div>
 

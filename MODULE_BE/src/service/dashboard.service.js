@@ -21,6 +21,7 @@ const getKPIMetrics = async ({ locationId, type, startCustom, endCustom } = {}) 
                 conversion_rate: 0,
                 current_visitors: 0,
                 waiting_queue: 0,
+                zone_counts: {},
                 last_updated: new Date()
             };
         }
@@ -31,6 +32,9 @@ const getKPIMetrics = async ({ locationId, type, startCustom, endCustom } = {}) 
             conversion_rate: stats.kpis?.conversion_rate ?? 0,
             current_visitors: stats.realtime?.people_current ?? 0,
             waiting_queue: stats.realtime?.checkout_length ?? 0,
+            zone_counts: stats.realtime?.zone_counts
+                ? Object.fromEntries(stats.realtime.zone_counts)
+                : {},
             last_updated: stats.updated_at,
             location_id: stats.location_id,
             date: stats.date

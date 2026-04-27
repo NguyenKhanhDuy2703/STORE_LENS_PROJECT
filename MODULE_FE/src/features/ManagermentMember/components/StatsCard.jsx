@@ -1,27 +1,12 @@
 export default function StatsCard({ title, value, icon, trend }) {
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+    <div className="bg-card rounded-2xl p-6 shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-gray-600 text-sm">{title}</div>
-        <div className="text-blue-500">{icon}</div>
+        <div className="text-muted-foreground">{title}</div>
+        <div className="text-accent">{icon}</div>
       </div>
-      <div className="text-3xl font-semibold text-gray-900 mb-1">{value}</div>
-      {trend && <div className="text-xs text-gray-500">{trend}</div>}
+      <div className="text-4xl font-semibold text-foreground tabular-nums tracking-tight mb-1">{value}</div>
+      {trend && <div className="text-muted-foreground">{trend}</div>}
     </div>
   );
 }
-
-StatsCard.propTypes = {
-  title: (props, propName) => {
-    if (typeof props[propName] !== 'string') {
-      return new Error(`${propName} must be a string`);
-    }
-  },
-  value: (props, propName) => {
-    if (typeof props[propName] !== 'string' && typeof props[propName] !== 'number') {
-      return new Error(`${propName} must be a string or number`);
-    }
-  },
-  icon: () => null,
-  trend: () => null,
-};

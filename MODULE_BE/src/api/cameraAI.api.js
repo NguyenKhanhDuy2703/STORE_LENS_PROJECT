@@ -4,7 +4,7 @@ const { StatusCodes } = require("http-status-codes");
 const baseUrl = "/api/v1/tracking";
 const turnOnCamera = async ({cameraId, urlRtsp, locationId , listZone}) => {
     try {
-        const response = await axiosInstance.post(`${baseUrl}/process`, {
+        const response = await axiosInstance.post(`${baseUrl}/process/`, {
             camera_id: String(cameraId),
             url_rtsp: String(urlRtsp),
             location_id: String(locationId),
@@ -22,10 +22,14 @@ const turnOnCamera = async ({cameraId, urlRtsp, locationId , listZone}) => {
                 console.error("Tracking API validation detail:", JSON.stringify(responseData.detail, null, 2));
             }
             const apiMessage = responseData.message || responseData.detail || "Failed to turn on camera";
-            error({ message: apiMessage, code: err.response.status || StatusCodes.INTERNAL_SERVER_ERROR });
+            const apiError = new Error(apiMessage);
+            apiError.statusCode = err.response.status || StatusCodes.INTERNAL_SERVER_ERROR;
+            throw apiError;
         } else {
             console.error("Tracking API request failed:", err.message);
-            error({ message: err.message || "Failed to turn on camera", code: StatusCodes.INTERNAL_SERVER_ERROR });
+            const apiError = new Error(err.message || "Failed to turn on camera");
+            apiError.statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
+            throw apiError;
         }
     }
 }
@@ -45,10 +49,14 @@ const turnOffCamera = async (urlRtsp) => {
                 data: responseData,
             });
             const apiMessage = responseData.message || responseData.detail || "Failed to turn off camera";
-            error({ message: apiMessage, code: err.response.status || StatusCodes.INTERNAL_SERVER_ERROR });
+            const apiError = new Error(apiMessage);
+            apiError.statusCode = err.response.status || StatusCodes.INTERNAL_SERVER_ERROR;
+            throw apiError;
         } else {
             console.error("Tracking API request failed:", err.message);
-            error({ message: err.message || "Failed to turn off camera", code: StatusCodes.INTERNAL_SERVER_ERROR });
+            const apiError = new Error(err.message || "Failed to turn off camera");
+            apiError.statusCode = StatusCodes.INTERNAL_SERVER_ERROR;
+            throw apiError;
         }
     }
 }

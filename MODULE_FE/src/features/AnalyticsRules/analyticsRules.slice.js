@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import {
   fetchCustomerRules,
   addAndUpdateCustomerRule
-} from "./analyticsRules.think";
+} from "./analyticsRules.thunk";
 const rulehelper = (rule) => {
     return {
         locationId:  rule.location_id,

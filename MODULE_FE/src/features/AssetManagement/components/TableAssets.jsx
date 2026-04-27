@@ -159,7 +159,7 @@ const TableAssets = ({
               disabled={currentPage === totalPages}
               className="px-3 py-1 text-xs bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              Sau →
+              Tiếp →
             </button>
           </div>
         </div>

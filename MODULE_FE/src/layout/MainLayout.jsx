@@ -89,27 +89,26 @@ export const MainLayout = () => {
                           location.pathname.includes('/config/rules');
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Loading isLoading={shouldShowRouteLoading} text="Đang tải dữ liệu trang..." />
-     
+
       <Header />
 
       <div className="flex flex-col flex-1">
-  
-        <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-2 shadow-sm">
+        {/* Breadcrumb bar */}
+        <div className="bg-white/80 backdrop-blur-md border-b border-border px-8 py-2 shadow-sm">
           <div className="mx-auto w-full max-w-[1760px]">
-             <div className="text-[11px] uppercase tracking-tight text-slate-400 font-medium">
-                <span className="hover:text-teal-600 cursor-pointer transition-colors">SpaceLens</span>
-                <span className="mx-2 text-slate-300">/</span>
-                <span className="text-slate-600">
-                  {location.pathname === '/' || location.pathname.includes('/dashboard') ? 'Tổng quan' : 'Phân tích'}
-                </span>
-             </div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground flex items-center gap-2">
+              <span className="hover:text-accent cursor-pointer transition-colors duration-200">SpaceLens</span>
+              <span className="text-border">/</span>
+              <span className="text-foreground/60">
+                {location.pathname === '/' || location.pathname.includes('/dashboard') ? 'Tổng quan' : 'Phân tích'}
+              </span>
+            </div>
           </div>
         </div>
-        {showGlobalFilter && (
-          <GlobalFilter />
-        )}
+
+        {showGlobalFilter && <GlobalFilter />}
 
         <main className={`mx-auto w-full max-w-[1760px] px-6 pb-12 grow lg:px-10 2xl:px-14 ${!showGlobalFilter ? 'mt-6' : 'mt-4'}`}>
           <Outlet />

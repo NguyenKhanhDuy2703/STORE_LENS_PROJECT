@@ -1,42 +1,215 @@
-/* 1. Import Font từ Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. Font Imports
+   ─────────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Calistoga&family=JetBrains+Mono:wght@400;500&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
 
-/* 2. Import Tailwind CSS */
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. Tailwind CSS
+   ─────────────────────────────────────────────────────────────────────────── */
 @import "tailwindcss";
 
-/* 3. Định nghĩa Theme (Dành cho Tailwind v4) */
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. Design Tokens — Minimalist Modern (Tailwind v4 @theme)
+   Các token này được map vào tailwind.config.js qua CSS var()
+   ─────────────────────────────────────────────────────────────────────────── */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  
-  /* Các màu sắc tùy chỉnh bạn đã nêu trong vite.config trước đó */
-  --color-blue-light: #06B6D4;
-  --color-blue-dark: #3B82F6;
+  /* Font families */
+  --font-sans:    "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", "DM Mono", ui-monospace, monospace;
+  --font-display: "Calistoga", Georgia, serif;
+
+  /* ── Color palette ────────────────────────────────────────────────────── */
+
+  /* Canvas & surfaces */
+  --color-background:        #FAFAFA;
+  --color-foreground:        #0F172A;
+  --color-card:              #FFFFFF;
+  --color-muted:             #F1F5F9;
+  --color-muted-foreground:  #64748B;
+  --color-border:            #E2E8F0;
+  --color-ring:              #0052FF;
+
+  /* Electric Blue accent — signature gradient pair */
+  --color-accent:            #0052FF;
+  --color-accent-secondary:  #4D7CFF;
+  --color-accent-foreground: #FFFFFF;
+
+  /* Legacy tokens (giữ để không vỡ UI cũ) */
+  --color-blue-light:  #06B6D4;
+  --color-blue-dark:   #3B82F6;
   --color-green-light: #E3FCEB;
-  --color-pink-light: #FEEAEA;
+  --color-pink-light:  #FEEAEA;
 }
 
-/* 4. Thiết lập mặc định (Base styles) */
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. Base Styles — Typography System
+   ─────────────────────────────────────────────────────────────────────────── */
 @layer base {
+  /* ── Root ──────────────────────────────────────────────────────────────── */
+  :root {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* ── Body ──────────────────────────────────────────────────────────────── */
   body {
     font-family: var(--font-sans);
-    @apply bg-slate-50 text-slate-900 antialiased;
+    font-size: 0.875rem;        /* 14px — base UI size */
+    font-weight: 400;
+    line-height: 1.625;
+    letter-spacing: 0;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  /* ── Headings — Inter, tight tracking ─────────────────────────────────── */
+  h1 {
     font-family: var(--font-sans);
-    @apply font-medium tracking-tight;
+    font-size: 1.875rem;        /* 30px */
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--color-foreground);
+  }
+
+  h2 {
+    font-family: var(--font-sans);
+    font-size: 1.5rem;          /* 24px */
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--color-foreground);
+  }
+
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;        /* 18px */
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    color: var(--color-foreground);
+  }
+
+  h4 {
+    font-family: var(--font-sans);
+    font-size: 1rem;            /* 16px */
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--color-foreground);
+  }
+
+  h5, h6 {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;        /* 14px */
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    color: var(--color-foreground);
+  }
+
+  /* ── Paragraph ─────────────────────────────────────────────────────────── */
+  p {
+    font-size: 0.875rem;
+    line-height: 1.625;
+    color: var(--color-foreground);
+  }
+
+  /* ── Labels & small text ───────────────────────────────────────────────── */
+  label {
+    font-size: 0.75rem;         /* 12px */
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--color-foreground);
+  }
+
+  small {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--color-muted-foreground);
+  }
+
+  /* ── Links ─────────────────────────────────────────────────────────────── */
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  /* ── Code & pre — monospace ────────────────────────────────────────────── */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;       /* 13px */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* ── Table ─────────────────────────────────────────────────────────────── */
+  th {
+    font-size: 0.6875rem;       /* 11px */
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+
+  td {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-foreground);
+  }
+
+  /* ── Input & select ────────────────────────────────────────────────────── */
+  input, select, textarea, button {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* ── Focus ring ────────────────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. Utility Classes
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Gradient text — dùng cho key words trong headline */
+.gradient-text {
+  background: linear-gradient(to right, var(--color-accent), var(--color-accent-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Gradient underline bar cho hero headline */
+.gradient-underline {
+  position: absolute;
+  bottom: -0.25rem;
+  left: 0;
+  height: 0.75rem;
+  width: 100%;
+  border-radius: 0.125rem;
+  background: linear-gradient(
+    to right,
+    rgba(0, 82, 255, 0.15),
+    rgba(77, 124, 255, 0.1)
+  );
+}
+
+/* Monospace tabular numbers — giữ nguyên từ cũ */
 .font-mono {
   font-family: var(--font-mono) !important;
-  font-variant-numeric: tabular-nums; /* Keeps numbers aligned like a mono font */
+  font-variant-numeric: tabular-nums;
   -moz-font-feature-settings: "tnum";
   -webkit-font-feature-settings: "tnum";
-  font-feature-settings: "tnum"; /* Ensures 1 and 8 have the same width */
+  font-feature-settings: "tnum";
 }
 
 .tabular-nums {
@@ -44,4 +217,43 @@
   -moz-font-feature-settings: "tnum";
   -webkit-font-feature-settings: "tnum";
   font-feature-settings: "tnum";
+}
+
+/* Dot pattern texture — dùng cho inverted sections */
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Accent gradient background shorthand */
+.bg-gradient-accent {
+  background: linear-gradient(to right, var(--color-accent), var(--color-accent-secondary));
+}
+
+.bg-gradient-accent-d {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
+}
+
+/* Gradient border effect — wrap content với class này */
+.gradient-border {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
+  padding: 2px;
+  border-radius: 12px;
+}
+
+.gradient-border > * {
+  border-radius: calc(12px - 2px);
+  background: var(--color-card);
+  height: 100%;
+  width: 100%;
+}
+
+/* Reduced motion — tắt animation cho người dùng có cài đặt này */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow,
+  .animate-float,
+  .animate-float-delay,
+  .animate-pulse-dot {
+    animation: none;
+  }
 }

@@ -57,26 +57,26 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-8 py-6 border-b border-slate-200 bg-slate-50/60">
-        <h3 className="text-xl font-semibold text-slate-900 tracking-tight">Bảng Phân Tích Dwell Time Hợp Nhất</h3>
-        <p className="text-sm text-slate-600 mt-2">Kết hợp traffic, lượt dừng, thời gian dừng trung bình và doanh thu theo từng khu vực.</p>
+    <section className="bg-card rounded-2xl border border-border shadow-md overflow-hidden">
+      <div className="px-8 py-5 border-b border-border">
+        <h3 className="font-semibold text-foreground tracking-tight">Bảng Phân Tích Thời Gian Dừng Hợp Nhất</h3>
+        <p className="text-muted-foreground mt-1">Kết hợp lượt khách, lượt dừng, thời gian dừng trung bình và doanh thu theo từng khu vực.</p>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="border-b border-border">
             <tr>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700">Khu vực</th>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700 text-center">Lượng khách</th>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700 text-center">Lượt dừng</th>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700">TG Dừng TB</th>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700">Doanh thu</th>
-              <th className="px-8 py-5 text-sm font-semibold text-slate-700">Đánh giá</th>
+              <th className="px-8 py-4">Khu vực</th>
+              <th className="px-8 py-4 text-center">Lượng khách</th>
+              <th className="px-8 py-4 text-center">Lượt dừng</th>
+              <th className="px-8 py-4">TG Dừng TB</th>
+              <th className="px-8 py-4">Doanh thu</th>
+              <th className="px-8 py-4">Đánh giá</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {normalizedRows.map((row) => {
               const timePercent = (row.avgTime / maxAvgTime) * 100;
               const salesPercent = (row.totalSales / maxSales) * 100;
@@ -84,48 +84,42 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
               const StatusIcon = status.icon;
 
               return (
-                <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-8 py-6 text-lg font-semibold text-slate-900">{row.categoryName}</td>
+                <tr key={row.id} className="hover:bg-muted/40 transition-colors">
+                  <td className="px-8 py-5 font-semibold text-foreground">{row.categoryName}</td>
 
-                  <td className="px-8 py-6 text-center">
-                    <span className="text-lg font-semibold text-slate-800 tabular-nums">{row.peopleCount.toLocaleString('vi-VN')}</span>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-semibold text-foreground tabular-nums">{row.peopleCount.toLocaleString('vi-VN')}</span>
                   </td>
 
-                  <td className="px-8 py-6 text-center">
-                    <span className="text-lg font-semibold text-slate-800 tabular-nums">{row.stopCount.toLocaleString('vi-VN')}</span>
+                  <td className="px-8 py-5 text-center">
+                    <span className="font-semibold text-foreground tabular-nums">{row.stopCount.toLocaleString('vi-VN')}</span>
                   </td>
 
-                  <td className="px-8 py-6">
+                  <td className="px-8 py-5">
                     <div className="flex items-center gap-4 min-w-60">
-                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-orange-500 rounded-full"
-                          style={{ width: `${timePercent}%` }}
-                        />
+                      <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-orange-500 rounded-full" style={{ width: `${timePercent}%` }} />
                       </div>
-                      <span className="text-base font-semibold text-slate-900 min-w-[88px] tabular-nums">
+                      <span className="font-semibold text-foreground min-w-[88px] tabular-nums">
                         {formatSeconds(row.avgTime)}
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-8 py-6">
+                  <td className="px-8 py-5">
                     <div className="flex items-center gap-4 min-w-[290px]">
-                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-teal-500 rounded-full"
-                          style={{ width: `${salesPercent}%` }}
-                        />
+                      <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${salesPercent}%` }} />
                       </div>
-                      <span className="text-base font-semibold text-slate-900 min-w-40 text-right tabular-nums">
+                      <span className="font-semibold text-foreground min-w-40 text-right tabular-nums">
                         {formatCurrencyVND(row.totalSales)}
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-8 py-6">
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${status.color}`}>
-                      <StatusIcon size={16} strokeWidth={2.2} />
+                  <td className="px-8 py-5">
+                    <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-semibold border ${status.color}`}>
+                      <StatusIcon size={14} strokeWidth={2.2} />
                       {status.label}
                     </span>
                   </td>
@@ -134,8 +128,8 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
             })}
             {normalizedRows.length === 0 && (
               <tr>
-                <td colSpan="6" className="px-8 py-10 text-center text-sm text-slate-500">
-                  Không có dữ liệu dwell time trong khoảng thời gian đã chọn.
+                <td colSpan="6" className="px-8 py-10 text-center text-muted-foreground">
+                  Không có dữ liệu thời gian dừng trong khoảng thời gian đã chọn.
                 </td>
               </tr>
             )}

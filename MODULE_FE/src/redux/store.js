@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-import memberSegmentationReducer from "../features/MemberSegmentation/member.slice";
 import customerRuleReducer from "../features/AnalyticsRules/analyticsRules.slice";
 import heatmapReducer from "../features/Heatmap/heatmap.slice";
 import cameraZonesReducer from "../features/Map/cameraZonesSlice";

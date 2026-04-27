@@ -8,43 +8,50 @@ export const CameraFilters = ({
   storeOptions,
   onCreateCamera,
 }) => {
+  const inputClass =
+    'w-full h-10 rounded-xl border border-border bg-muted/50 px-3.5 text-sm text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 placeholder:text-muted-foreground/50';
+
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-lg shadow-black/10">
+    <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-md">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-700">Tìm kiếm camera</label>
+            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Tìm kiếm camera
+            </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
               placeholder="Tìm kiếm camera..."
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-700">Cửa hàng</label>
+            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Cửa hàng
+            </label>
             <select
               value={selectedStore}
               onChange={(e) => onSelectedStoreChange(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={`${inputClass} appearance-none cursor-pointer`}
             >
               <option value="all">Tất cả cửa hàng</option>
               {storeOptions.map((store) => (
-                <option key={store} value={store}>
-                  {store}
-                </option>
+                <option key={store} value={store}>{store}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-700">Trạng thái</label>
+            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              Trạng thái
+            </label>
             <select
               value={selectedStatus}
               onChange={(e) => onSelectedStatusChange(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={`${inputClass} appearance-none cursor-pointer`}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
@@ -60,7 +67,7 @@ export const CameraFilters = ({
         <button
           type="button"
           onClick={onCreateCamera}
-          className="w-full rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 xl:w-auto"
+          className="group inline-flex items-center gap-2 h-10 rounded-xl bg-gradient-accent px-5 text-sm font-semibold text-white shadow-sm hover:shadow-accent transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] xl:w-auto w-full justify-center"
         >
           + Thêm mới camera
         </button>

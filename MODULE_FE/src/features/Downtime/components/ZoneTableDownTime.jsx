@@ -29,31 +29,31 @@ const TableDownTime = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-md">
+    <div className="bg-card rounded-2xl shadow-md border border-border overflow-hidden transition-all hover:shadow-lg">
       {/* Header */}
-      <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-        <h3 className="font-medium text-sm tracking-tight text-slate-800">
+      <div className="px-6 py-4 border-b border-border">
+        <h3 className="font-semibold tracking-tight text-foreground">
           Chi tiết tương tác theo khu vực
         </h3>
       </div>
 
       {/* Table Area */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="bg-slate-50/50 text-slate-400 font-medium text-[10px] tracking-tight border-b border-slate-100">
+        <table className="w-full text-left border-collapse">
+          <thead className="border-b border-border">
             <tr>
-              <th className="px-6 py-4">Tên khu vực</th>
-              <th className="px-6 py-4">Dwell Time TB</th>
-              <th className="px-6 py-4 text-center">Lượt dừng</th>
-              <th className="px-6 py-4 text-center">Traffic</th>
-              <th className="px-6 py-4 text-right">Biến động (%)</th>
+              <th className="px-6 py-3">Tên khu vực</th>
+              <th className="px-6 py-3">Thời gian dừng TB</th>
+              <th className="px-6 py-3 text-center">Lượt dừng</th>
+              <th className="px-6 py-3 text-center">Lượt khách</th>
+              <th className="px-6 py-3 text-right">Biến động (%)</th>
             </tr>
           </thead>
-          
-          <tbody className="divide-y divide-slate-50">
+
+          <tbody className="divide-y divide-border">
             {list.map((row) => {
               const change = row.percentageChange || 0;
-              let badgeClass = "bg-slate-100 text-slate-500 border-slate-200";
+              let badgeClass = "bg-muted text-muted-foreground border-border";
               let Icon = Minus;
 
               if (change > 0) {
@@ -65,38 +65,36 @@ const TableDownTime = () => {
               }
 
               return (
-                <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
-                  
-                  {/* Tên khu vực */}
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-slate-700 group-hover:text-teal-600 transition-colors tracking-tight">
-                        {row.categoryName}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">Zone ID: #{row.id.toString().padStart(3, '0')}</span>
-                    </div>
+                <tr key={row.id} className="hover:bg-muted/40 transition-colors group">
+
+                  {/* Tên khu vực — chỉ hiện tên, ẩn ID */}
+                  <td className="px-6 py-4">
+                    <span className="font-medium text-foreground group-hover:text-accent transition-colors">
+                      {row.categoryName}
+                    </span>
                   </td>
 
                   {/* Thời gian TB */}
-                  <td className="px-6 py-5 font-medium text-slate-600 tracking-tight">
+                  <td className="px-6 py-4 font-medium text-muted-foreground tabular-nums">
                     {formatDuration(row.avgTime)}
                   </td>
 
                   {/* Số lượt dừng */}
-                  <td className="px-6 py-5 text-center">
-                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium tracking-tight">
+                  <td className="px-6 py-4 text-center">
+                    <span className="px-2.5 py-1 bg-muted text-foreground rounded-lg font-medium tabular-nums">
                       {row.stopCount.toLocaleString()}
                     </span>
                   </td>
 
                   {/* Số người */}
-                  <td className="px-6 py-5 text-center font-medium text-slate-500">
-                    {row.peopleCount.toLocaleString()} <span className="text-[10px] text-slate-400">khách</span>
+                  <td className="px-6 py-4 text-center text-muted-foreground tabular-nums">
+                    {row.peopleCount.toLocaleString()}
+                    <span className="text-xs text-muted-foreground/60 ml-1">khách</span>
                   </td>
 
                   {/* % Thay đổi */}
-                  <td className="px-6 py-5 text-right">
-                    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border tracking-tight ${badgeClass}`}>
+                  <td className="px-6 py-4 text-right">
+                    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium border ${badgeClass}`}>
                       <Icon size={12} strokeWidth={3} />
                       {change > 0 ? '+' : ''}{change}%
                     </div>
