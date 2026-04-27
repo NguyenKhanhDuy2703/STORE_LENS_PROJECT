@@ -2,36 +2,43 @@ import { useMemo } from "react";
 
 const parseCoordinates = (coordinates) => {
   if (!coordinates) return [];
+
   if (typeof coordinates === "string") {
     try {
       const parsed = JSON.parse(coordinates);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parseCoordinates(parsed);
     } catch {
       return [];
     }
   }
-  if (!Array.isArray(coordinates)) return [];
+
+  if (!Array.isArray(coordinates) || coordinates.length === 0) return [];
+
   return coordinates.flatMap((item) => {
     if (Array.isArray(item)) {
-      return item;
+      if (item.length > 0 && Array.isArray(item[0])) return parseCoordinates(item);
+      return item.map((v) => Number(v) || 0);
     }
     if (item && typeof item === "object") {
-      return [item.x ?? 0, item.y ?? 0];
+      return [Number(item.x ?? 0), Number(item.y ?? 0)];
     }
-    return [item];
+    return [Number(item) || 0];
   });
 };
 
 const normalizePoints = (coordinates, imageSize) => {
   const raw = parseCoordinates(coordinates);
   const displayPoints = [];
+  const hasValidSize = imageSize && imageSize.width > 0 && imageSize.height > 0;
 
   for (let i = 0; i < raw.length; i += 2) {
     const rawX = Number(raw[i] ?? 0);
     const rawY = Number(raw[i + 1] ?? 0);
-    const x = imageSize ? rawX * imageSize.width : rawX;
-    const y = imageSize ? rawY * imageSize.height : rawY;
-    displayPoints.push(x, y);
+    displayPoints.push(
+      hasValidSize ? rawX * imageSize.width : rawX,
+      hasValidSize ? rawY * imageSize.height : rawY,
+    );
   }
 
   return displayPoints;
@@ -44,8 +51,10 @@ const absolutePoints = (coordinates) => {
 
 const isNormalized = (coordinates) => {
   const raw = parseCoordinates(coordinates);
-  if (raw.length === 0) return false;
-  return raw.every((value) => typeof value === "number" && value >= 0 && value <= 1);
+  return (
+    raw.length >= 6 &&
+    raw.every((value) => typeof value === "number" && value >= 0 && value <= 1)
+  );
 };
 
 const getCoordinates = (zone) => zone.coordinates ?? zone.polygon_coordinates ?? [];

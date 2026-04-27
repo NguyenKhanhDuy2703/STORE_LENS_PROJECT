@@ -44,27 +44,22 @@ export const deleteCamera = async (cameraCode) => {
     throw error;
   }
 };
-export const turnOnCamera = async (cameraCode) => {
-  try {
-    const response = await axiosInstance.post(
-      `${BASE_URL}/turn-on`,
-      cameraCode,
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+// Bật module phân tích AI cho camera
+export const turnOnCamera = async ({ cameraCode, urlRtsp, locationId }) => {
+  const response = await axiosInstance.post(`${BASE_URL}/turn-on`, {
+    cameraCode,
+    urlRtsp,
+    locationId,
+  });
+  return response.data;
 };
 
+// Tắt module phân tích AI cho camera
 export const turnOffCamera = async (urlRtsp) => {
-  try {
-    const response = await axiosInstance.get(`${BASE_URL}/turn-off`, {
-      params: { urlRtsp },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.get(`${BASE_URL}/turn-off`, {
+    params: { urlRtsp },
+  });
+  return response.data;
 };
 export const getCameraWithZonesByLocationId = async (locationId) => {
   try {

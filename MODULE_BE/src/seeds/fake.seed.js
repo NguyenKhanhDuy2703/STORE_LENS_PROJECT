@@ -13,6 +13,8 @@ const ZoneStats = require('../schemas/zoneStats.schema');
 const Heatmap = require('../schemas/heatmap.schema');
 const FlowPatterns = require('../schemas/flowPatterns.schema');
 const CustomerCareRule = require('../schemas/customerCareRule.schema');
+const Notification = require('../schemas/notification.schema');
+const Customer = require('../schemas/customer.schema');
 const User = require('../schemas/user.schema');
 const { hashPassword } = require('../middlewares/security.middleware');
 const { dateUtil, getCurrnetDateVN } = require('../utils/date.util');
@@ -127,6 +129,8 @@ async function cleanupLocationData(locationId, zoneIds, options = {}) {
 
     if (!keepLocationCamera) {
         deleteTasks.push(Camera.deleteMany({ location_id: locationId }));
+        deleteTasks.push(Notification.deleteMany({ location_id: locationId }));
+        deleteTasks.push(Customer.deleteMany({ locationId: locationId }));
     }
 
     await Promise.all(deleteTasks);
@@ -419,7 +423,9 @@ async function seed() {
             zone_id: ZONE_IDS.checkout,
             category_name: 'Thanh toán',
             function_type: 'Checkout Counter',
-            polygon_coordinates: [[100, 120], [450, 120], [450, 400], [100, 400]]
+            // Normalized [0-1] — tự scale theo frame size thực tế
+            // Vùng trái frame, chiếm ~30% chiều rộng, 25-55% chiều cao
+            polygon_coordinates: [[0.05, 0.25], [0.35, 0.25], [0.35, 0.55], [0.05, 0.55]]
         },
         {
             location_id: locationId,
@@ -428,7 +434,8 @@ async function seed() {
             zone_id: ZONE_IDS.entrance,
             category_name: 'Đồ uống',
             function_type: 'Main Entrance',
-            polygon_coordinates: [[500, 130], [880, 130], [880, 430], [500, 430]]
+            // Vùng giữa-phải frame, chiếm 40-70% chiều rộng, 20-60% chiều cao
+            polygon_coordinates: [[0.40, 0.20], [0.70, 0.20], [0.70, 0.60], [0.40, 0.60]]
         },
         {
             location_id: locationId,
@@ -437,7 +444,8 @@ async function seed() {
             zone_id: ZONE_IDS.sale,
             category_name: 'Bánh kẹo',
             function_type: 'Sale Area',
-            polygon_coordinates: [[50, 80], [600, 80], [600, 360], [50, 360]]
+            // Vùng trái-giữa frame
+            polygon_coordinates: [[0.05, 0.15], [0.55, 0.15], [0.55, 0.65], [0.05, 0.65]]
         },
         {
             location_id: locationId,
@@ -446,7 +454,8 @@ async function seed() {
             zone_id: ZONE_IDS.premium,
             category_name: 'Gia dụng',
             function_type: 'Premium Products',
-            polygon_coordinates: [[100, 100], [800, 100], [800, 500], [100, 500]]
+            // Vùng phải frame
+            polygon_coordinates: [[0.60, 0.15], [0.95, 0.15], [0.95, 0.75], [0.60, 0.75]]
         }
     ]);
 
@@ -840,13 +849,188 @@ async function seed() {
         secondaryLocationId: secondaryLocation.location_code
     });
 
+    // ── Customers — để test ruleCustomerWorker ─────────────────────────────
+    const now = new Date();
+    const customers = await Customer.insertMany([
+        {
+            locationId,
+            code: `KH_${uniqueSuffix}_001`,
+            name: 'Nguyễn Văn An',
+            phone: `090${uniqueSuffix}01`,
+            birthday: new Date('1990-03-15'),
+            joinDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000), // 60 ngày trước
+            status: 'ACTIVE',
+            totalSessions: 8,
+            lastVisit: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000), // 35 ngày trước → trigger retention rule
+            history: [
+                { date: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000), locationId },
+                { date: new Date(now.getTime() - 42 * 24 * 60 * 60 * 1000), locationId },
+            ]
+        },
+        {
+            locationId,
+            code: `KH_${uniqueSuffix}_002`,
+            name: 'Trần Thị Bình',
+            phone: `091${uniqueSuffix}02`,
+            birthday: new Date('1995-07-22'),
+            joinDate: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+            status: 'ACTIVE',
+            totalSessions: 55, // → trigger revenue rule (>= 50)
+            lastVisit: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+            history: Array.from({ length: 12 }, (_, i) => ({
+                date: new Date(now.getTime() - i * 3 * 24 * 60 * 60 * 1000),
+                locationId
+            }))
+        },
+        {
+            locationId,
+            code: `KH_${uniqueSuffix}_003`,
+            name: 'Lê Minh Cường',
+            phone: `092${uniqueSuffix}03`,
+            birthday: new Date('1988-11-10'),
+            joinDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+            status: 'ACTIVE',
+            totalSessions: 3,
+            lastVisit: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+            history: [
+                { date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), locationId },
+                { date: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000), locationId },
+            ]
+        }
+    ]);
+
+    // ── CustomerCareRule — đầy đủ cho cả 3 category ───────────────────────
+    // Xóa rule cũ từ configRules và tạo lại đầy đủ hơn
+    await CustomerCareRule.deleteMany({ location_id: locationId });
+
+    const fullRules = await CustomerCareRule.insertMany([
+        // Retention: khách chưa ghé > 30 ngày
+        {
+            location_id: locationId,
+            category: 'retention',
+            rule_id: `RETENTION_CHURN_${uniqueSuffix}`,
+            rule_name: 'Khách chưa ghé hơn 30 ngày',
+            logic: {
+                metric_name: 'days_since_last_visit',
+                operator: '>',
+                threshold: 30,
+                unit: 'ngày'
+            },
+            action: 'Liên hệ khách hàng để nhắc nhở quay lại',
+            is_active: true
+        },
+        // Revenue: khách VIP (>= 50 lượt)
+        {
+            location_id: locationId,
+            category: 'revenue',
+            rule_id: `REVENUE_VIP_${uniqueSuffix}`,
+            rule_name: 'Khách VIP tần suất cao',
+            logic: {
+                metric_name: 'total_sessions',
+                operator: '>=',
+                threshold: 50,
+                unit: 'lượt'
+            },
+            action: 'Tặng ưu đãi VIP cho khách hàng thân thiết',
+            is_active: true
+        },
+        // Zone: dừng quá lâu tại quầy thanh toán (>= 30 giây)
+        {
+            location_id: locationId,
+            category: 'zone',
+            rule_id: `ZONE_CHECKOUT_DWELL_${uniqueSuffix}`,
+            rule_name: 'Khách dừng quá lâu tại quầy thanh toán',
+            logic: {
+                metric_name: 'dwell_time',
+                operator: '>=',
+                threshold: 30,
+                unit: 'giây'
+            },
+            zone_id: ZONE_IDS.checkout,
+            action: 'Hỗ trợ khách tại quầy thanh toán ngay',
+            is_active: true
+        },
+        // Zone: dừng quá lâu tại khu vực giảm giá (>= 60 giây)
+        {
+            location_id: locationId,
+            category: 'zone',
+            rule_id: `ZONE_SALE_DWELL_${uniqueSuffix}`,
+            rule_name: 'Khách quan tâm khu vực giảm giá',
+            logic: {
+                metric_name: 'dwell_time',
+                operator: '>=',
+                threshold: 60,
+                unit: 'giây'
+            },
+            zone_id: ZONE_IDS.sale,
+            action: 'Tiếp cận tư vấn khách tại khu giảm giá',
+            is_active: true
+        }
+    ]);
+
+    // ── Notifications — NORMAL (retention/revenue) + ALERT (zone) ─────────
+    const notifications = await Notification.insertMany([
+        // NORMAL — retention
+        {
+            location_id: locationId,
+            rule_id: fullRules[0].rule_id,
+            type: 'RETENTION',
+            title: 'NORMAL',
+            message: `Liên hệ khách hàng để nhắc nhở quay lại | ${customers[0].name} (${customers[0].phone})`,
+            is_read: false,
+            created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000) // 2 giờ trước
+        },
+        // NORMAL — revenue
+        {
+            location_id: locationId,
+            rule_id: fullRules[1].rule_id,
+            type: 'REVENUE',
+            title: 'NORMAL',
+            message: `Tặng ưu đãi VIP cho khách hàng thân thiết | ${customers[1].name} (${customers[1].phone})`,
+            is_read: true,
+            created_at: new Date(now.getTime() - 5 * 60 * 60 * 1000) // 5 giờ trước
+        },
+        // ALERT — zone checkout
+        {
+            location_id: locationId,
+            rule_id: fullRules[2].rule_id,
+            type: 'ZONE',
+            title: 'ALERT',
+            message: `Hỗ trợ khách tại quầy thanh toán ngay | Khu vực: ${ZONE_IDS.checkout} | Thời gian dừng: 47.3s`,
+            is_read: false,
+            created_at: new Date(now.getTime() - 15 * 60 * 1000) // 15 phút trước
+        },
+        // ALERT — zone sale
+        {
+            location_id: locationId,
+            rule_id: fullRules[3].rule_id,
+            type: 'ZONE',
+            title: 'ALERT',
+            message: `Tiếp cận tư vấn khách tại khu giảm giá | Khu vực: ${ZONE_IDS.sale} | Thời gian dừng: 72.1s`,
+            is_read: false,
+            created_at: new Date(now.getTime() - 30 * 60 * 1000) // 30 phút trước
+        },
+        // ALERT — đã đọc (để test trạng thái đã đọc)
+        {
+            location_id: locationId,
+            rule_id: fullRules[2].rule_id,
+            type: 'ZONE',
+            title: 'ALERT',
+            message: `Hỗ trợ khách tại quầy thanh toán ngay | Khu vực: ${ZONE_IDS.checkout} | Thời gian dừng: 35.8s`,
+            is_read: true,
+            created_at: new Date(now.getTime() - 2 * 60 * 60 * 1000) // 2 giờ trước
+        }
+    ]);
+
     console.log('[seed] Done');
     console.log(`[seed] location_code=${locationId}`);
     console.log(`[seed] secondary_location_code=${secondaryLocation.location_code}`);
     console.log(`[seed] assets=${assets.length}, cameras=${cameras.length}, zones=${zones.length}`);
     console.log(`[seed] zone-camera mapping: ${zones.map((z) => `${z.zone_id}->${z.camera_id}`).join(', ')}`);
     console.log(`[seed] events=${businessEvents.length}, sessions=3`);
-    console.log(`[seed] configRules=${configRules.length}`);
+    console.log(`[seed] configRules=${fullRules.length} (retention=${fullRules.filter(r=>r.category==='retention').length}, revenue=${fullRules.filter(r=>r.category==='revenue').length}, zone=${fullRules.filter(r=>r.category==='zone').length})`);
+    console.log(`[seed] customers=${customers.length} (churn candidate: ${customers[0].name}, VIP: ${customers[1].name})`);
+    console.log(`[seed] notifications=${notifications.length} (NORMAL=${notifications.filter(n=>n.title==='NORMAL').length}, ALERT=${notifications.filter(n=>n.title==='ALERT').length})`);
     console.log('[seed] hourly traffic test queries:');
     console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&type=today`);
     console.log(`[seed] - /api/area-management/hourly-traffic?locationId=${locationId}&zoneId=${ZONE_IDS.checkout}&type=today`);

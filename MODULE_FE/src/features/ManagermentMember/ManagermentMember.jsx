@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Users, UserPlus, AlertCircle } from 'lucide-react';
 import StatsCard from './components/StatsCard';
 import { MemberTable } from './components/MemberTable';
 import { MemberDetailPanel } from './components/MemberDetailPanel';
@@ -104,32 +105,25 @@ export default function ManagermentMember() {
   const absenteeismRate = totalMembers > 0 ? ((absentMembers / totalMembers) * 100).toFixed(1) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Quản lý hội viên</h1>
-          <p className="text-sm text-gray-500 mt-1">Theo dõi và chăm sóc hội viên hiệu quả</p>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatsCard
             title="Tổng hội viên"
             value={totalMembers}
-            icon={<IconUsers />}
+            icon={<Users size={24} />}
             trend="Khách đang hoạt động"
           />
           <StatsCard
             title="Khách mới trong tháng"
             value={newMembersThisMonth}
-            icon={<IconUserPlus />}
+            icon={<UserPlus size={24} />}
             trend="Tháng 4/2026"
           />
           <StatsCard
             title="Tỷ lệ vắng mặt"
             value={`${absenteeismRate}%`}
-            icon={<IconAlert />}
+            icon={<AlertCircle size={24} />}
             trend="Vắng trên 7 ngày"
           />
         </div>
@@ -150,19 +144,3 @@ export default function ManagermentMember() {
     </div>
   );
 }
-
-const IconUsers = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-  </svg>
-);
-const IconUserPlus = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path  strokeLinecap="round"  strokeLinejoin="round"  strokeWidth={2}  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"  />
-  </svg>
-);
-const IconAlert = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path  strokeLinecap="round"  strokeLinejoin="round"  strokeWidth={2}  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"  />
-  </svg>
-);

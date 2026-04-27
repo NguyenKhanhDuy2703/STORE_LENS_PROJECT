@@ -1,7 +1,10 @@
 const logger = require("./utils/logging");
-const { connectRedis, redisClient } = require("./config/redis");
+const { redisClient } = require("./config/redis");
 const heatmapWorker = require("./workers/heatmap.worker");
 const sessionWorker = require("./workers/session.worker");
+const realtimeStatWorker = require("./workers/realtimeStat.worker");
+const ruleCustomerWorker = require("./workers/ruleCustomer.worker");
+
 const parseRedisPayload = (rawPayload) => {
     if (rawPayload === undefined || rawPayload === null) {
         return undefined;
@@ -31,12 +34,12 @@ const channels_pack = ["heatmap_channel" ,"dwell_time_channel","zone_analysis_ev
 const channels_realtime = ["dwell_time_realtime_channel" , "zone_analysis_channel"]
 
 const worker = {
-    connection: async () => {
+    connection: async (io) => {
         logger.info(`Connected to Redis successfully | port: ${redisClient.options.socket.port} - status: ${redisClient.isOpen ? 'open' : 'closed'}`);
         const rtClient = redisClient.duplicate();
         await rtClient.connect();
-        worker.realtime(rtClient);
-        
+        worker.realtime(rtClient, io);
+
         const packClient = redisClient.duplicate();
         await packClient.connect();
         worker.consummer(packClient);
@@ -72,16 +75,30 @@ const worker = {
                 break;
             case "dwell_time_channel":
                 await sessionWorker.save(payload);
+                // Cũng check zone rules cho event "stop" — người rời khỏi vị trí sau khi dừng
+                if (payload?.data && Array.isArray(payload.data)) {
+                    for (const event of payload.data) {
+                        if (event.event_type === "stop" && event.dwell_time > 0) {
+                            await ruleCustomerWorker.checkZoneRules({
+                                payload: {
+                                    data: { ...event, event_type: "ping" }, // normalize về ping để worker xử lý
+                                    infor: payload.infor,
+                                },
+                                io: null, // pack channel không có io — alert sẽ được lưu DB, FE fetch khi reload
+                            });
+                        }
+                    }
+                }
                 break;
             case "zone_analysis_event_channel":
                 await sessionWorker.updateZoneSequence(payload);
-                // logger.info(`Processing zone analysis event data: ${JSON.stringify(payload)}`);
+                //qogger.info(`Processing zone analysis event data: ${JSON.stringify(payload)}`);
                 break;
              default:
                 // logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
         }
     },
-    rtprocessor: async (data) => {
+    rtprocessor: async (data, io) => {
         const { key, element } = data;
         const payload = parseRedisPayload(element);
         if (!payload || typeof payload !== "object") {
@@ -91,16 +108,18 @@ const worker = {
 
         switch(key){
             case "dwell_time_realtime_channel":
-                // logger.info(`Processing dwell time realtime data: ${JSON.stringify(payload)}`);
+                // Kiểm tra rule zone — tạo ALERT nếu dwell_time vượt ngưỡng
+                logger.info(`[worker] dwell_time_realtime_channel received | payload=${JSON.stringify(payload).slice(0, 200)}`);
+                await ruleCustomerWorker.checkZoneRules({ payload, io });
                 break;
-             case "zone_analysis_channel":
-                // logger.info(`Processing zone analysis realtime data: ${JSON.stringify(payload)}`);
+            case "zone_analysis_channel":
+                await realtimeStatWorker.process({ payload, io });
                 break;
-             default:
-                // logger.warn(`Received message from unknown channel: ${key} with payload: ${JSON.stringify(payload)}`);
+            default:
+                break;
         }
     },
-    realtime: async (rtClient) => {
+    realtime: async (rtClient, io) => {
         while (true){
             try {
                 if (channels_realtime.length === 0) {
@@ -110,7 +129,7 @@ const worker = {
                 if (!result || !result.element) {
                     continue;
                 }
-                await worker.rtprocessor(result)
+                await worker.rtprocessor(result, io);
             } catch (error) {
                 logger.error(`Error consuming realtime channels: ${error.message}`);
             }

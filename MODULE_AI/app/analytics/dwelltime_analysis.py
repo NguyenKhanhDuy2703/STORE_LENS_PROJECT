@@ -75,7 +75,7 @@ class DwellTimeAnalysis:
 
         obj_dwell_time["last_update"] = timestamp
 
-    def alert_stopped_objects(self, track_id):
+    def alert_stopped_objects(self, track_id, zone_id=None):
         obj=self.dwell_times.get(track_id)
         if not obj or obj["dwell_time"] < self.time_threshold:
             return None
@@ -83,6 +83,7 @@ class DwellTimeAnalysis:
             "event_type": "ping",
             "track_id": track_id,
             "dwell_time": round(obj["dwell_time"], 2) if obj else 0.0,
+            "zone_id": zone_id,  # zone hiện tại của track — dùng để match rule
         }
         return ping_payload
     def get_new_events(self):

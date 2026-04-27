@@ -18,6 +18,7 @@ const dashboardSlice = createSlice({
            conversion_rate: 0,
            current_visitors: 0,
            waiting_queue: 0,
+           zone_counts: {},
            last_updated: null,
            location_id: null,
            date: null
@@ -35,7 +36,20 @@ const dashboardSlice = createSlice({
        hourlyCustomerFlowError: null,
        revenueLast7DaysError: null,
     },
-    reducers: {},
+    reducers: {
+        // Được gọi bởi Socket.IO listener để patch realtime mà không refetch toàn bộ KPI
+        updateRealtimePeople(state, action) {
+            const { people_current, zone_counts } = action.payload || {};
+            if (state.kpiMetrics) {
+                if (people_current !== undefined) {
+                    state.kpiMetrics.current_visitors = people_current;
+                }
+                if (zone_counts !== undefined) {
+                    state.kpiMetrics.zone_counts = zone_counts;
+                }
+            }
+        },
+    },
     extraReducers: (builder) => {
         builder
             .addCase(fetchZoneAnalyticsDashboard.pending, (state) => {
@@ -62,6 +76,7 @@ const dashboardSlice = createSlice({
                     conversion_rate: 0,
                     current_visitors: 0,
                     waiting_queue: 0,
+                    zone_counts: {},
                     last_updated: null,
                     location_id: null,
                     date: null
@@ -98,4 +113,5 @@ const dashboardSlice = createSlice({
     },
 });
 
+export const { updateRealtimePeople } = dashboardSlice.actions;
 export default dashboardSlice.reducer;

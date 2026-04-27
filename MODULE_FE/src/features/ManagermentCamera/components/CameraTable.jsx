@@ -11,7 +11,7 @@ export const CameraTable = ({ cameras, onDelete, onEdit, onTogglePower, toggling
               <th className="px-5 py-4">RTSP URL</th>
               <th className="px-5 py-4">Cửa hàng</th>
               <th className="px-5 py-4">Trạng thái</th>
-              <th className="px-5 py-4">Tác vụ</th>
+              <th className="px-5 py-4">Thao tác</th>
             </tr>
           </thead>
           <tbody>

@@ -94,12 +94,12 @@ export const GlobalFilter = () => {
     >
       <div className="mx-auto w-full max-w-[1760px]">
         {/* Filter Bar */}
-        <div className="flex items-center justify-between gap-6 rounded-lg border border-slate-200 bg-white px-6 py-3.5">
+        <div className="flex items-center justify-between gap-6 rounded-xl border border-border bg-card px-6 py-3">
           {/* LEFT: Location and Date Selectors */}
           <div className="flex items-center gap-8">
             {/* Location Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+              <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
                 Cửa hàng
               </label>
               <div className="relative">
@@ -107,68 +107,49 @@ export const GlobalFilter = () => {
                   value={selectedLocationId || 'loc_all'}
                   onChange={handleLocationChange}
                   disabled={isLocationDisabled}
-                  title={
-                    isLocationDisabled
-                      ? 'Bạn chỉ có thể xem dữ liệu của cửa hàng được gán'
-                      : ''
-                  }
-                  className={`appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100 ${
-                    isLocationDisabled
-                      ? 'bg-slate-100 cursor-not-allowed opacity-60'
-                      : ''
+                  title={isLocationDisabled ? 'Bạn chỉ có thể xem dữ liệu của cửa hàng được gán' : ''}
+                  className={`appearance-none bg-card border border-border rounded-lg px-3 py-2 pr-8 text-sm text-foreground outline-none cursor-pointer hover:border-accent/40 transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                    isLocationDisabled ? 'bg-muted cursor-not-allowed opacity-60' : ''
                   }`}
                 >
                   {availableLocations.map((location) => (
-                    <option
-                      key={location.id}
-                      value={location.id}
-                      disabled={location.isDisabled}
-                    >
-                      {location.name}
-                      {location.isDisabled ? ' (không có quyền truy cập)' : ''}
+                    <option key={location.id} value={location.id} disabled={location.isDisabled}>
+                      {location.name}{location.isDisabled ? ' (không có quyền truy cập)' : ''}
                     </option>
                   ))}
                 </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               </div>
             </div>
 
             {/* Date Preset Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+              <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
                 Khoảng thời gian
               </label>
               <div className="relative">
-                <select className="appearance-none bg-white border border-slate-200 rounded-lg px-3 py-2 pr-8 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-300 transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-100">
+                <select className="appearance-none bg-card border border-border rounded-lg px-3 py-2 pr-8 text-sm text-foreground outline-none cursor-pointer hover:border-accent/40 transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15">
                   {datePresetOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
+                    <option key={option.id} value={option.id}>{option.label}</option>
                   ))}
                 </select>
-                <ChevronDown
-                  size={16}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                />
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               </div>
             </div>
           </div>
 
           {/* RIGHT: Action Buttons */}
-          <div className="flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <Download size={16} />
-              Dùng bộ
+          <div className="flex items-center gap-2.5">
+            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200">
+              <Download size={15} />
+              Tải xuống
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              <Upload size={16} />
-              Import POS
+            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200">
+              <Upload size={15} />
+              Nhập POS
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-sm font-medium text-white hover:bg-teal-500 transition-colors">
-              <FileText size={16} />
+            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-gradient-accent text-sm font-semibold text-white shadow-sm hover:shadow-accent transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]">
+              <FileText size={15} />
               Xuất báo cáo
             </button>
           </div>

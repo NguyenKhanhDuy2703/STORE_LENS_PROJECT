@@ -2,9 +2,11 @@ import axiosInstance from "./axios";
 
 const BASE_URL = "/notification";
 
-
-export const getNotifications = async () => {
-    const res = await axiosInstance.get(`${BASE_URL}/list`);
+// locationId bắt buộc để đồng bộ với global filter
+export const getNotifications = async (locationId) => {
+    const res = await axiosInstance.get(`${BASE_URL}/list`, {
+        params: { locationId },
+    });
     return res.data.data;
 };
 

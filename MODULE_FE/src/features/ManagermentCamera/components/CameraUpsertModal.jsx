@@ -162,119 +162,95 @@ export const CameraUpsertModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 px-3 py-2 backdrop-blur-sm">
-      <div className="w-full max-w-[1180px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-black/20">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-700 px-5 py-3 text-white">
-          <h3 className="text-base font-semibold">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-foreground/40 px-3 py-2 backdrop-blur-sm">
+      <div className="w-full max-w-[1180px] overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="border-b border-border bg-gradient-accent-d px-5 py-3.5 text-white">
+          <h3 className="text-sm font-semibold tracking-tight">
             {isEditMode ? 'Cập nhật camera' : 'Thêm mới camera'}
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 px-4 py-3">
+        <form onSubmit={handleSubmit} className="space-y-3 px-5 py-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Mã camera *</span>
-              <input
-                value={formData.cameraCode}
-                onChange={handleChange('cameraCode')}
-                readOnly={isEditMode}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 read-only:cursor-not-allowed read-only:bg-slate-100"
-                placeholder="VD: CAM-001"
-              />
-            </label>
+            {[
+              { label: 'Mã camera *', field: 'cameraCode', readOnly: isEditMode, placeholder: 'VD: CAM-001', span: '' },
+              { label: 'Tên camera *', field: 'cameraName', placeholder: 'Camera cổng chính', span: '' },
+              { label: 'RTSP URL *', field: 'rtspUrl', placeholder: 'rtsp://user:password@host:554/stream', span: 'xl:col-span-2' },
+              { label: 'URL ảnh chụp', field: 'snapshotUrl', placeholder: 'https://camera.local/snapshot.jpg', span: 'xl:col-span-2' },
+            ].map(({ label, field, readOnly, placeholder, span }) => (
+              <label key={field} className={`space-y-1.5 ${span}`}>
+                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+                <input
+                  value={formData[field]}
+                  onChange={handleChange(field)}
+                  readOnly={readOnly}
+                  placeholder={placeholder}
+                  className="w-full h-9 rounded-xl border border-border bg-muted/50 px-3 text-xs text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 read-only:cursor-not-allowed read-only:opacity-60"
+                />
+              </label>
+            ))}
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Tên camera *</span>
-              <input
-                value={formData.cameraName}
-                onChange={handleChange('cameraName')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                placeholder="Camera cong chinh"
-              />
-            </label>
-
-            <label className="space-y-1 xl:col-span-2">
-              <span className="text-xs font-semibold text-slate-700">RTSP URL *</span>
-              <input
-                value={formData.rtspUrl}
-                onChange={handleChange('rtspUrl')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                placeholder="rtsp://user:password@host:554/stream"
-              />
-            </label>
-
-            <label className="space-y-1 xl:col-span-2">
-              <span className="text-xs font-semibold text-slate-700">URL ảnh chụp</span>
-              <input
-                value={formData.snapshotUrl}
-                onChange={handleChange('snapshotUrl')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                placeholder="https://camera.local/snapshot.jpg"
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Trạng thái</span>
+            <label className="space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Trạng thái</span>
               <select
                 value={formData.status}
                 onChange={handleChange('status')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="w-full h-9 rounded-xl border border-border bg-muted/50 px-3 text-xs text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 appearance-none cursor-pointer"
               >
-                {STATUS_OPTIONS.map((statusOption) => (
-                  <option key={statusOption.value} value={statusOption.value}>
-                    {statusOption.label}
-                  </option>
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Ngày lắp đặt</span>
+            <label className="space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Ngày lắp đặt</span>
               <input
                 type="datetime-local"
                 value={formData.installationDate}
                 onChange={handleChange('installationDate')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="w-full h-9 rounded-xl border border-border bg-muted/50 px-3 text-xs text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15"
               />
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Độ phân giải tối đa</span>
+            <label className="space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Độ phân giải tối đa</span>
               <input
                 value={formData.maxResolution}
                 onChange={handleChange('maxResolution')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 placeholder="1920x1080"
+                className="w-full h-9 rounded-xl border border-border bg-muted/50 px-3 text-xs text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15"
               />
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700">Độ phân giải hiện tại</span>
+            <label className="space-y-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Độ phân giải hiện tại</span>
               <input
                 value={formData.currentResolution}
                 onChange={handleChange('currentResolution')}
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                 placeholder="1280x720"
+                className="w-full h-9 rounded-xl border border-border bg-muted/50 px-3 text-xs text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15"
               />
             </label>
           </div>
 
-          {submitError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">{submitError}</div>
-          ) : null}
+          {submitError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs text-rose-600">{submitError}</div>
+          )}
 
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-200 pt-3 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-border pt-3.5 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
               disabled={loading}
+              className="h-9 rounded-xl border border-border px-4 text-xs font-semibold text-foreground transition-all duration-200 hover:bg-muted disabled:opacity-50"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
               disabled={loading}
+              className="h-9 rounded-xl bg-gradient-accent px-4 text-xs font-semibold text-white shadow-sm hover:shadow-accent transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
             >
               {loading ? 'Đang lưu...' : isEditMode ? 'Lưu cập nhật' : 'Tạo mới camera'}
             </button>
