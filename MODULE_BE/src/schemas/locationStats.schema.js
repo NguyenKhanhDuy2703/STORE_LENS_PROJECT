@@ -12,7 +12,8 @@ const kpisSchema = new Schema({
 
 const realtimeSchema = new Schema({
     people_current: { type: Number, default: 0 },
-    checkout_length: { type: Number, default: 0 }
+    checkout_length: { type: Number, default: 0 },
+    zone_counts: { type: Map, of: Number, default: {} }
 }, { _id: false });
 
 const chartDataSchema = new Schema({

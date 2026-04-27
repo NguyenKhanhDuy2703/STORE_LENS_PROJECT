@@ -16,6 +16,42 @@ const isValidContainerSize = (containerSize) => {
   return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
 };
 
+/**
+ * Normalize a single pixel point to a 0–1 ratio using the given reference dimensions.
+ * @param {number} x - Pixel x coordinate
+ * @param {number} y - Pixel y coordinate
+ * @param {number} width - Reference width (original image/frame width)
+ * @param {number} height - Reference height (original image/frame height)
+ * @returns {{ x: number, y: number }} Normalized ratio in [0, 1]
+ */
+const normalizePoint = (x, y, width, height) => {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { x: 0, y: 0 };
+  }
+  return {
+    x: roundNormalized(clamp(Number(x) / width, 0, 1)),
+    y: roundNormalized(clamp(Number(y) / height, 0, 1)),
+  };
+};
+
+/**
+ * Denormalize a single 0–1 ratio point back to pixel coordinates using the given reference dimensions.
+ * @param {number} ratioX - Normalized x ratio in [0, 1]
+ * @param {number} ratioY - Normalized y ratio in [0, 1]
+ * @param {number} width - Reference width (target display/frame width)
+ * @param {number} height - Reference height (target display/frame height)
+ * @returns {{ x: number, y: number }} Pixel coordinates
+ */
+const denormalizePoint = (ratioX, ratioY, width, height) => {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { x: 0, y: 0 };
+  }
+  return {
+    x: roundPixel(clamp(Number(ratioX), 0, 1) * width),
+    y: roundPixel(clamp(Number(ratioY), 0, 1) * height),
+  };
+};
+
 const normalizePoints = (points = [], containerSize) => {
   if (!Array.isArray(points) || !isValidContainerSize(containerSize)) {
     return [];
@@ -95,5 +131,7 @@ const getRelativePointer = (event, containerRef) => {
 export {
   normalizePoints,
   denormalizePoints,
+  normalizePoint,
+  denormalizePoint,
   getRelativePointer,
 };

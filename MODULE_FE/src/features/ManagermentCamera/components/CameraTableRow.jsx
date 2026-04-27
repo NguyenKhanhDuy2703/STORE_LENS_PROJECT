@@ -34,7 +34,7 @@ export const CameraTableRow = ({ camera, onDelete, onEdit, onTogglePower, isTogg
     <tr className="border-b border-slate-200 hover:bg-slate-50/70 transition-colors">
       <td className="px-5 py-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
             <Video size={20} />
           </div>
           <div className="min-w-0">
@@ -56,7 +56,7 @@ export const CameraTableRow = ({ camera, onDelete, onEdit, onTogglePower, isTogg
             title="Sao chép RTSP"
           >
             <Copy size={14} />
-            {copied ? 'Đã copy' : 'Copy'}
+            {copied ? 'Đã sao chép' : 'Sao chép'}
           </button>
         </div>
       </td>
@@ -89,12 +89,16 @@ export const CameraTableRow = ({ camera, onDelete, onEdit, onTogglePower, isTogg
             <Trash2 size={18} />
           </button>
           <button
-            className="rounded-2xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-            title="Bật/Tắt"
+            className={`inline-flex items-center gap-2 rounded-2xl border px-3.5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              isCameraRunning
+                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+                : 'border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100'
+            }`}
+            title={isCameraRunning ? 'Tắt phân tích AI' : 'Bật phân tích AI'}
             onClick={() => onTogglePower?.(camera)}
             disabled={isToggling}
           >
-            <Power className="inline mr-2" size={16} />
+            <Power size={16} />
             {isToggling ? 'Đang xử lý...' : isCameraRunning ? 'Tắt' : 'Bật'}
           </button>
         </div>

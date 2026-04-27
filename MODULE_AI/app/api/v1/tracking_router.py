@@ -12,7 +12,7 @@ router_tracking = APIRouter(
 )
 class ZoneItem(BaseModel):
     zone_id: str
-    points: List[List[int]]  
+    points: List[List[float]]  # accept both normalized float (0-1) and absolute int pixel coords
 
 class TrackingRequest (BaseModel):
     list_zone: List[ZoneItem]

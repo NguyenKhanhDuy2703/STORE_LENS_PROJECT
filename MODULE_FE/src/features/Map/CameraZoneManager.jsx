@@ -41,7 +41,6 @@ const isNormalizedObjects = (points = []) => {
 };
 
 const CameraZoneManager = () => {
-  const [showGuide, setShowGuide] = useState(true);
   const [cameraOptions, setCameraOptions] = useState([]);
   const [selectedCameraCode, setSelectedCameraCode] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -92,56 +91,54 @@ const CameraZoneManager = () => {
   const parseZonePoints = (coordinates) => {
     if (!coordinates) return [];
 
-    const containerSize = {
-      width: stageDisplaySize.width || imageSize.width,
-      height: stageDisplaySize.height || imageSize.height,
-    };
+    const scaleX = (stageDisplaySize.width || imageSize.width) / (imageSize.width || 1);
+    const scaleY = (stageDisplaySize.height || imageSize.height) / (imageSize.height || 1);
 
-    const normalizeToDisplayFlat = (pointObjects) => {
-      if (!Array.isArray(pointObjects) || pointObjects.length === 0) {
-        return [];
-      }
-
-      const displayPoints = isNormalizedObjects(pointObjects)
-        ? denormalizePoints(pointObjects, containerSize)
+    const toDisplayFlat = (pointObjects) => {
+      if (!Array.isArray(pointObjects) || pointObjects.length === 0) return [];
+      const pts = isNormalizedObjects(pointObjects)
+        ? denormalizePoints(pointObjects, imageSize).map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }))
         : pointObjects;
-
-      return pointsObjectsToFlat(displayPoints);
+      return pointsObjectsToFlat(pts);
     };
 
     if (typeof coordinates === "string") {
       try {
         const parsed = JSON.parse(coordinates);
-        if (Array.isArray(parsed)) {
-          const pointObjects = Array.isArray(parsed[0])
-            ? parsed.map((point) => ({ x: Number(point[0] ?? 0), y: Number(point[1] ?? 0) }))
-            : pointsFlatToObjects(parsed);
-          return normalizeToDisplayFlat(pointObjects);
-        }
-        return [];
+        if (!Array.isArray(parsed)) return [];
+        const pointObjects = Array.isArray(parsed[0])
+          ? parsed.map((p) => ({ x: Number(p[0] ?? 0), y: Number(p[1] ?? 0) }))
+          : pointsFlatToObjects(parsed);
+        return toDisplayFlat(pointObjects);
       } catch {
         return [];
       }
     }
+
     if (Array.isArray(coordinates)) {
       if (coordinates.length > 0 && typeof coordinates[0] === "object") {
-        return normalizeToDisplayFlat(
-          coordinates.map((point) => ({ x: Number(point.x ?? 0), y: Number(point.y ?? 0) })),
+        const pointObjects = coordinates.map((p) =>
+          Array.isArray(p)
+            ? { x: Number(p[0] ?? 0), y: Number(p[1] ?? 0) }
+            : { x: Number(p.x ?? 0), y: Number(p.y ?? 0) }
         );
+        return toDisplayFlat(pointObjects);
       }
-      return normalizeToDisplayFlat(pointsFlatToObjects(coordinates));
+      return toDisplayFlat(pointsFlatToObjects(coordinates));
     }
+
     return [];
   };
 
   const getNormalizedFlatPoints = () => {
-    const containerSize = {
-      width: stageDisplaySize.width || imageSize.width,
-      height: stageDisplaySize.height || imageSize.height,
-    };
-
-    const normalized = normalizePoints(pointsFlatToObjects(currentPoints), containerSize);
-    return pointsObjectsToFlat(normalized);
+    const scaleX = imageSize.width / (stageDisplaySize.width || imageSize.width);
+    const scaleY = imageSize.height / (stageDisplaySize.height || imageSize.height);
+    const scaledPoints = pointsFlatToObjects(currentPoints).map((p) => ({
+      x: p.x * scaleX,
+      y: p.y * scaleY,
+    }));
+    const normalized = normalizePoints(scaledPoints, imageSize);
+    return normalized.map((p) => [p.x, p.y]);
   };
 
   const handleCancelDrawing = () => {
@@ -195,7 +192,6 @@ const CameraZoneManager = () => {
         polygon_coordinates: getNormalizedFlatPoints(),
       };
       dispatch(editZone({ cameraCode: selectedCameraCode, zoneData: updatedZone }));
-      console.log("Zone updated to backend and redux:", updatedZone);
       handleCancelDrawing();
     } catch (error) {
       console.error("Failed to update zone:", error);
@@ -358,7 +354,7 @@ const CameraZoneManager = () => {
         <div className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-4">
-              <div className="text-sm uppercase tracking-[0.2em] text-gray-500 font-semibold">Sidebar Camera</div>
+              <div className="text-sm uppercase tracking-[0.2em] text-gray-500 font-semibold">Thanh bên Camera</div>
               <div className="mt-1 text-lg font-semibold text-gray-900">Danh sách camera</div>
             </div>
             <div className="space-y-2 max-h-[38vh] overflow-y-auto pr-1 lg:max-h-[74vh]">
@@ -399,7 +395,7 @@ const CameraZoneManager = () => {
               </div>
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <button
-                  onClick={() => setShowGuide(true)}
+                  onClick={() => {}}
                   className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
                 >
                   <HelpCircle size={16} /> Hướng dẫn
@@ -461,7 +457,7 @@ const CameraZoneManager = () => {
                       <div className="mb-4 inline-flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 text-slate-400">
                         <Camera size={40} />
                       </div>
-                      <div className="font-medium uppercase tracking-wider">Map Zone Canvas</div>
+                      <div className="font-medium uppercase tracking-wider">Bản đồ vùng Camera</div>
                       <div className="mt-2 text-xs">Vui lòng thêm ảnh nền để bắt đầu vẽ</div>
                     </div>
                   )}

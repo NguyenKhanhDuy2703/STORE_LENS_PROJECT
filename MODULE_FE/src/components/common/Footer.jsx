@@ -6,34 +6,33 @@ import { Link } from 'react-router-dom';
  */
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
-  return <footer className="border-t border-slate-200 bg-white mt-auto">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+  return <footer className="border-t border-border bg-card mt-auto">
+      <div className="container mx-auto px-4 py-5">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Copyright */}
-          <div className="text-slate-500 text-sm">
-            © 2026 <span className="font-semibold" style={{
-            color: '#1E40AF'
-          }}>SpaceLens</span> - C2SE.11 Team
+          <div className="text-muted-foreground text-sm">
+            © 2026 <span className="font-semibold gradient-text">SpaceLens</span> — C2SE.11 Team
           </div>
 
           {/* System Version */}
-          <div className="flex items-center space-x-2">
-            <div className="px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
-              <span className="text-blue-700 text-xs font-medium">
-                Vận hành bởi Edge AI &amp; OpenVINO | Phiên bản 2.0.1
+          <div className="flex items-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-accent/20 bg-accent/5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-dot" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+                Edge AI &amp; OpenVINO · v2.0.1
               </span>
             </div>
           </div>
 
           {/* Quick Links */}
-          <div className="flex items-center space-x-4 text-sm">
-            <Link to="/privacy" className="text-slate-500 hover:text-blue-700 transition-colors">
+          <div className="flex items-center gap-4 text-sm">
+            <a href="/privacy" className="text-muted-foreground hover:text-accent transition-colors duration-200">
               Chính sách bảo mật
-            </Link>
-            <span className="text-slate-300">•</span>
-            <Link to="/docs" className="text-slate-500 hover:text-blue-700 transition-colors">
+            </a>
+            <span className="text-border">•</span>
+            <a href="/docs" className="text-muted-foreground hover:text-accent transition-colors duration-200">
               Tài liệu kỹ thuật
-            </Link>
+            </a>
           </div>
         </div>
       </div>

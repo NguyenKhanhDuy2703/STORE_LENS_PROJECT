@@ -1,5 +1,6 @@
 import { Edit2, Package, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import Pagination from '../../../components/common/Pagination';
 
 const TableAssets = ({
   pagedProducts,
@@ -124,44 +125,14 @@ const TableAssets = ({
       </div>
 
       {totalItems > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 bg-slate-50">
-          <div className="text-xs text-slate-600 tabular-nums tracking-tight">
-            Hiển thị{' '}
-            <span className="font-medium text-teal-600">{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalItems)}</span>
-            {' / '}
-            <span className="font-medium">{totalItems}</span>
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => onGoToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-xs bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              ← Trước
-            </button>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <button
-                key={pageNum}
-                onClick={() => onGoToPage(pageNum)}
-                className={`px-3 py-1 text-xs rounded-lg transition-colors font-medium ${
-                  currentPage === pageNum
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {pageNum}
-              </button>
-            ))}
-
-            <button
-              onClick={() => onGoToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-xs bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              Sau →
-            </button>
-          </div>
+        <div className="px-4 py-3 border-t border-border bg-muted/30">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onGoToPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+          />
         </div>
       )}
     </div>

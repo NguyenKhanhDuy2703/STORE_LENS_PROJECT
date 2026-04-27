@@ -30,5 +30,9 @@ router.put('/update',
 router.delete('/delete',
     // authenticationToken,
     memberController.deleteMember);
+const { authenticationToken } = require('../middlewares/auth.middleware');
+
+// API lấy phân tích hội viên
+router.get('/insights', authenticationToken, memberController.getInsights);
 
 module.exports = router;

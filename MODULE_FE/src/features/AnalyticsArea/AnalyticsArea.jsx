@@ -19,6 +19,8 @@ import {
   fetchAreaKPIs,
   fetchCameraAndZoneInfo,
 } from "./areaAnalysis.thunk";
+import socket from "../../services/socket";
+import { updateRealtimePeople } from "../Dashboard/dashboard.slice";
 
 const AnalyticsArea = () => {
   const dispatch = useDispatch();
@@ -29,6 +31,29 @@ const AnalyticsArea = () => {
   const { performanceDetails, hourlyTraffic, areaKPIs, cameras, zones, loading, errors } =
     useSelector((state) => state.areaAnalysis);
   const { locationId } = useSelector((state) => state.filter);
+  // Lấy current_visitors từ dashboard slice — được socket cập nhật realtime
+  const realtimeCurrentVisitors = useSelector((state) => state.dashboard?.kpiMetrics?.current_visitors ?? null);
+
+  // Socket.IO — join room và lắng nghe realtime_people_count
+  useEffect(() => {
+    if (!locationId) return;
+
+    if (!socket.connected) socket.connect();
+    socket.emit("join_location", locationId);
+
+    const handleRealtimeUpdate = (data) => {
+      dispatch(updateRealtimePeople({
+        people_current: data.people_current,
+        zone_counts: data.zone_counts,
+      }));
+    };
+
+    socket.on("realtime_people_count", handleRealtimeUpdate);
+
+    return () => {
+      socket.off("realtime_people_count", handleRealtimeUpdate);
+    };
+  }, [dispatch, locationId]);
   
   useEffect(() => {
     if (!locationId) return;
@@ -111,13 +136,13 @@ const AnalyticsArea = () => {
     
     return {
       totalTraffic: (areaKPIs.total_visitors || 0).toLocaleString("vi-VN"),
-      currentCustomers: (areaKPIs.current_people || 0).toLocaleString("vi-VN"),
+      currentCustomers: (realtimeCurrentVisitors ?? areaKPIs.current_people ?? 0).toLocaleString("vi-VN"),
       avgDwellTime: `${Math.floor((areaKPIs.avg_dwell_time || 0) / 60)}:${String(
         Math.floor((areaKPIs.avg_dwell_time || 0) % 60),
       ).padStart(2, "0")}m`,
       performanceRate: `${(areaKPIs.conversion_rate || 0).toFixed(1)}%`,
     };
-  }, [areaKPIs]);
+  }, [areaKPIs, realtimeCurrentVisitors]);
 
   // Calculate max dwell time for progress bar scaling
   const maxDwellTime = useMemo(() => {

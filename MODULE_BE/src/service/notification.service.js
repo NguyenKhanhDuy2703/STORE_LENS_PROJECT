@@ -1,11 +1,12 @@
 const NotificationSchema = require('../schemas/notification.schema');
 const { dateUtil } = require("../utils/date.util");
 
-const getAllNotifications = async () => {
+const getAllNotifications = async ({ location_id }) => {
     try {
         const { startDate, endDate } = dateUtil({ type: "last7days" });
 
         return await NotificationSchema.find({
+            location_id,
             created_at: {
                 $gte: startDate,
                 $lte: endDate

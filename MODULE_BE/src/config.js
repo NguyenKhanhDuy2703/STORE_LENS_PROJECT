@@ -7,9 +7,10 @@ class setting {
       port: process.env.PORT || 5000,
       env: process.env.NODE_ENV || "development",
       corsOption: {
-        origin: ["http://localhost:5173", " http://172.20.176.1:5173"],
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+        origin: ["http://localhost:5173", "http://172.20.176.1:5173"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
       },
     };
     this.database = {
@@ -37,6 +38,13 @@ class setting {
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
+    },
+    this.socketIo = {
+      cors: {
+        origin: ["http://localhost:5173", "http://172.20.176.1:5173"],
+        methods: ["GET", "POST"],
+        credentials: true,
+      }
     }
   
     setting.instance = this;
@@ -49,6 +57,7 @@ class setting {
       api : this.api,
       apiAI : this.apiAI,
       cloudinary: this.cloudinary,
+      socketIo : this.socketIo
     };
   }
 }

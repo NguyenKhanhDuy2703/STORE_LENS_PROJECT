@@ -24,6 +24,7 @@ class StreamProcessor:
         self.zone_analyzer = ZoneAnalysis()
         self.pack_communication = PackCommunication()
         self.old_current_frame_counts = {}
+        self.old_total_in_store = -1
         self.re_id = Re_ID()
     def _read_frames(self, url_rtsp , stop_event : threading.Event):
 
@@ -83,8 +84,8 @@ class StreamProcessor:
                raise ValueError(f"Failed to open stream: {url_rtsp}")
             
             ret_first, frame_first = cap.read()
-            
-            self.heatmap_analysis = heatmap_analysis.HeatmapAnalysis(frame_first.shape[1], frame_first.shape[0])
+            frame_h, frame_w = frame_first.shape[0], frame_first.shape[1]
+            self.heatmap_analysis = heatmap_analysis.HeatmapAnalysis(frame_w, frame_h)
 
             windown_name = f"AI Tracking - {url_rtsp}"
             read_thread = threading.Thread(target=self._read_frames, args=(url_rtsp,stop_event))
@@ -135,7 +136,13 @@ class StreamProcessor:
                         
                         center = (x1 + x2) // 2
                         foot = y2
-                        hit_zone , zone_event = self.zone_analyzer.analyze(point=(center, foot), list_zones = list_zone , track_id = final_track_id)
+                        hit_zone , zone_event = self.zone_analyzer.analyze(
+                            point=(center, foot),
+                            list_zones=list_zone,
+                            track_id=final_track_id,
+                            frame_w=frame_w,
+                            frame_h=frame_h,
+                        )
                         for zone in current_frame_counts.keys():
                             if zone in hit_zone:
                                 current_frame_counts[zone] += 1
@@ -154,7 +161,10 @@ class StreamProcessor:
                                     ]
                                 )
                         self.heatmap_analysis.update_grid_cell(center, foot)
-                        real_time_dwell_events = self.dwell_time_analyzer.alert_stopped_objects(final_track_id)
+                        real_time_dwell_events = self.dwell_time_analyzer.alert_stopped_objects(
+                            final_track_id,
+                            zone_id=hit_zone[0] if hit_zone else None
+                        )
                         if real_time_dwell_events:
                             self.pack_communication.dispatch_payload(
                                 [
@@ -171,13 +181,24 @@ class StreamProcessor:
                 frame = self.draw_tracks(frame, tracks)
                 heatmap_visualizer_instance = heatmap_visualizer.HeatmapVisualizer().draw_grid(frame.copy(), self.heatmap_analysis.grid_size)
                 heatmap_overlay = heatmap_visualizer.HeatmapVisualizer().apply_heatmap_overlay(heatmap_visualizer_instance, self.heatmap_analysis.heatmap_matrix, self.heatmap_analysis.grid_size)
-                if self.old_current_frame_counts != current_frame_counts:
+                # Tổng số người thực sự trong cửa hàng = tất cả track confirmed
+                # (bao gồm cả người không đứng trong zone nào)
+                total_in_store = sum(1 for t in tracks if t.is_confirmed())
+
+                zone_payload = {
+                    "zone_counts": current_frame_counts,
+                    "total_in_store": total_in_store,
+                }
+
+                # Publish khi zone_counts HOẶC total_in_store thay đổi
+                if self.old_current_frame_counts != current_frame_counts or self.old_total_in_store != total_in_store:
                     self.old_current_frame_counts = current_frame_counts
+                    self.old_total_in_store = total_in_store
                     self.pack_communication.dispatch_payload(
                         [
                             {
                                 "type":"zone_analysis",
-                                "data": current_frame_counts,
+                                "data": zone_payload,
                                 "info":{
                                     "camera_id": self.camera_id,
                                     "location_id": location_id
@@ -215,7 +236,7 @@ class StreamProcessor:
                         }]
                 )
                 if list_zone is not None:
-                    heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone)
+                    heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone, frame_w, frame_h)
                 cv2.imshow(windown_name, heatmap_overlay)
                 
                 if cv2.waitKey(25) & 0xFF == ord('q'):

@@ -2,31 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import RuleForm from "./components/RuleForm";
 import RuleTable from "./components/RuleTable";
-import { fetchCustomerRules  ,addAndUpdateCustomerRule , removeCustomerRule} from "./analyticsRules.think";
+import { fetchCustomerRules  ,addAndUpdateCustomerRule , removeCustomerRule} from "./analyticsRules.thunk";
 import { useDispatch , useSelector } from "react-redux";
 import {addAndUpdateRule , deleteRule , toggleRule} from "./analyticsRules.slice"
 import Swal from 'sweetalert2';
-const selectZonesFromStore = (state) => {
-  const candidates = [
-    state?.zones,
-    state?.zone,
-    state?.map,
-    state?.mapZones,
-    state?.area,
-  ];
-
-  for (const candidate of candidates) {
-    if (!candidate) continue;
-    if (Array.isArray(candidate)) return candidate;
-    if (Array.isArray(candidate.zones)) return candidate.zones;
-    if (Array.isArray(candidate.data)) return candidate.data;
-  }
-
-  return [];
-};
+import { getCameraAndZoneInfo } from "../../services/camera.api";
 const AnalyticsRules = () => {
   const [activeTab, setActiveTab] = useState("business");
   const [customerCareRules, setCustomerCareRules] = useState([]);
+  const [editingRule, setEditingRule] = useState(null); // rule đang edit
+  const [zones, setZones] = useState([]);               // zones từ DB theo locationId
   const notifySuccess = (title, text) =>
     Swal.fire({
       icon: "success",
@@ -47,7 +32,14 @@ const AnalyticsRules = () => {
   const { locationId, userLocationId } = useSelector((state) => state.filter);
   const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
   const {rules} = useSelector((state) => state.customerRules);
-  const zones = useSelector(selectZonesFromStore);
+
+  // Fetch zones theo locationId để hiển thị trong RuleForm tab Zone
+  useEffect(() => {
+    if (!effectiveLocationId) return;
+    getCameraAndZoneInfo(effectiveLocationId)
+      .then((data) => setZones(Array.isArray(data) ? data : []))
+      .catch(() => setZones([]));
+  }, [effectiveLocationId]);
   useEffect(() => {
       if (!effectiveLocationId) return;
 
@@ -78,7 +70,7 @@ const AnalyticsRules = () => {
       ruleName: newRule.ruleName,
       zoneId: newRule.zoneId || "",
       logic: {
-        metricName: newRule.metricName,
+        metric_name: newRule.metricName,  // snake_case để khớp với schema DB
         threshold: newRule.threshold,
         operator: newRule.operator,
         unit: newRule.unit,
@@ -125,6 +117,38 @@ const AnalyticsRules = () => {
 
   const handleToggleRule = (ruleId) => {
     dispatch(toggleRule(ruleId));
+  };
+
+  // Bắt đầu edit — set rule vào state, form sẽ pre-fill
+  const handleEditRule = (rule) => {
+    setEditingRule(rule);
+  };
+
+  // Hủy edit — reset form về Create mode
+  const handleCancelEdit = () => {
+    setEditingRule(null);
+  };
+
+  // Submit edit — gọi addAndUpdateCustomerRule với ruleId cũ (upsert)
+  const handleUpdateRule = async (updatedRule) => {
+    if (!effectiveLocationId) return;
+    const saveRule = {
+      locationId: effectiveLocationId,
+      category:   updatedRule.category,
+      ruleId:     updatedRule.ruleId,
+      ruleName:   updatedRule.ruleName,
+      zoneId:     updatedRule.zoneId || "",
+      logic: {
+        metric_name: updatedRule.metricName,  // snake_case để khớp với schema DB
+        threshold:   updatedRule.threshold,
+        operator:    updatedRule.operator,
+        unit:        updatedRule.unit,
+      },
+      action:   updatedRule.action,
+      isActive: updatedRule.isActive ?? true,
+    };
+    dispatch(addAndUpdateRule(saveRule));
+    setEditingRule(null);
   };
 
   const activeRuleCount = customerCareRules.filter((rule) => rule.isActive).length;
@@ -203,7 +227,7 @@ const AnalyticsRules = () => {
                 : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            Doanh thu & Khach hang
+            Doanh thu & Khách hàng
           </button>
           <button
             type="button"
@@ -231,6 +255,9 @@ const AnalyticsRules = () => {
                 <RuleForm
                   categories={["retention"]}
                   onAdd={addRule}
+                  onUpdate={handleUpdateRule}
+                  onCancelEdit={handleCancelEdit}
+                  editingRule={editingRule?.category === "retention" ? editingRule : null}
                   zones={zones}
                   showZoneField={false}
                   requireZoneField={false}
@@ -241,6 +268,7 @@ const AnalyticsRules = () => {
                   rules={retentionRules}
                   onDelete={handleDeleteRules}
                   onToggle={handleToggleRule}
+                  onEdit={handleEditRule}
                 />
               </div>
             </div>
@@ -250,6 +278,9 @@ const AnalyticsRules = () => {
                 <RuleForm
                   categories={["revenue"]}
                   onAdd={addRule}
+                  onUpdate={handleUpdateRule}
+                  onCancelEdit={handleCancelEdit}
+                  editingRule={editingRule?.category === "revenue" ? editingRule : null}
                   zones={zones}
                   showZoneField={false}
                   requireZoneField={false}
@@ -261,6 +292,7 @@ const AnalyticsRules = () => {
                   rules={revenueRules}
                   onDelete={handleDeleteRules}
                   onToggle={handleToggleRule}
+                  onEdit={handleEditRule}
                 />
               </div>
             </div>
@@ -271,6 +303,9 @@ const AnalyticsRules = () => {
               <RuleForm
                 categories={currentTab.categories}
                 onAdd={addRule}
+                onUpdate={handleUpdateRule}
+                onCancelEdit={handleCancelEdit}
+                editingRule={editingRule?.category === "zone" ? editingRule : null}
                 zones={zones}
                 showZoneField={currentTab.showZoneField}
                 requireZoneField={currentTab.requireZoneField}
@@ -281,6 +316,7 @@ const AnalyticsRules = () => {
                 rules={filteredRules}
                 onDelete={handleDeleteRules}
                 onToggle={handleToggleRule}
+                onEdit={handleEditRule}
               />
             </div>
           </div>

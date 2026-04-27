@@ -97,9 +97,15 @@ const cameraSlice = createSlice({
 				state.toggleError = null;
 				state.togglingCameraCode = action.meta.arg?.cameraCode || null;
 			})
-			.addCase(turnOnCameraThunk.fulfilled, (state) => {
+			.addCase(turnOnCameraThunk.fulfilled, (state, action) => {
 				state.toggling = false;
 				state.togglingCameraCode = null;
+				// Cập nhật status camera trong Redux ngay lập tức
+				const cameraCode = action.payload?.cameraCode;
+				if (cameraCode) {
+					const cam = state.cameras.find((c) => (c.camera_code || c.id) === cameraCode);
+					if (cam) cam.status = 'active';
+				}
 			})
 			.addCase(turnOnCameraThunk.rejected, (state, action) => {
 				state.toggling = false;
@@ -111,9 +117,15 @@ const cameraSlice = createSlice({
 				state.toggleError = null;
 				state.togglingCameraCode = action.meta.arg?.cameraCode || null;
 			})
-			.addCase(turnOffCameraThunk.fulfilled, (state) => {
+			.addCase(turnOffCameraThunk.fulfilled, (state, action) => {
 				state.toggling = false;
 				state.togglingCameraCode = null;
+				// Cập nhật status camera trong Redux ngay lập tức
+				const cameraCode = action.payload?.cameraCode;
+				if (cameraCode) {
+					const cam = state.cameras.find((c) => (c.camera_code || c.id) === cameraCode);
+					if (cam) cam.status = 'inactive';
+				}
 			})
 			.addCase(turnOffCameraThunk.rejected, (state, action) => {
 				state.toggling = false;

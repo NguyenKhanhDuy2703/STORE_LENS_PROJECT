@@ -1,48 +1,50 @@
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X } from 'lucide-react';
 
-const ConfirmationModal = ({ isOpen, message, onYes, onNo, yesText = "Có", noText = "Không" }) => {
+const ConfirmationModal = ({ isOpen, message, onYes, onNo, yesText = 'Có', noText = 'Không' }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+      <div
+        className="absolute inset-0 bg-foreground/50 backdrop-blur-sm transition-opacity"
         onClick={onNo}
       />
-      
+
       {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+      <div className="relative bg-card border border-border rounded-2xl shadow-xl max-w-md w-full mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="text-orange-500" size={24} />
-            <h3 className="text-lg font-semibold tracking-tight text-slate-900">Xác nhận</h3>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-amber-100">
+              <AlertCircle className="text-amber-600" size={18} />
+            </div>
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">Xác nhận</h3>
           </div>
           <button
             onClick={onNo}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          <p className="text-slate-700 text-base leading-relaxed">{message}</p>
+        <div className="px-5 py-5">
+          <p className="text-sm text-muted-foreground leading-relaxed">{message}</p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50">
+        <div className="flex items-center justify-end gap-2.5 px-5 py-4 border-t border-border bg-muted/30 rounded-b-2xl">
           <button
             onClick={onNo}
-            className="px-5 py-2 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition-colors font-medium tracking-tight"
+            className="px-4 py-2 bg-card border border-border text-foreground rounded-xl text-sm font-medium hover:bg-muted transition-all duration-200"
           >
             {noText}
           </button>
           <button
             onClick={onYes}
-            className="px-5 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors font-medium shadow-md hover:shadow-lg"
+            className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition-all duration-200 shadow-sm hover:-translate-y-0.5 active:scale-[0.98]"
           >
             {yesText}
           </button>
@@ -51,4 +53,5 @@ const ConfirmationModal = ({ isOpen, message, onYes, onNo, yesText = "Có", noTe
     </div>
   );
 };
+
 export default ConfirmationModal;
