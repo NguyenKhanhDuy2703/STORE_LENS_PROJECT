@@ -1,3 +1,5 @@
+import SearchInput from '../../../components/common/SearchInput';
+
 export const CameraFilters = ({
   searchTerm,
   onSearchTermChange,
@@ -8,8 +10,8 @@ export const CameraFilters = ({
   storeOptions,
   onCreateCamera,
 }) => {
-  const inputClass =
-    'w-full h-10 rounded-xl border border-border bg-muted/50 px-3.5 text-sm text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 placeholder:text-muted-foreground/50';
+  const selectClass =
+    'w-full h-10 rounded-xl border border-border bg-muted/50 px-3.5 text-sm text-foreground outline-none transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-accent/15 appearance-none cursor-pointer';
 
   return (
     <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-md">
@@ -19,12 +21,10 @@ export const CameraFilters = ({
             <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
               Tìm kiếm camera
             </label>
-            <input
-              type="text"
+            <SearchInput
               value={searchTerm}
-              onChange={(e) => onSearchTermChange(e.target.value)}
+              onChange={onSearchTermChange}
               placeholder="Tìm kiếm camera..."
-              className={inputClass}
             />
           </div>
 
@@ -35,7 +35,7 @@ export const CameraFilters = ({
             <select
               value={selectedStore}
               onChange={(e) => onSelectedStoreChange(e.target.value)}
-              className={`${inputClass} appearance-none cursor-pointer`}
+              className={selectClass}
             >
               <option value="all">Tất cả cửa hàng</option>
               {storeOptions.map((store) => (
@@ -51,7 +51,7 @@ export const CameraFilters = ({
             <select
               value={selectedStatus}
               onChange={(e) => onSelectedStatusChange(e.target.value)}
-              className={`${inputClass} appearance-none cursor-pointer`}
+              className={selectClass}
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>

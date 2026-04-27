@@ -7,7 +7,7 @@ import socket from "../../services/socket";
 import Header from "./components/Header";
 import Tabs from "./components/Tabs";
 import NotificationList from "./components/NotificationList";
-import Pagination from "./components/Pagination";
+import Pagination from "../../components/common/Pagination";
 
 const Notification = () => {
     const dispatch = useDispatch();
@@ -20,7 +20,7 @@ const Notification = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // Fetch khi vào trang
+    // Fetch khi vào trang — chỉ fetch nếu chưa có data hoặc locationId thay đổi
     useEffect(() => {
         dispatch(fetchNotifications());
     }, [dispatch, effectiveLocationId]);

@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { 
     getNotificationsController, 
-    markReadController 
+    markReadController,
+    syncNotificationsController,
 } = require('../controllers/notification.controller');
 
 router.get('/list', getNotificationsController);
-// status true là đã đọc còn false là chưa đọc
+router.post('/sync', syncNotificationsController);  // trigger rule worker thủ công
 router.patch('/read/:id', markReadController);
 
 module.exports = router;

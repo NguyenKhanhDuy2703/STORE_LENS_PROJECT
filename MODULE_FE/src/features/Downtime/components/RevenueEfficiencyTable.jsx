@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, Moon, Zap, Star } from 'lucide-react';
 import formatDuration from '../../../utils/formatDuration';
-
-// --- 1. MOCK UTILS (Thay thế cho các file utils bên ngoài nếu cần) ---
-const formatCurrency = (val) => 
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 // Map Type sang Icon và Style
 const STATUS_CONFIG = {
