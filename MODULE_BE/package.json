@@ -6,11 +6,8 @@
   "scripts": {
     "test": "jest --detectOpenHandles",
     "start": "nodemon --inspect src/server.js",
-    "seed:fake": "node src/seeds/fake.seed.js --clean",
-    "seed:fake:legacy": "node src/seeds/fake.seed.js --clean --keep-location-camera",
-    "seed:fake:append": "node src/seeds/fake.seed.js",
-    "setup_db": "npm run seed:fake",
-    "setup_db_old": "npm run seed:fake:legacy"
+    "seed": "node src/seeds/fake.seed.js --clean",
+    "setup_py": "pip install -r scripts/requirements.txt"
   },
   "author": "khanhduy",
   "license": "ISC",

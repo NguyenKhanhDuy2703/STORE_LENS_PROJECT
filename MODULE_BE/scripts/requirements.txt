@@ -1,0 +1,5 @@
+pymongo==4.7.2
+mlxtend==0.23.1
+pandas>=2.2.3
+python-dotenv==1.0.1
+prefixspan==0.5.2

@@ -10,6 +10,7 @@ import cameraReducer from "../features/ManagermentCamera/camera.slice";
 import notificationReducer from "../features/Notification/notification.slice";
 import dwellTimeReducer from "../features/Downtime/dwellTime.slice";
 import areaAnalysisReducer from "../features/AnalyticsArea/area.slice";
+import analyticsFlowReducer from "../features/AnalyticsFlow/analyticsFlow.slice";
 
 const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ const store = configureStore({
     notification: notificationReducer,
     dwellTime: dwellTimeReducer,
     areaAnalysis: areaAnalysisReducer,
+    analyticsFlow: analyticsFlowReducer,
   },
 });
 

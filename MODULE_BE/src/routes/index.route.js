@@ -15,6 +15,7 @@ const locationRoutes = require("./allocation.routes");
 const assetRoutes = require("./asset.routes");
 const notificationRoutes = require("./notification.routes");
 const dwellTimeRoutes = require("./dwelltime.routes");
+const flowPatternsRoutes = require("./flowPatterns.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -36,6 +37,7 @@ const routes = (app) => {
   app.use(`${version}/asset` , assetRoutes);
   app.use(`${version}/notification`, notificationRoutes);
   app.use(`${version}/dwell-time`, dwellTimeRoutes);
+  app.use(`${version}/flow-patterns`, flowPatternsRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success({
       res,
