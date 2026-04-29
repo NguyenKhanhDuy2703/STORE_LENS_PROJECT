@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BarChart3, MapPin,
   ChevronDown, Settings,
   Flame, Clock, Camera, LogOut, Users,
-  Package, Bell
+  Package, Bell, GitBranch
 } from 'lucide-react';
 
 export const Header = () => {
@@ -35,6 +35,7 @@ export const Header = () => {
     { label: 'Tổng quan', path: '/dashboard', icon: <LayoutDashboard size={16} /> },
     { label: 'Bản đồ nhiệt', path: '/heatmap', icon: <Flame size={16} /> },
     { label: 'Thời gian dừng', path: '/dwell-time', icon: <Clock size={16} /> },
+    { label: 'Luồng di chuyển', path: '/analytics/flow', icon: <GitBranch size={16} /> },
   ];
 
   const managementItems = [

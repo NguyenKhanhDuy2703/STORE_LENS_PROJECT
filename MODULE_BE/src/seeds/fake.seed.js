@@ -463,6 +463,68 @@ async function seed() {
     const sessionUuid2 = `${locationId}_${frontCamera._id}_1002_${uniqueSuffix}`;
     const sessionUuid3 = `${locationId}_${checkoutCamera._id}_1003_${uniqueSuffix}`;
 
+    // ── Extra sessions cho FP-Growth & PrefixSpan mining ──────────────────
+    // Cần đủ sessions với pattern lặp lại để 2 thuật toán tìm được kết quả
+    // Lộ trình phổ biến được thiết kế:
+    //   A: entrance → sale → checkout  (lộ trình mua sắm cơ bản)
+    //   B: entrance → premium → checkout (lộ trình mua hàng cao cấp)
+    //   C: entrance → sale → premium → checkout (lộ trình dài)
+    //   D: premium → checkout (lộ trình ngắn)
+    const Z = {
+        e: zones[1].zone_id,   // entrance
+        s: zones[2].zone_id,   // sale
+        p: zones[3].zone_id,   // premium
+        c: zones[0].zone_id    // checkout
+    };
+
+    // Helper tạo zone_sequence với entry_time tăng dần
+    const makeSeq = (zoneList, baseMinutes) => zoneList.map((zid, i) => ({
+        zone_id: zid,
+        entry_time: new Date(today.getTime() + (baseMinutes + i * 5) * 60 * 1000),
+        exit_time:  new Date(today.getTime() + (baseMinutes + i * 5 + 4) * 60 * 1000),
+        dwell_time_seconds: 240
+    }));
+
+    const extraSessions = [
+        // Lộ trình A: entrance → sale → checkout (8 sessions)
+        { uuid: `${locationId}_MINING_A1_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 120 },
+        { uuid: `${locationId}_MINING_A2_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 135 },
+        { uuid: `${locationId}_MINING_A3_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 150 },
+        { uuid: `${locationId}_MINING_A4_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 165 },
+        { uuid: `${locationId}_MINING_A5_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 180 },
+        { uuid: `${locationId}_MINING_A6_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 195 },
+        { uuid: `${locationId}_MINING_A7_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 210 },
+        { uuid: `${locationId}_MINING_A8_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.c], base: 225 },
+        // Lộ trình B: entrance → premium → checkout (6 sessions)
+        { uuid: `${locationId}_MINING_B1_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 240 },
+        { uuid: `${locationId}_MINING_B2_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 255 },
+        { uuid: `${locationId}_MINING_B3_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 270 },
+        { uuid: `${locationId}_MINING_B4_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 285 },
+        { uuid: `${locationId}_MINING_B5_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 300 },
+        { uuid: `${locationId}_MINING_B6_${uniqueSuffix}`, seq: [Z.e, Z.p, Z.c], base: 315 },
+        // Lộ trình C: entrance → sale → premium → checkout (4 sessions)
+        { uuid: `${locationId}_MINING_C1_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.p, Z.c], base: 330 },
+        { uuid: `${locationId}_MINING_C2_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.p, Z.c], base: 345 },
+        { uuid: `${locationId}_MINING_C3_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.p, Z.c], base: 360 },
+        { uuid: `${locationId}_MINING_C4_${uniqueSuffix}`, seq: [Z.e, Z.s, Z.p, Z.c], base: 375 },
+        // Lộ trình D: premium → checkout (4 sessions)
+        { uuid: `${locationId}_MINING_D1_${uniqueSuffix}`, seq: [Z.p, Z.c], base: 390 },
+        { uuid: `${locationId}_MINING_D2_${uniqueSuffix}`, seq: [Z.p, Z.c], base: 405 },
+        { uuid: `${locationId}_MINING_D3_${uniqueSuffix}`, seq: [Z.p, Z.c], base: 420 },
+        { uuid: `${locationId}_MINING_D4_${uniqueSuffix}`, seq: [Z.p, Z.c], base: 435 },
+    ];
+
+    await Session.insertMany(extraSessions.map(({ uuid, seq, base }) => ({
+        location_id: locationId,
+        session_uuid: uuid,
+        entry_time: new Date(today.getTime() + base * 60 * 1000),
+        exit_time:  new Date(today.getTime() + (base + seq.length * 5) * 60 * 1000),
+        total_dwell_time_seconds: seq.length * 240,
+        zone_sequence: makeSeq(seq, base)
+    })));
+
+    console.log(`[seed] extra mining sessions=${extraSessions.length} (A:8, B:6, C:4, D:4)`);
+
     await Session.insertMany([
         {
             location_id: locationId,
@@ -778,24 +840,140 @@ async function seed() {
         })
     ]);
 
+    // ── Dữ liệu 7 ngày (6 ngày trước + hôm nay) cho dashboard charts ──────
+    const DAYS = 7;
+    const locationStatsBulk = [];
+    const zoneStatsBulk = [];
+    const sessionsBulk = [];
+
+    for (let d = DAYS - 1; d >= 1; d--) {
+        const dayDate = new Date(today.getTime() - d * 24 * 60 * 60 * 1000);
+        const visitors = randomInt(20, 80);
+        const revenue = randomInt(500000, 5000000);
+        const events = randomInt(5, 20);
+        const daySuffix = `${uniqueSuffix}_D${d}`;
+
+        // LocationStats cho ngày này
+        locationStatsBulk.push({
+            location_id: locationId,
+            date: dayDate,
+            kpis: {
+                total_visitors: visitors,
+                total_revenue: revenue,
+                total_events: events,
+                conversion_rate: Number(((events / visitors) * 100).toFixed(2)),
+                avg_store_dwell_time: randomInt(300, 900),
+                avg_basket_value: Number((revenue / events).toFixed(2))
+            },
+            realtime: { people_current: 0, checkout_length: 0 },
+            chart_data: Array.from({ length: 24 }).map((_, hour) => ({
+                hour,
+                people_count: hour >= 9 && hour <= 20 ? randomInt(0, 15) : 0,
+                total_revenue: hour >= 9 && hour <= 20 ? randomInt(0, 500000) : 0
+            })),
+            top_assets: []
+        });
+
+        // ZoneStats cho ngày này
+        zones.forEach((zone) => {
+            zoneStatsBulk.push({
+                location_id: locationId,
+                zone_id: zone.zone_id,
+                camera_code: zone.camera_id,
+                date: dayDate,
+                trend: ['up', 'down', 'stable'][randomInt(0, 2)],
+                performance: {
+                    people_count: randomInt(10, 60),
+                    total_sales_value: randomInt(50000, 300000),
+                    total_events: randomInt(3, 20),
+                    conversion_rate: randomInt(20, 60),
+                    avg_dwell_time: randomInt(60, 600),
+                    total_stop_events: randomInt(2, 15),
+                    peak_hour: randomInt(9, 20)
+                }
+            });
+        });
+
+        // Sessions cho ngày này (lộ trình A/B để mining có đủ data)
+        const dayPatterns = [
+            { seq: [Z.e, Z.s, Z.c], count: randomInt(3, 6) },
+            { seq: [Z.e, Z.p, Z.c], count: randomInt(2, 4) },
+        ];
+        dayPatterns.forEach(({ seq, count }) => {
+            for (let i = 0; i < count; i++) {
+                const base = randomInt(60, 480);
+                sessionsBulk.push({
+                    location_id: locationId,
+                    session_uuid: `${locationId}_DAY${d}_${i}_${seq.join('')}_${daySuffix}`,
+                    entry_time: new Date(dayDate.getTime() + base * 60 * 1000),
+                    exit_time: new Date(dayDate.getTime() + (base + seq.length * 5) * 60 * 1000),
+                    total_dwell_time_seconds: seq.length * 240,
+                    zone_sequence: seq.map((zid, zi) => ({
+                        zone_id: zid,
+                        entry_time: new Date(dayDate.getTime() + (base + zi * 5) * 60 * 1000),
+                        exit_time: new Date(dayDate.getTime() + (base + zi * 5 + 4) * 60 * 1000),
+                        dwell_time_seconds: 240
+                    }))
+                });
+            }
+        });
+    }
+
+    await Promise.all([
+        LocationStats.insertMany(locationStatsBulk),
+        ZoneStats.insertMany(zoneStatsBulk),
+        Session.insertMany(sessionsBulk),
+    ]);
+    console.log(`[seed] 7-day history: ${locationStatsBulk.length} LocationStats, ${zoneStatsBulk.length} ZoneStats, ${sessionsBulk.length} sessions`);
+
     await FlowPatterns.insertMany([
         {
             location_id: locationId,
-            pattern_type: 'SEQUENTIAL',
-            antecedent_zones: [zones[0].zone_id],
-            consequent_zones: [zones[2].zone_id],
-            confidence_score: 0.68,
-            support_score: 0.32,
-            lift_score: 1.27
+            algorithm: 'fpgrowth',
+            pattern_type: 'association_rule',
+            antecedent_zones: [zones[1].zone_id],   // entrance
+            consequent_zones: [zones[2].zone_id],   // sale
+            support_score: 0.68,
+            confidence_score: 0.80,
+            lift_score: 1.85,
+            support_count: null,
+            sequence: null
         },
         {
             location_id: locationId,
-            pattern_type: 'SEQUENTIAL',
-            antecedent_zones: [zones[1].zone_id],
-            consequent_zones: [zones[2].zone_id],
-            confidence_score: 0.61,
-            support_score: 0.28,
-            lift_score: 1.19
+            algorithm: 'fpgrowth',
+            pattern_type: 'association_rule',
+            antecedent_zones: [zones[2].zone_id],   // sale
+            consequent_zones: [zones[0].zone_id],   // checkout
+            support_score: 0.55,
+            confidence_score: 0.72,
+            lift_score: 1.60,
+            support_count: null,
+            sequence: null
+        },
+        {
+            location_id: locationId,
+            algorithm: 'prefixspan',
+            pattern_type: 'frequent_sequence',
+            sequence: [zones[1].zone_id, zones[2].zone_id, zones[0].zone_id], // entrance→sale→checkout
+            support_score: 0.36,
+            support_count: 8,
+            antecedent_zones: null,
+            consequent_zones: null,
+            confidence_score: null,
+            lift_score: null
+        },
+        {
+            location_id: locationId,
+            algorithm: 'prefixspan',
+            pattern_type: 'sequential_rule',
+            antecedent_zones: [zones[1].zone_id, zones[2].zone_id], // entrance→sale
+            consequent_zones: [zones[0].zone_id],                   // →checkout
+            support_score: 0.36,
+            support_count: 8,
+            confidence_score: 0.67,
+            lift_score: null,
+            sequence: null
         }
     ]);
 
