@@ -9,7 +9,7 @@ router.get('/member-detail',
     memberController.getMemberDetail);
 
 router.get('/summary',
-    authenticationToken,
+    gitauthenticationToken,
     memberController.getMemberSummary);
 
 // CREATE operation
