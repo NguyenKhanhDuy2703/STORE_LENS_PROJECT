@@ -1,188 +1,138 @@
 const mongoose = require('mongoose');
 const Customer = require('../schemas/customer.schema');
-const { ApiError } = require('../utils/exceptions');
 const httpStatus = require('http-status-codes');
 
-// Validate required locationId parameter and reject invalid values.
-const validateInput = (locationId) => {
-  if (!locationId || !(typeof locationId === 'string' || mongoose.Types.ObjectId.isValid(locationId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid locationId');
-  }
+/**
+ * Get Metrics - Use Aggregate to calculate dashboard metrics
+ */
+const getMemberMetrics = async (locationId) => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const metrics = await Customer.aggregate([
+    { $match: { locationId } },
+    {
+      $group: {
+        _id: null,
+        totalMembers: { $sum: 1 },
+        newMembersThisMonth: {
+          $sum: {
+            $cond: [{ $gte: ['$joinDate', monthStart] }, 1, 0]
+          }
+        },
+        absentMembers: {
+          $sum: {
+            $cond: [
+              {
+                $or: [
+                  { $lt: ['$lastVisit', weekAgo] },
+                  { $eq: ['$lastVisit', null] }
+                ]
+              },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  const result = metrics[0] || {};
+  const total = result.totalMembers || 0;
+  const absent = result.absentMembers || 0;
+  const absenteeismRate = total > 0 ? Number(((absent / total) * 100).toFixed(2)) : 0;
+
+  return {
+    totalMembers: total,
+    newMembersThisMonth: result.newMembersThisMonth || 0,
+    absenteeismRate
+  };
 };
 
-// Build date boundaries used across dashboard queries and history checks.
-const getPeriodBoundaries = () => {
+/**
+ * Get List - Use Aggregate + $project to optimize data returned for FE
+ */
+const getMemberList = async (locationId, filters = {}) => {
+  const { search, status } = filters;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(now.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
-
-  return { now, monthStart, nextMonthStart, sevenDaysAgo };
-};
-
-// Parse a history entry date safely, returning null on invalid input.
-const parseHistoryDate = (historyItem) => historyItem && historyItem.date ? new Date(historyItem.date) : null;
-
-// Summarize history entries for the member, including month sessions and active session state.
-const getHistoryStats = (customer, now, monthStart, nextMonthStart) => {
-  const history = customer.history || [];
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let lastVisit = null, totalSessionsThisMonth = 0, activeSessionCount = 0;
 
-  history.forEach((entry) => {
-    const visitDate = parseHistoryDate(entry);
-    if (!visitDate) return;
+  let query = { locationId };
+  if (status) query.status = status;
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } },
+      { code: { $regex: search, $options: 'i' } }
+    ];
+  }
 
-    if (!lastVisit || visitDate > lastVisit) lastVisit = visitDate;
-    if (visitDate >= monthStart && visitDate < nextMonthStart) totalSessionsThisMonth++;
-
-    const entryDate = new Date(visitDate.getFullYear(), visitDate.getMonth(), visitDate.getDate());
-    if (entryDate.getTime() === today.getTime() && entry.check_in && !entry.check_out && entry.check_in <= now) {
-      activeSessionCount = 1;
+  return await Customer.aggregate([
+    { $match: query },
+    { $sort: { joinDate: -1 } },
+    {
+      $project: {
+        id: '$_id',
+        code: { $ifNull: ['$code', { $toUpper: { $substr: [{ $toString: '$_id' }, -6, 6] } }] },
+        name: { $ifNull: ['$name', { $concat: ['Customer ', '$code'] }] },
+        phone: { $ifNull: ['$phone', null] },
+        birthday: { $ifNull: ['$birthday', null] },
+        sessionsThisMonth: {
+          $size: {
+            $filter: {
+              input: '$history',
+              as: 'h',
+              cond: {
+                $and: [
+                  { $gte: ['$$h.date', monthStart] },
+                  { $lt: ['$$h.date', nextMonthStart] }
+                ]
+              }
+            }
+          }
+        },
+        totalSessions: { $ifNull: ['$totalSessions', 0] },
+        status: {
+          $cond: {
+            if: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: '$history',
+                      as: 'h',
+                      cond: {
+                        $and: [
+                          { $eq: [{ $dateToString: { format: '%Y-%m-%d', date: '$$h.date' } }, { $dateToString: { format: '%Y-%m-%d', date: today } }] },
+                          { $ne: ['$$h.check_in', null] },
+                          { $eq: ['$$h.check_out', null] },
+                          { $lte: ['$$h.check_in', now] }
+                        ]
+                      }
+                    }
+                  }
+                },
+                0
+              ]
+            },
+            then: 'active',
+            else: 'inactive'
+          }
+        },
+        note: { $ifNull: ['$note', ''] }
+      }
     }
-  });
-  return { lastVisit, totalSessionsThisMonth, activeSessionCount };
+  ]);
 };
 
-// Build a single member object for the dashboard row.
-const buildMemberItem = (customer, historyStats, now) => {
-  const customerId = customer._id.toString();
-  const code = customer.code || customerId.slice(-6).toUpperCase();
-  const activeSessionCount = historyStats.activeSessionCount || 0;
-  const monthlySessions = historyStats.totalSessionsThisMonth || 0;
-  const status = (customer.status || (activeSessionCount > 0 ? 'ACTIVE' : 'INACTIVE')).toLowerCase();
-
-  return {
-    id: customerId,
-    code,
-    name: customer.name || `Customer ${code}`,
-    phone: customer.phone || null,
-    birthday: customer.birthday || null,
-    sessionsThisMonth: monthlySessions,
-    totalSessions: customer.totalSessions || 0,
-    status,
-    note: customer.note || '',
-  };
-};
-
-// Create dashboard overview stats from customer list and join date data.
-const buildOverview = async (locationId, customers, monthStart, nextMonthStart) => {
-  const totalCustomers = customers.length;
-  const activeCustomers = customers.filter((customer) => {
-    const historyStats = getHistoryStats(customer, new Date(), monthStart, nextMonthStart);
-    return historyStats.activeSessionCount > 0;
-  }).length;
-
-  const absenteeismRate = totalCustomers > 0
-    ? Number((((totalCustomers - activeCustomers) / totalCustomers) * 100).toFixed(2))
-    : 0;
-
-  return {
-    totalMembers: totalCustomers,
-    newMembersThisMonth: totalCustomers > 0 ? await Customer.countDocuments({
-      locationId,
-      joinDate: { $gte: monthStart, $lt: nextMonthStart }
-    }) : 0,
-    absenteeismRate,
-  };
-};
-
-// Load dashboard data for all members in a location, including overview and member list.
-const getMemberDashboard = async (locationId) => {
-  validateInput(locationId);
-  const { now, monthStart, nextMonthStart } = getPeriodBoundaries();
-  const customers = await Customer.find({ locationId }).lean();
-  
-  if (!customers || customers.length === 0) {
-    return {
-      overview: {
-        totalMembers: 0,
-        newMembersThisMonth: 0,
-        absenteeismRate: 0,
-      },
-      members: [],
-    };
-  }
-
-  const members = customers.map((customer) => {
-    const historyStats = getHistoryStats(customer, now, monthStart, nextMonthStart);
-    return buildMemberItem(customer, historyStats, now);
-  });
-
-  const overview = await buildOverview(locationId, customers, monthStart, nextMonthStart);
-  return {  overview,  members,  };
-};
-
-// Load a single member detail by location and identifier, then shape the response for the detail panel.
+/**
+ * Get Member Detail 
+ */
 const getMemberDetail = async (locationId, personId) => {
-  validateInput(locationId);
-
-  const query = {
-    locationId,
-    $or: [  { code: personId },  { phone: personId }  ]
-  };
-
-  if (mongoose.Types.ObjectId.isValid(personId)) {  query.$or.unshift({ _id: personId });  }
-
-  const customer = await Customer.findOne(query).lean();
-
-  if (!customer) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found for the requested location');
-  }
-
-  const customerId = customer._id.toString();
-  const { now, sevenDaysAgo } = getPeriodBoundaries();
-  const history = (customer.history || [])
-    .map((entry) => ({
-      ...entry,
-      date: parseHistoryDate(entry),
-    }))
-    .filter((entry) => entry.date)
-    .sort((a, b) => b.date - a.date);
-
-  const recentVisits = history.length > 0 ? history.slice(0, 5).map((entry) => ({
-    date: entry.date.toISOString().split('T')[0],
-    checkIn: entry.check_in || null,
-    checkOut: entry.check_out || null,
-  })) : [];
-
-  const activeSessionCount = history.some((entry) => {
-    const entryDate = new Date(entry.date.getFullYear(), entry.date.getMonth(), entry.date.getDate());
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return entryDate.getTime() === today.getTime() && entry.check_in && !entry.check_out && entry.check_in <= now;
-  });
-
-  const lastVisit = customer.lastVisit || (history[0] ? history[0].date : null);
-  const diffDays = lastVisit ? (now.getTime() - new Date(lastVisit).getTime()) / (1000 * 60 * 60 * 24) : Infinity;
-  let status = activeSessionCount ? 'active' : 'inactive';
-  if (status === 'inactive') {
-    status = diffDays > 7 ? 'absent-long' : 'absent-short';
-  }
-
-  return {
-    id: customerId,
-    code: customer.code || customerId.slice(-6).toUpperCase(),
-    name: customer.name,
-    phone: customer.phone || null,
-    status,
-    recentVisits,
-    frequentZones: customer.frequentZones || [],
-    note: customer.note || '',
-  };
-};
-
-// Create a new member record in the system (TODO: implement).
-const createMember = async (locationId, memberData) => {
-  // TODO: Implementation pending
-  throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Create member feature coming soon');
-};
-
-// Update member note field for quick annotations.
-const updateMemberNote = async (locationId, personId, noteText) => {
-  validateInput(locationId);
-
   const query = {
     locationId,
     $or: [{ code: personId }, { phone: personId }]
@@ -192,42 +142,121 @@ const updateMemberNote = async (locationId, personId, noteText) => {
     query.$or.unshift({ _id: personId });
   }
 
-  const result = await Customer.findOneAndUpdate(
-    query,
-    { note: noteText || '' },
-    { new: true, lean: true }
-  );
+  const pipeline = [
+    { $match: query },
+    {
+      $project: {
+        id: '$_id',
+        code: { $ifNull: ['$code', { $toUpper: { $substr: [{ $toString: '$_id' }, -6, 6] } }] },
+        name: '$name',
+        phone: { $ifNull: ['$phone', null] },
+        status: 'active', 
+        recentVisits: {
+          $slice: [
+            {
+              $sortArray: {
+                input: {
+                  $map: {
+                    input: '$history',
+                    as: 'h',
+                    in: {
+                      date: { $dateToString: { format: '%Y-%m-%d', date: '$$h.date' } },
+                      checkIn: '$$h.check_in',
+                      checkOut: '$$h.check_out'
+                    }
+                  }
+                },
+                sortBy: { date: -1 }
+              }
+            },
+            5
+          ]
+        },
+        frequentZones: { $ifNull: ['$frequentZones', []] },
+        note: { $ifNull: ['$note', ''] },
+        lastVisit: 1,
+        history: 1
+      }
+    }
+  ];
 
-  if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Member not found for the requested location');
+  const customer = await Customer.aggregate(pipeline).then(results => results[0]);
+
+  if (!customer) {
+    const err = new Error('Member not found');
+    err.statusCode = httpStatus.NOT_FOUND;
+    throw err;
   }
 
-  return {
-    id: result._id.toString(),
-    code: result.code,
-    name: result.name,
-    note: result.note || '',
-    message: 'Member note updated successfully'
-  };
+  // Calculate status
+  const now = new Date();
+  const lastVisit = customer.lastVisit || (customer.recentVisits[0] ? new Date(customer.recentVisits[0].date) : null);
+  const diffDays = lastVisit ? (now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
+  let status = 'inactive';
+  if (diffDays <= 7) {
+    status = 'absent-short';
+  } else if (diffDays > 7) {
+    status = 'absent-long';
+  }
+  const todayStr = now.toISOString().split('T')[0];
+  const todayVisit = customer.recentVisits.find(v => v.date === todayStr);
+  if (todayVisit && todayVisit.checkIn && !todayVisit.checkOut) {
+    status = 'active';
+  }
+  customer.status = status;
+
+  return customer;
 };
 
-// Update member information like phone, birthday, etc. (TODO: implement).
-const updateMember = async (locationId, personId, updateData) => {
-  // TODO: Implementation pending
-  throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Update member feature coming soon');
+/**
+ * Create/Update Member
+ * Ensure data matches Schema: locationId, code, name, phone, birthday are required
+ */
+const createOrUpdateMember = async (locationId, memberData) => {
+  const { code, phone } = memberData;
+
+  if (memberData.id || code) {
+    const updated = await Customer.findOneAndUpdate(
+      { locationId, $or: [{ _id: memberData.id }, { code: code }] },
+      { $set: memberData },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      const err = new Error('Member not found');
+      err.statusCode = httpStatus.NOT_FOUND;
+      throw err;
+    }
+    return updated;
+  }
+
+  // If creating new member
+  const existing = await Customer.findOne({ $or: [{ code }, { phone }] });
+  if (existing) {
+    const err = new Error('Member code or phone already exists');
+    err.statusCode = httpStatus.BAD_REQUEST;
+    throw err;
+  }
+
+  return await Customer.create({ ...memberData, locationId });
 };
 
-// Delete a member record from the system (TODO: implement).
-const deleteMember = async (locationId, personId) => {
-  // TODO: Implementation pending
-  throw new ApiError(httpStatus.NOT_IMPLEMENTED, 'Delete member feature coming soon');
+/**
+ * Delete Member
+ */
+const deleteMember = async (locationId, memberId) => {
+  const result = await Customer.findOneAndDelete({ _id: memberId, locationId });
+  if (!result) {
+    const err = new Error('Member not found or unauthorized to delete');
+    err.statusCode = httpStatus.NOT_FOUND;
+    throw err;
+  }
+  return { message: 'Delete successful', id: memberId };
 };
 
 module.exports = {
-  getMemberDashboard,
+  getMemberMetrics,
+  getMemberList,
   getMemberDetail,
-  createMember,
-  updateMemberNote,
-  updateMember,
+  createOrUpdateMember,
   deleteMember
 };
