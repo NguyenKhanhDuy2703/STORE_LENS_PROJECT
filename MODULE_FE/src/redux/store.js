@@ -11,6 +11,7 @@ import notificationReducer from "../features/Notification/notification.slice";
 import dwellTimeReducer from "../features/Downtime/dwellTime.slice";
 import areaAnalysisReducer from "../features/AnalyticsArea/area.slice";
 import analyticsFlowReducer from "../features/AnalyticsFlow/analyticsFlow.slice";
+import memberReducer from "../features/ManagermentMember/member.slice";
 
 const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ const store = configureStore({
     dwellTime: dwellTimeReducer,
     areaAnalysis: areaAnalysisReducer,
     analyticsFlow: analyticsFlowReducer,
+    member: memberReducer,
   },
 });
 

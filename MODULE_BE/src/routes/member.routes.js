@@ -3,28 +3,16 @@ const router = express.Router();
 const memberController = require('../controllers/member.controller');
 const { authenticationToken } = require('../middlewares/auth.middleware');
 
-// READ operations
-router.get('/member-detail',
-    authenticationToken,
-    memberController.getMemberDetail);
+// GET /api/v1/member/summary?locationId=...
+router.get('/summary', authenticationToken, memberController.getMemberSummary);
 
-router.get('/summary',
-    gitauthenticationToken,
-    memberController.getMemberSummary);
+// GET /api/v1/member/:memberCode?locationId=...
+router.get('/:memberCode', authenticationToken, memberController.getMemberDetail);
 
-// CREATE operation
-router.post('/create',
-    authenticationToken,
-    memberController.createMember);
+// POST /api/v1/member?locationId=...  (upsert: tạo mới hoặc cập nhật theo code)
+router.post('/', authenticationToken, memberController.saveMember);
 
-// UPDATE operations
-router.put('/update',
-    authenticationToken,
-    memberController.updateMember);
-
-// DELETE operation
-router.delete('/delete',
-    authenticationToken,
-    memberController.deleteMember);
+// DELETE /api/v1/member/:memberCode?locationId=...
+router.delete('/:memberCode', authenticationToken, memberController.deleteMember);
 
 module.exports = router;
