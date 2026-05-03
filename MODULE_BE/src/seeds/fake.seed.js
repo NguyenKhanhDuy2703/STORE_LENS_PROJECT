@@ -1027,52 +1027,93 @@ async function seed() {
         secondaryLocationId: secondaryLocation.location_code
     });
 
-    // ── Customers — để test ruleCustomerWorker ─────────────────────────────
+    // ── Customers — 3 loại hội viên để test UI/UX ─────────────────────────
     const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Helper tạo history entry đã hoàn thành (có check_in và check_out)
+    const makeVisit = (daysAgo, locationId) => {
+        const visitDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+        const checkIn  = new Date(visitDate.getTime() + 7 * 60 * 60 * 1000);    // 07:00
+        const checkOut = new Date(visitDate.getTime() + 8.5 * 60 * 60 * 1000);  // 08:30
+        return { date: visitDate, check_in: checkIn, check_out: checkOut, locationId };
+    };
+
+    // Tính số ngày từ đầu tháng đến hôm nay để tạo lịch sử trong tháng
+    const daysIntoMonth = Math.max(Math.floor((now - monthStart) / (24 * 60 * 60 * 1000)), 1);
+
+    // Helper tạo visit vào ngày cụ thể trong tháng hiện tại (dayOfMonth: 1-31)
+    const makeVisitOnDay = (dayOfMonth, locationId) => {
+        const visitDate = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, 7, 0, 0);
+        // Chỉ tạo nếu ngày đó đã qua (không tạo ngày tương lai)
+        if (visitDate > now) return null;
+        const checkOut = new Date(visitDate.getTime() + 1.5 * 60 * 60 * 1000); // +1.5h
+        return { date: visitDate, check_in: visitDate, check_out: checkOut, locationId };
+    };
+
     const customers = await Customer.insertMany([
+        // ── Loại 1: Khách thường xuyên — tới đều trong tháng ──────────────
         {
             locationId,
             code: `KH_${uniqueSuffix}_001`,
             name: 'Nguyễn Văn An',
             phone: `090${uniqueSuffix}01`,
             birthday: new Date('1990-03-15'),
-            joinDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000), // 60 ngày trước
+            joinDate: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
             status: 'ACTIVE',
-            totalSessions: 8,
-            lastVisit: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000), // 35 ngày trước → trigger retention rule
+            totalSessions: 55,
+            lastVisit: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+            note: 'Khách VIP, tập đều đặn',
             history: [
-                { date: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000), locationId },
-                { date: new Date(now.getTime() - 42 * 24 * 60 * 60 * 1000), locationId },
+                // Tháng này: tới các ngày 1,3,5,7,9,11,13,15... (mỗi 2 ngày, bỏ ngày tương lai)
+                ...[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29].map(d => makeVisitOnDay(d, locationId)).filter(Boolean),
+                // Tháng trước
+                makeVisit(35, locationId),
+                makeVisit(40, locationId),
+                makeVisit(45, locationId),
             ]
         },
+
+        // ── Loại 2: Khách tần suất thấp — 2-3 lần trong tháng ──────────────
         {
             locationId,
             code: `KH_${uniqueSuffix}_002`,
             name: 'Trần Thị Bình',
             phone: `091${uniqueSuffix}02`,
             birthday: new Date('1995-07-22'),
-            joinDate: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+            joinDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
             status: 'ACTIVE',
-            totalSessions: 55, // → trigger revenue rule (>= 50)
-            lastVisit: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-            history: Array.from({ length: 12 }, (_, i) => ({
-                date: new Date(now.getTime() - i * 3 * 24 * 60 * 60 * 1000),
-                locationId
-            }))
+            totalSessions: 18,
+            lastVisit: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+            note: 'Bận công việc, tập không đều',
+            history: [
+                // Tháng này: chỉ 2-3 lần
+                ...[5, 12, 20].map(d => makeVisitOnDay(d, locationId)).filter(Boolean),
+                // Tháng trước
+                makeVisit(32, locationId),
+                makeVisit(45, locationId),
+                makeVisit(60, locationId),
+            ]
         },
+
+        // ── Loại 3: Chưa tới tháng này — toàn bộ history là tháng trước ────
         {
             locationId,
             code: `KH_${uniqueSuffix}_003`,
             name: 'Lê Minh Cường',
             phone: `092${uniqueSuffix}03`,
             birthday: new Date('1988-11-10'),
-            joinDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+            joinDate: new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000),
             status: 'ACTIVE',
-            totalSessions: 3,
-            lastVisit: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+            totalSessions: 8,
+            lastVisit: new Date(monthStart.getTime() - 5 * 24 * 60 * 60 * 1000),
+            note: 'Chưa thấy tháng này, cần liên hệ',
             history: [
-                { date: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), locationId },
-                { date: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000), locationId },
+                // Không có visit nào trong tháng này
+                makeVisit(daysIntoMonth + 5,  locationId),
+                makeVisit(daysIntoMonth + 12, locationId),
+                makeVisit(daysIntoMonth + 20, locationId),
+                makeVisit(daysIntoMonth + 35, locationId),
             ]
         }
     ]);
@@ -1082,34 +1123,49 @@ async function seed() {
     await CustomerCareRule.deleteMany({ location_id: locationId });
 
     const fullRules = await CustomerCareRule.insertMany([
-        // Retention: khách chưa ghé > 30 ngày
+        // ── Retention rules ────────────────────────────────────────────────
+
+        // KH_003 sẽ khớp: lastVisit > 30 ngày trước
         {
             location_id: locationId,
             category: 'retention',
             rule_id: `RETENTION_CHURN_${uniqueSuffix}`,
             rule_name: 'Khách chưa ghé hơn 30 ngày',
-            logic: {
-                metric_name: 'days_since_last_visit',
-                operator: '>',
-                threshold: 30,
-                unit: 'ngày'
-            },
+            logic: { metric_name: 'days_since_last_visit', operator: '>', threshold: 30, unit: 'ngày' },
             action: 'Liên hệ khách hàng để nhắc nhở quay lại',
             is_active: true
         },
-        // Revenue: khách VIP (>= 50 lượt)
+        // KH_002 sẽ khớp: visits_last_30_days <= 3 (tần suất thấp)
+        {
+            location_id: locationId,
+            category: 'retention',
+            rule_id: `RETENTION_LOW_FREQ_${uniqueSuffix}`,
+            rule_name: 'Khách tần suất thấp trong 30 ngày',
+            logic: { metric_name: 'visits_last_30_days', operator: '<=', threshold: 3, unit: 'lần' },
+            action: 'Gửi tin nhắn khuyến khích tập luyện đều đặn hơn',
+            is_active: true
+        },
+
+        // ── Revenue rules ──────────────────────────────────────────────────
+
+        // KH_001 sẽ khớp: totalSessions >= 50 (khách VIP)
         {
             location_id: locationId,
             category: 'revenue',
             rule_id: `REVENUE_VIP_${uniqueSuffix}`,
             rule_name: 'Khách VIP tần suất cao',
-            logic: {
-                metric_name: 'total_sessions',
-                operator: '>=',
-                threshold: 50,
-                unit: 'lượt'
-            },
+            logic: { metric_name: 'total_sessions', operator: '>=', threshold: 50, unit: 'lượt' },
             action: 'Tặng ưu đãi VIP cho khách hàng thân thiết',
+            is_active: true
+        },
+        // KH_002 sẽ khớp: totalSessions >= 10 (khách trung thành)
+        {
+            location_id: locationId,
+            category: 'revenue',
+            rule_id: `REVENUE_LOYAL_${uniqueSuffix}`,
+            rule_name: 'Khách trung thành (>= 10 lượt)',
+            logic: { metric_name: 'total_sessions', operator: '>=', threshold: 10, unit: 'lượt' },
+            action: 'Gửi lời cảm ơn và voucher giảm giá tháng tới',
             is_active: true
         },
         // Zone: dừng quá lâu tại quầy thanh toán (>= 30 giây)

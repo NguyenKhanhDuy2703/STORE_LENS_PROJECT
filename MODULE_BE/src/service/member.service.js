@@ -1,172 +1,246 @@
-const Session = require('../schemas/session.schema');
-const BusinessEvent = require('../schemas/businessEvent.schema');
-const { ApiError } = require('../utils/exceptions');
-const httpStatus = require('http-status-codes');
+const Customer = require('../schemas/customer.schema');
+const CustomerCareRule = require('../schemas/customerCareRule.schema');
 
-const SEGMENT_RULES = [
-    {
-        tag: "LOYAL_MEMBER",
-        label: "Loyal Member",
-        minVisits: 10,
-        minDwellTime: 45,
-        minSpending: 2000000,
-        priority: 1
-    },
-    {
-        tag: "POTENTIAL_MEMBER",
-        label: "Potential Member",
-        minVisits: 3,
-        minDwellTime: 20,
-        minSpending: 500000,
-        priority: 2
-    },
-    {
-        tag: "OCCASIONAL_VISITOR",
-        label: "Occasional Visitor",
-        minVisits: 0,
-        minDwellTime: 0,
-        minSpending: 0,
-        priority: 3
+// Tính metric của customer theo tên metric (dùng chung với ruleCustomer.worker)
+const getMetricValue = (customer, metricName) => {
+    const now = Date.now();
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    switch (metricName) {
+        case 'total_sessions':
+            return customer.totalSessions ?? 0;
+        case 'days_since_last_visit':
+            if (!customer.lastVisit) return null;
+            return Math.floor((now - new Date(customer.lastVisit).getTime()) / MS_PER_DAY);
+        case 'days_since_join':
+            if (!customer.joinDate) return null;
+            return Math.floor((now - new Date(customer.joinDate).getTime()) / MS_PER_DAY);
+        case 'visits_last_30_days': {
+            if (!Array.isArray(customer.history)) return 0;
+            const cutoff = new Date(now - 30 * MS_PER_DAY);
+            return customer.history.filter((h) => h.date && new Date(h.date) >= cutoff).length;
+        }
+        default:
+            return null;
     }
-];
-
-const SEGMENT_LABELS = {
-  LOYAL_MEMBER: 'Khách thân thiết',
-  POTENTIAL_MEMBER: 'Khách tiềm năng',
-  OCCASIONAL_VISITOR: 'Khách vãng lai'
 };
 
-const validateInput = (locationId) => {
-  if (!locationId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Location ID is required');
-  }
-};
-
-/* Get aggregated session data with zone insights */
-const getRawSessionData = async (locationId) => {
-  return await Session.aggregate([
-    { $match: { location_id: locationId } },
-    { $project: { person_id: 1, session_uuid: 1, total_dwell_time_seconds: 1, entry_time: 1, zone_sequence: 1 } },
-    { $unwind: { path: "$zone_sequence", preserveNullAndEmptyArrays: true } },
-    { $lookup: { from: "zones", localField: "zone_sequence.zone_id", foreignField: "zone_id", as: "zoneInfo" } },
-    { $unwind: { path: "$zoneInfo", preserveNullAndEmptyArrays: true } },
-    {
-      $group: {
-        _id: { person_id: "$person_id", session_uuid: "$session_uuid" },
-        totalDwellSeconds: { $first: "$total_dwell_time_seconds" },
-        entryTime: { $first: "$entry_time" },
-        zoneEntries: { $push: { zoneName: "$zoneInfo.zone_name", durationSeconds: "$zone_sequence.dwell_time_seconds" } }
-      }
-    },
-    {
-      $group: {
-        _id: "$_id.person_id",
-        totalVisits: { $sum: 1 },
-        totalDwellSeconds: { $sum: { $ifNull: ["$totalDwellSeconds", 0] } },
-        lastVisit: { $max: "$entryTime" },
-        zoneEntries: { $push: "$zoneEntries" },
-        recentVisits: { $sum: { $cond: { if: { $gte: ["$entryTime", { $dateSubtract: { startDate: "$$NOW", unit: "day", amount: 30 } }] }, then: 1, else: 0 } } }
-      }
-    },
-    {
-      $project: {
-        totalVisits: 1,
-        totalDwellSeconds: 1,
-        lastVisit: 1,
-        zoneEntries: { $reduce: { input: "$zoneEntries", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } },
-        recentVisits: 1
-      }
+const evaluate = (value, operator, threshold) => {
+    switch (operator) {
+        case '>':  return value > threshold;
+        case '<':  return value < threshold;
+        case '>=': return value >= threshold;
+        case '<=': return value <= threshold;
+        default:   return false;
     }
-  ]);
 };
+const getMemberMetrics = async (locationId) => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-/* Calculate total spending per person from BusinessEvents */
-const calculateSpending = async (locationId) => {
-  const spendingData = await BusinessEvent.aggregate([
-    { $match: { location_id: locationId } },
-    { $lookup: { from: "sessions", localField: "event_code", foreignField: "session_uuid", as: "session" } },
-    { $unwind: { path: "$session", preserveNullAndEmptyArrays: false } },
-    { $group: { _id: "$session.person_id", totalSpending: { $sum: "$total_amount" } } }
-  ]);
+    const [result] = await Customer.aggregate([
+        { $match: { locationId } },
+        {
+            $group: {
+                _id: null,
+                totalMembers: { $sum: 1 },
+                newMembersThisMonth: {
+                    $sum: { $cond: [{ $gte: ['$joinDate', monthStart] }, 1, 0] }
+                },
+                absentMembers: {
+                    $sum: {
+                        $cond: [
+                            { $or: [{ $lt: ['$lastVisit', weekAgo] }, { $eq: ['$lastVisit', null] }] },
+                            1, 0
+                        ]
+                    }
+                }
+            }
+        }
+    ]);
 
-  const spendingMap = {};
-  spendingData.forEach(item => spendingMap[item._id] = item.totalSpending);
-  return spendingMap;
-};
-
-/* Process raw data into member objects */
-const processMembers = (rawData, spendingMap) => {
-  const processedMembers = rawData.map(member => {
-    const avgDwellMinutes = (member.totalDwellSeconds / member.totalVisits) / 60;
-    const spending = spendingMap[member._id] || 0;
-
-    const zoneTotals = {};
-    (member.zoneEntries || []).forEach(entry => {
-      if (!entry || !entry.zoneName || !entry.durationSeconds) return;
-      zoneTotals[entry.zoneName] = (zoneTotals[entry.zoneName] || 0) + entry.durationSeconds;
-    });
-
-    const matchedRule = SEGMENT_RULES.find(rule =>
-      member.totalVisits >= rule.minVisits &&
-      avgDwellMinutes >= rule.minDwellTime &&
-      spending >= rule.minSpending
-    ) || SEGMENT_RULES[SEGMENT_RULES.length - 1];
+    const total = result?.totalMembers || 0;
+    const absent = result?.absentMembers || 0;
 
     return {
-      _id: `USR-${member._id.toString().slice(-4)}`,
-      memberCode: member._id.toString().slice(-4),
-      name: null,
-      segmentName: SEGMENT_LABELS[matchedRule.tag] || matchedRule.label,
-      chestShoulder: zoneTotals['Khu tập ngực - vai'] ? Math.round(zoneTotals['Khu tập ngực - vai'] / 60) : 0,
-      back: zoneTotals['Khu tập lưng'] ? Math.round(zoneTotals['Khu tập lưng'] / 60) : 0,
-      legsGlutes: zoneTotals['Khu tập chân - mông'] ? Math.round(zoneTotals['Khu tập chân - mông'] / 60) : 0,
-      visitsPerMonth: member.recentVisits,
-      dwellTime: `${Math.round(avgDwellMinutes)} phút`,
-      note: "Automatically categorized by system rules."
+        totalMembers: total,
+        newMembersThisMonth: result?.newMembersThisMonth || 0,
+        absenteeismRate: total > 0 ? Number(((absent / total) * 100).toFixed(2)) : 0
     };
-  });
-  return processedMembers;
 };
 
-/* Calculate segment summaries */
-const calculateSegments = (processedMembers, spendingMap) => {
-  return SEGMENT_RULES.map(rule => {
-    const membersForTag = processedMembers.filter(m => m.segmentName === (SEGMENT_LABELS[rule.tag] || rule.label));
-    const totalSpend = membersForTag.reduce((sum, item) => sum + (spendingMap[item._id] || 0), 0);
-    return {
-      _id: rule.tag,
-      segmentName: SEGMENT_LABELS[rule.tag] || rule.label,
-      memberCount: membersForTag.length,
-      avgSpend: membersForTag.length ? Math.round(totalSpend / membersForTag.length) : 0
-    };
-  }).filter(seg => seg.memberCount > 0);
+// Lấy danh sách hội viên với filter search/status
+const getMemberList = async (locationId, filters = {}) => {
+    const { search, status } = filters;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const matchQuery = { locationId };
+    if (status) matchQuery.status = status;
+    if (search) {
+        matchQuery.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { phone: { $regex: search, $options: 'i' } },
+            { code: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    return await Customer.aggregate([
+        { $match: matchQuery },
+        { $sort: { joinDate: -1 } },
+        {
+            $project: {
+                id: '$_id',
+                code: 1,
+                name: 1,
+                phone: 1,
+                birthday: 1,
+                totalSessions: { $ifNull: ['$totalSessions', 0] },
+                lastVisit: 1,
+                status: 1,
+                note: { $ifNull: ['$note', ''] },
+                sessionsThisMonth: {
+                    $size: {
+                        $filter: {
+                            input: { $ifNull: ['$history', []] },
+                            as: 'h',
+                            cond: {
+                                $and: [
+                                    { $gte: ['$$h.date', monthStart] },
+                                    { $lt: ['$$h.date', nextMonthStart] }
+                                ]
+                            }
+                        }
+                    }
+                },
+                // Khách đang check-in hôm nay (có check_in, chưa check_out)
+                isCheckedIn: {
+                    $gt: [
+                        {
+                            $size: {
+                                $filter: {
+                                    input: { $ifNull: ['$history', []] },
+                                    as: 'h',
+                                    cond: {
+                                        $and: [
+                                            { $gte: ['$$h.date', today] },
+                                            { $ne: ['$$h.check_in', null] },
+                                            { $eq: ['$$h.check_out', null] }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        0
+                    ]
+                }
+            }
+        }
+    ]);
 };
 
-const buildOverview = (processedMembers) => {
-  return {
-    totalMembers: processedMembers.length,
-    loyalCount: processedMembers.filter(m => m.segmentName === 'Khách thân thiết').length,
-    potentialCount: processedMembers.filter(m => m.segmentName === 'Khách tiềm năng').length,
-    returningRate: processedMembers.length > 0
-      ? ((processedMembers.filter(m => m.visitsPerMonth > 1).length / processedMembers.length) * 100).toFixed(2)
-      : 0
-  };
+// Lấy chi tiết một hội viên theo code
+const getMemberDetail = async (locationId, memberCode) => {
+    const customer = await Customer.findOne({ locationId, code: memberCode }).lean();
+
+    if (!customer) {
+        const err = new Error('Member not found');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    // Tính trạng thái dựa trên lastVisit
+    const now = new Date();
+    const lastVisit = customer.lastVisit;
+    const diffDays = lastVisit ? (now - lastVisit) / (1000 * 60 * 60 * 24) : Infinity;
+
+    let status = 'inactive';
+    if (diffDays <= 7) status = 'absent-short';
+    if (diffDays > 7) status = 'absent-long';
+
+    // Kiểm tra đang check-in hôm nay (check_in hôm nay, chưa check_out)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    const todayVisit = (customer.history || []).find(
+        (h) => h.date >= todayStart && h.date < todayEnd && h.check_in && !h.check_out
+    );
+    if (todayVisit) status = 'active';
+
+    // Trả về 5 lần ghé gần nhất
+    const recentVisits = (customer.history || [])
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5)
+        .map((h) => ({
+            date: h.date?.toISOString().split('T')[0],
+            checkIn: h.check_in,
+            checkOut: h.check_out
+        }));
+
+    // Tìm các rules của location khớp với hội viên này (chỉ retention + revenue)
+    const rules = await CustomerCareRule.find({
+        location_id: locationId,
+        category: { $in: ['retention', 'revenue'] },
+        is_active: true
+    }).lean();
+
+    const matchedRules = rules
+        .filter((rule) => {
+            const metricName = rule.logic?.metric_name || rule.logic?.metricName;
+            const value = getMetricValue(customer, metricName);
+            if (value === null) return false;
+            return evaluate(value, rule.logic.operator, rule.logic.threshold);
+        })
+        .map((rule) => ({
+            ruleName: rule.rule_name,
+            action: rule.action,
+            category: rule.category
+        }));
+
+    return { ...customer, status, recentVisits, matchedRules };
 };
 
-const getMemberSegmentation = async (locationId) => {
-  validateInput(locationId);
+// Tạo mới hoặc cập nhật hội viên theo code (upsert)
+const saveOrUpdateMember = async (locationId, memberData) => {
+    const { code, phone, name, birthday } = memberData;
 
-  const [rawData, spendingMap] = await Promise.all([
-    getRawSessionData(locationId),
-    calculateSpending(locationId)
-  ]);
-  const processedMembers = processMembers(rawData, spendingMap);
-  const segments = calculateSegments(processedMembers, spendingMap);
-  const overview = buildOverview(processedMembers);
+    if (!code) {
+        const err = new Error('code is required');
+        err.statusCode = 400;
+        throw err;
+    }
 
-  return { members: processedMembers, overview, segments };
+    // Kiểm tra phone trùng với hội viên khác (không phải chính nó)
+    if (phone) {
+        const phoneConflict = await Customer.findOne({ phone, code: { $ne: code } });
+        if (phoneConflict) {
+            const err = new Error('Phone already used by another member');
+            err.statusCode = 400;
+            throw err;
+        }
+    }
+
+    const result = await Customer.findOneAndUpdate(
+        { locationId, code },
+        { $set: { ...memberData, locationId } },
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    );
+
+    return result;
 };
 
-module.exports = {
-  getMemberSegmentation
+// Xóa hội viên theo code
+const deleteMember = async (locationId, memberCode) => {
+    const result = await Customer.findOneAndDelete({ locationId, code: memberCode });
+
+    if (!result) {
+        const err = new Error('Member not found');
+        err.statusCode = 404;
+        throw err;
+    }
+
+    return { code: memberCode };
 };
+
+module.exports = { getMemberMetrics, getMemberList, getMemberDetail, saveOrUpdateMember, deleteMember };

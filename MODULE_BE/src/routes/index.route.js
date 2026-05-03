@@ -48,7 +48,7 @@ const routes = (app) => {
       data: req.user || null
     }
     );
-  });
+  }); 
   app.get(`${version}/healthy`, (req, res) => {
     try {
       success({

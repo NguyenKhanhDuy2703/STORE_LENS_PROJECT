@@ -1,78 +1,122 @@
-import { X } from 'lucide-react';
+import { X, Loader } from "lucide-react";
 
-export function MemberDetailPanel({ member, onClose }) {
-  const recentVisits = member.recentVisits || [
-    { date: '18/04/2026', checkIn: '06:30', checkOut: '08:00' },
-    { date: '16/04/2026', checkIn: '06:15', checkOut: '07:45' },
-  ];
+const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString("vi-VN");
+};
 
-  const frequentZones = member.frequentZones || ['Khu Cardio', 'Khu Tạ'];
+const formatTime = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d)) return null;
+    return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+};
 
-  const getCareSuggestion = () => {
-    if (member.status === 'absent-long')  return '⚠️ Khách hàng đã vắng hơn 7 ngày. Vui lòng liên hệ.';
-    if (member.status === 'absent-short') return '💬 Khách hàng chưa đến trong tuần này. Gửi nhắc nhở.';
-    return '✅ Khách hàng đang tập đều đặn. Tiếp tục theo dõi.';
-  };
+const CATEGORY_ICON = { retention: "🔔", revenue: "⭐" };
 
-  return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-card shadow-xl border-l border-border overflow-y-auto z-50">
-      {/* Header */}
-      <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-        <h2 className="font-semibold text-foreground tracking-tight">Chi tiết khách hàng</h2>
-        <button
-          onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
-        >
-          <X size={18} />
-        </button>
-      </div>
+export function MemberDetailPanel({ detail, loading, onClose }) {
+    return (
+        <>
+            {/* Overlay để click ra ngoài đóng panel */}
+            <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
-      <div className="p-6 space-y-6">
-        {/* Avatar + info */}
-        <div className="flex items-center gap-4 pb-5 border-b border-border">
-          <div className="w-14 h-14 rounded-full bg-gradient-accent flex items-center justify-center text-white text-xl font-bold shadow-accent">
-            {member.name?.charAt(0)}
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{member.name}</h3>
-            <p className="text-muted-foreground">{member.code}</p>
-            <p className="text-accent mt-0.5">{member.phone}</p>
-          </div>
-        </div>
-
-        {/* Gợi ý chăm sóc */}
-        <div className="bg-accent/5 border border-accent/20 rounded-xl p-4">
-          <h4 className="font-semibold text-foreground mb-1.5">Gợi ý chăm sóc</h4>
-          <p className="text-muted-foreground">{getCareSuggestion()}</p>
-        </div>
-
-        {/* Lịch sử ghé thăm */}
-        <div>
-          <h4 className="font-semibold text-foreground mb-3">Lịch sử ghé thăm gần nhất</h4>
-          <div className="space-y-2">
-            {recentVisits.map((visit, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl border border-border">
-                <div>
-                  <div className="font-medium text-foreground">{visit.date}</div>
-                  <div className="text-muted-foreground">{visit.checkIn} - {visit.checkOut}</div>
+            <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-xl border-l border-slate-200 overflow-y-auto z-50">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-slate-900">Chi tiết hội viên</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                        title="Đóng"
+                    >
+                        <X size={18} />
+                    </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Khu vực thường xuyên */}
-        <div>
-          <h4 className="font-semibold text-foreground mb-3">Khu vực thường xuyên</h4>
-          <div className="flex flex-wrap gap-2">
-            {frequentZones.map((zone, index) => (
-              <span key={index} className="inline-flex items-center px-3 py-1.5 rounded-full font-medium bg-accent/10 text-accent border border-accent/20">
-                {zone}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+                {loading ? (
+                    <div className="flex items-center justify-center h-48">
+                        <Loader size={24} className="text-teal-500 animate-spin" />
+                    </div>
+                ) : !detail ? null : (
+                    <div className="p-6 space-y-6">
+                        {/* Avatar + info */}
+                        <div className="flex items-center gap-4 pb-5 border-b border-slate-100">
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xl font-bold shrink-0">
+                                {detail.name?.charAt(0)}
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">{detail.name}</h3>
+                                <p className="text-xs text-slate-400">{detail.code}</p>
+                                <p className="text-sm text-teal-600 mt-0.5">{detail.phone}</p>
+                            </div>
+                        </div>
+
+                        {/* Thống kê nhanh */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                                <p className="text-xs text-slate-400 mb-0.5">Tổng buổi</p>
+                                <p className="text-lg font-bold text-slate-800 tabular-nums">{detail.totalSessions ?? 0}</p>
+                            </div>
+                            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                                <p className="text-xs text-slate-400 mb-0.5">Lần ghé cuối</p>
+                                <p className="text-sm font-semibold text-slate-800">{formatDate(detail.lastVisit)}</p>
+                            </div>
+                        </div>
+
+                        {/* Gợi ý chăm sóc từ rules của user */}
+                        <div>
+                            <h4 className="text-xs font-semibold text-slate-700 mb-2">Gợi ý chăm sóc</h4>
+                            {detail.matchedRules && detail.matchedRules.length > 0 ? (
+                                <div className="space-y-2">
+                                    {detail.matchedRules.map((rule, i) => (
+                                        <div key={i} className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-100 p-3">
+                                            <span className="text-base shrink-0">{CATEGORY_ICON[rule.category] || "📌"}</span>
+                                            <div>
+                                                <p className="text-xs font-semibold text-amber-800">{rule.ruleName}</p>
+                                                <p className="text-xs text-amber-700 mt-0.5">{rule.action}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-xl bg-teal-50 border border-teal-100 p-3">
+                                    <p className="text-sm text-teal-700">✅ Hội viên đang ổn, không có cảnh báo nào.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Lịch sử ghé thăm */}
+                        <div>
+                            <h4 className="text-xs font-semibold text-slate-700 mb-3">5 lần ghé gần nhất</h4>
+                            {detail.recentVisits && detail.recentVisits.length > 0 ? (
+                                <div className="space-y-2">
+                                    {detail.recentVisits.map((visit, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <span className="text-sm font-medium text-slate-700">{visit.date}</span>
+                                            <span className="text-xs text-slate-400">
+                                                {formatTime(visit.checkIn) || "—"}
+                                                {visit.checkOut ? ` → ${formatTime(visit.checkOut)}` : " (đang tập)"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-slate-400">Chưa có lịch sử ghé thăm.</p>
+                            )}
+                        </div>
+
+                        {/* Ghi chú */}
+                        {detail.note && (
+                            <div>
+                                <h4 className="text-xs font-semibold text-slate-700 mb-1">Ghi chú</h4>
+                                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl p-3 border border-slate-100">{detail.note}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </>
+    );
 }
