@@ -8,6 +8,15 @@ const dateUtil = ({ type, startCustom, endCustom }) => {
     endDate = nowInVN.clone().endOf('day');
 
     switch (type) {
+
+
+        case 'specificMonth': 
+            // Tạo ngày bắt đầu tháng (ví dụ: 2026-04-01)
+            startDate = moment.tz(`${year}-${month}-01`, "YYYY-MM-DD", TIMEZONE).startOf('month');
+            // Tạo ngày kết thúc tháng (ví dụ: 2026-04-30)
+            endDate = moment(startDate).clone().endOf('month');
+            break;
+
         case "today":
             break;
 
@@ -23,7 +32,11 @@ const dateUtil = ({ type, startCustom, endCustom }) => {
         case "last30days":
             startDate.subtract(29, 'days');
             break;
-
+        case "thisYear":
+    
+          startDate = nowInVN.clone().startOf('year');
+          endDate = nowInVN.clone().endOf('year');
+    break;
         case "custom":
             if (startCustom && endCustom) {
                 startDate = moment.tz(startCustom, TIMEZONE).startOf('day');
