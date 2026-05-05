@@ -5,6 +5,7 @@ import useScrollVisibility from '@/hooks/useScrollVisibility';
 import { setLocation, initializeFilterByUserRole } from '../../redux/slices/global.slice';
 import { getCameraAndZoneInfo } from '../../services/camera.api';
 import { syncLocationStats, syncZoneStats } from '../../services/async.api';
+import exportReportService from '../../services/exportreport.api';
 import { showCompactSuccessAlert, showCompactErrorAlert } from '../../utils/swal';
 import FilterSelect from '../common/FilterSelect';
 
@@ -21,6 +22,7 @@ export const GlobalFilter = () => {
     (state) => state.filter
   );
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const isVisible = useScrollVisibility(150);
 
@@ -69,6 +71,36 @@ export const GlobalFilter = () => {
       showCompactErrorAlert({ title: 'Đồng bộ thất bại', text: err?.message || 'Vui lòng thử lại.' });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!effectiveLocationId || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const response = await exportReportService.exportComprehensiveReport(effectiveLocationId, {
+        type: 'thisYear',
+      });
+
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Bao_Cao_Tong_Hop.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showCompactSuccessAlert({ title: 'Xuất báo cáo thành công' });
+    } catch (err) {
+      console.error(err);
+      showCompactErrorAlert({ title: 'Lỗi', text: 'Không thể xuất báo cáo.' });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -139,9 +171,13 @@ export const GlobalFilter = () => {
               Nhập POS
             </button>
 
-            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-gradient-accent text-sm font-semibold text-white shadow-sm hover:shadow-accent transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]">
-              <FileText size={15} />
-              Xuất báo cáo
+            <button
+              onClick={handleExport}
+              disabled={isExporting || !effectiveLocationId}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-gradient-accent text-sm font-semibold text-white shadow-sm hover:shadow-accent transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? <RefreshCw className="animate-spin" size={15} /> : <FileText size={15} />}
+              {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
             </button>
           </div>
         </div>
