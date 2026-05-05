@@ -16,6 +16,7 @@ const assetRoutes = require("./asset.routes");
 const notificationRoutes = require("./notification.routes");
 const dwellTimeRoutes = require("./dwelltime.routes");
 const flowPatternsRoutes = require("./flowPatterns.routes");
+const businessEventRoutes = require("./businessEvent.routes");
 const {
   authenticationToken,
   ALLOWED_ALL,
@@ -38,6 +39,7 @@ const routes = (app) => {
   app.use(`${version}/notification`, notificationRoutes);
   app.use(`${version}/dwell-time`, dwellTimeRoutes);
   app.use(`${version}/flow-patterns`, flowPatternsRoutes);
+  app.use(`${version}/business-event`, businessEventRoutes);
   app.get(`${version}/gettoken`, authenticationToken, ALLOWED_ALL, (req, res) => {
     return success({
       res,
