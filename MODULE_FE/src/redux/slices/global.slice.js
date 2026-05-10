@@ -1,6 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { loginThunk, checkAuthThunk, logoutThunk } from '../../features/Authentication/auth.thunk';
 
+const now = new Date();
+
 const initialState = {
 	user: null,
 	userRole: null,
@@ -8,7 +10,11 @@ const initialState = {
 	allocation: null,
 	locationId: 'loc_all',
 	cameraId: 'cam_all',
-	date: new Date().toISOString().split('T')[0],
+	// Month-based filter (Option A)
+	selectedMonth: {
+		year:  now.getFullYear(),
+		month: now.getMonth() + 1,  // 1-indexed
+	},
 	isAutoSelected: false,
 };
 
@@ -54,8 +60,9 @@ const globalSlice = createSlice({
 		setCamera: (state, action) => {
 			state.cameraId = action.payload;
 		},
-		setDate: (state, action) => {
-			state.date = action.payload;
+		setSelectedMonth: (state, action) => {
+			// payload: { year: number, month: number }
+			state.selectedMonth = action.payload;
 		},
 		initializeFilterByUserRole: (state, action) => {
 			const { userRole, userLocationId } = action.payload;
@@ -64,9 +71,10 @@ const globalSlice = createSlice({
 			applyRoleFilterState(state, userRole, userLocationId);
 		},
 		resetFilter: (state) => {
+			const n = new Date();
 			state.locationId = 'loc_all';
 			state.cameraId = 'cam_all';
-			state.date = new Date().toISOString().split('T')[0];
+			state.selectedMonth = { year: n.getFullYear(), month: n.getMonth() + 1 };
 			state.isAutoSelected = false;
 		},
 	},
@@ -113,7 +121,7 @@ export const {
 	clearUser,
 	setLocation,
 	setCamera,
-	setDate,
+	setSelectedMonth,
 	initializeFilterByUserRole,
 	resetFilter,
 } = globalSlice.actions;

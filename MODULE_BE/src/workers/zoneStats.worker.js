@@ -71,18 +71,18 @@ const zoneStatsWorker = {
           $set: {
             "performance.conversion_rate": {
               $cond: [
-                { $gt: ["$performance.people_count", 0] }, // điều kiện: nếu people_count > 0
+                { $gt: ["$performance.people_count", 0] },
                 {
                   $multiply: [
                     {
                       $divide: [
+                        "$performance.total_events",
                         "$performance.people_count",
-                        "$performance.total_sales_value",
                       ],
                     },
                     100,
                   ],
-                }, // nếu điều kiện đúng: tính conversion_rate = total_sales_value / people_count
+                },
                 0,
               ],
             },

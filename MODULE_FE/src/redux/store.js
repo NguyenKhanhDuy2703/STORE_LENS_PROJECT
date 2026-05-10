@@ -12,6 +12,7 @@ import dwellTimeReducer from "../features/Downtime/dwellTime.slice";
 import areaAnalysisReducer from "../features/AnalyticsArea/area.slice";
 import analyticsFlowReducer from "../features/AnalyticsFlow/analyticsFlow.slice";
 import memberReducer from "../features/ManagermentMember/member.slice";
+import businessEventReducer from "../features/BusinessEvent/businessEvent.slice";
 
 const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ const store = configureStore({
     areaAnalysis: areaAnalysisReducer,
     analyticsFlow: analyticsFlowReducer,
     member: memberReducer,
+    businessEvent: businessEventReducer,
   },
 });
 

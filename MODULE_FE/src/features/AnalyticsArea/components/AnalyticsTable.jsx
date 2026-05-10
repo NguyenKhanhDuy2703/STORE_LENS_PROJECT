@@ -17,37 +17,37 @@ const formatDwellMinutes = (minutes) => `${minutes.toFixed(1)} phút`;
 const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
   const rows = Array.isArray(performanceDetails) ? performanceDetails : [];
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      <div className="p-6 border-b border-slate-200">
-        <h3 className="text-lg font-semibold text-slate-900">
+    <div className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      <div className="p-6 border-b border-border">
+        <h3 className="text-lg font-semibold text-foreground">
           Trạng thái chi tiết khu vực
         </h3>
       </div>
       <div className="overflow-auto max-h-[560px]">
         <table className="w-full min-w-[1200px] text-left">
-          <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+          <thead className="bg-muted border-b border-border sticky top-0 z-10">
             <tr>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Khu vực
               </th>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Khách hiện tại
               </th>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Lượt ghé hôm nay
               </th>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Thời gian dừng TB
               </th>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Hiệu suất chuyển đổi
               </th>
-              <th className="px-7 py-5 text-sm font-semibold text-slate-500 tracking-tight">
+              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Biến động
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {rows.map((row) => {
               const dwellPercent = Math.min(
                 (row.avgDwellMinutes / maxDwellTime) * 100,
@@ -62,60 +62,61 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
               return (
                 <tr
                   key={row.zoneId}
-                  className="hover:bg-slate-50 transition"
+                  className="hover:bg-muted transition"
                 >
-                  <td className="px-7 py-5">
-                    <p className="text-base font-bold text-slate-900 leading-tight">
+                  <td className="px-7 py-4">
+                    {/* font-bold kept intentionally: primary identifier cell in data row, not a heading */}
+                    <p className="text-sm font-semibold text-foreground leading-tight">
                       {row.zoneName}
                     </p>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {row.categoryName}
                     </p>
                   </td>
 
-                  <td className="px-7 py-5">
+                  <td className="px-7 py-4">
                     <span
-                      className={`inline-flex items-center justify-center w-11 h-11 rounded-full border text-sm font-semibold ${getDensityBadgeStyle(row.currentPeople)}`}
+                      className={`inline-flex items-center justify-center w-9 h-9 rounded-full border text-sm font-semibold ${getDensityBadgeStyle(row.currentPeople)}`}
                     >
                       {row.currentPeople}
                     </span>
                   </td>
 
-                  <td className="px-7 py-5 text-base font-semibold text-slate-900 tabular-nums">
+                  <td className="px-7 py-4 text-sm font-semibold text-foreground tabular-nums">
                     {row.visitsToday.toLocaleString("vi-VN")}
                   </td>
 
-                  <td className="px-7 py-5 min-w-60">
-                    <div className="flex items-center gap-4">
-                      <div className="w-full h-2.5 rounded-full bg-orange-100 overflow-hidden">
+                  <td className="px-7 py-4 min-w-60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
                         <div
                           className="h-full bg-orange-500 rounded-full"
                           style={{ width: `${dwellPercent}%` }}
                         />
                       </div>
-                      <span className="text-base font-medium text-slate-800 min-w-[90px] tabular-nums">
+                      <span className="text-sm font-medium text-foreground min-w-[80px] tabular-nums">
                         {formatDwellMinutes(row.avgDwellMinutes)}
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-7 py-5 min-w-60">
-                    <div className="flex items-center gap-4">
-                      <div className="w-full h-2.5 rounded-full bg-teal-100 overflow-hidden">
+                  <td className="px-7 py-4 min-w-60">
+                    <div className="flex items-center gap-3">
+                      <div className="w-full h-2 rounded-full bg-teal-100 overflow-hidden">
                         <div
                           className="h-full bg-teal-500 rounded-full"
                           style={{ width: `${conversionPercent}%` }}
                         />
                       </div>
-                      <span className="text-base font-medium text-slate-800 min-w-[70px] tabular-nums">
+                      <span className="text-sm font-medium text-foreground min-w-[60px] tabular-nums">
                         {row.conversionRate.toFixed(0)}%
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-7 py-5">
+                  <td className="px-7 py-4">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-base font-semibold tabular-nums ${isGrowthUp ? "text-emerald-600" : "text-rose-600"}`}
+                      className={`inline-flex items-center gap-1.5 text-sm font-semibold tabular-nums ${isGrowthUp ? "text-emerald-600" : "text-rose-600"}`}
                     >
                       {isGrowthUp ? (
                         <ArrowUpRight size={18} />
@@ -134,7 +135,7 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
               <tr>
                 <td
                   colSpan="6"
-                  className="px-7 py-10 text-center text-base text-slate-500"
+                  className="px-7 py-10 text-center text-sm text-muted-foreground"
                 >
                   Không có dữ liệu khu vực phù hợp với bộ lọc hiện tại.
                 </td>

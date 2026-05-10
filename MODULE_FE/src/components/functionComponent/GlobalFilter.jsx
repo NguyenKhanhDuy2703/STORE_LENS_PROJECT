@@ -1,30 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RefreshCw, Upload, FileText } from 'lucide-react';
+import { RefreshCw, Upload, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import useScrollVisibility from '@/hooks/useScrollVisibility';
-import { setLocation, initializeFilterByUserRole } from '../../redux/slices/global.slice';
+import { setLocation, setSelectedMonth, initializeFilterByUserRole } from '../../redux/slices/global.slice';
 import { getCameraAndZoneInfo } from '../../services/camera.api';
 import { syncLocationStats, syncZoneStats } from '../../services/async.api';
 import exportReportService from '../../services/exportreport.api';
 import { showCompactSuccessAlert, showCompactErrorAlert } from '../../utils/swal';
 import FilterSelect from '../common/FilterSelect';
+import PosUploadModal from '../common/PosUploadModal';
+import { fetchMonthlyKPIMetrics, fetchDailyStats, fetchYearlyStats, fetchMonthlyZoneAnalytics } from '../../features/Dashboard/dashboard.thunk';
 
-const datePresetOptions = [
-  { id: 'today',     label: 'Hôm nay' },
-  { id: 'yesterday', label: 'Hôm qua' },
-  { id: 'last7',     label: '7 ngày qua' },
-  { id: 'last30',    label: '30 ngày qua' },
+const MONTH_NAMES = [
+  'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4',
+  'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8',
+  'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12',
 ];
 
 export const GlobalFilter = () => {
   const dispatch = useDispatch();
-  const { user, allocation, locationId: selectedLocationId, userLocationId, isAutoSelected } = useSelector(
+  const { user, allocation, locationId: selectedLocationId, selectedMonth, userLocationId, isAutoSelected } = useSelector(
     (state) => state.filter
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPosModalOpen, setIsPosModalOpen] = useState(false);
 
   const isVisible = useScrollVisibility(150);
+
+  const now = new Date();
+  const { year, month } = selectedMonth || { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
   // Khởi tạo filter theo role khi user thay đổi
   useEffect(() => {
@@ -40,6 +46,18 @@ export const GlobalFilter = () => {
     dispatch(setLocation(e.target.value));
   };
 
+  // Điều hướng tháng
+  const handlePrevMonth = () => {
+    const d = new Date(year, month - 2); // month-2 vì month là 1-indexed
+    dispatch(setSelectedMonth({ year: d.getFullYear(), month: d.getMonth() + 1 }));
+  };
+
+  const handleNextMonth = () => {
+    if (isCurrentMonth) return;
+    const d = new Date(year, month); // month là next month (0-indexed)
+    dispatch(setSelectedMonth({ year: d.getFullYear(), month: d.getMonth() + 1 }));
+  };
+
   // Lấy locationId hiệu lực (bỏ qua loc_all)
   const effectiveLocationId = selectedLocationId !== 'loc_all' ? selectedLocationId : userLocationId;
 
@@ -49,10 +67,8 @@ export const GlobalFilter = () => {
 
     setIsSyncing(true);
     try {
-      // 1. Đồng bộ LocationStats
+      // 1. Ghi dữ liệu vào MongoDB qua worker
       await syncLocationStats(effectiveLocationId);
-
-      // 2. Lấy danh sách zone rồi đồng bộ từng zone song song
       const zones = await getCameraAndZoneInfo(effectiveLocationId);
       if (Array.isArray(zones) && zones.length > 0) {
         await Promise.allSettled(
@@ -65,6 +81,14 @@ export const GlobalFilter = () => {
           )
         );
       }
+
+      // 2. Re-fetch dashboard data để cập nhật UI từ MongoDB
+      await Promise.allSettled([
+        dispatch(fetchMonthlyKPIMetrics({ locationId: effectiveLocationId, year, month })),
+        dispatch(fetchDailyStats({ locationId: effectiveLocationId, year, month })),
+        dispatch(fetchYearlyStats({ locationId: effectiveLocationId, year })),
+        dispatch(fetchMonthlyZoneAnalytics({ locationId: effectiveLocationId, year, month })),
+      ]);
 
       showCompactSuccessAlert({ title: 'Đồng bộ thành công', text: 'Dữ liệu đã được cập nhật.' });
     } catch (err) {
@@ -82,7 +106,6 @@ export const GlobalFilter = () => {
       const response = await exportReportService.exportComprehensiveReport(effectiveLocationId, {
         type: 'thisYear',
       });
-
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
@@ -94,7 +117,6 @@ export const GlobalFilter = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
       showCompactSuccessAlert({ title: 'Xuất báo cáo thành công' });
     } catch (err) {
       console.error(err);
@@ -144,18 +166,41 @@ export const GlobalFilter = () => {
               }))}
             />
 
-            {/* Date preset */}
-            <FilterSelect
-              label="Khoảng thời gian"
-              value={datePresetOptions[0].id}
-              onChange={() => {}}
-              options={datePresetOptions.map((opt) => ({ value: opt.id, label: opt.label }))}
-            />
+            {/* Month Navigator */}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                Khoảng thời gian
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handlePrevMonth}
+                  className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title="Tháng trước"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-semibold text-foreground min-w-[110px] text-center select-none">
+                  {MONTH_NAMES[month - 1]}/{year}
+                  {isCurrentMonth && (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700">
+                      Hiện tại
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={handleNextMonth}
+                  disabled={isCurrentMonth}
+                  className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Tháng sau"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* RIGHT: Actions */}
           <div className="flex items-center gap-2.5">
-            {/* Đồng bộ — gọi asyncLocationStats + asyncZoneStats */}
             <button
               onClick={handleSync}
               disabled={isSyncing || !effectiveLocationId}
@@ -166,7 +211,11 @@ export const GlobalFilter = () => {
               {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
             </button>
 
-            <button className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200">
+            <button 
+              onClick={() => setIsPosModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:border-emerald-500/30 transition-all duration-200"
+              title="Nhập dữ liệu hóa đơn bán hàng từ máy POS"
+            >
               <Upload size={15} />
               Nhập POS
             </button>
@@ -182,6 +231,13 @@ export const GlobalFilter = () => {
           </div>
         </div>
       </div>
+      
+      {/* POS Upload Modal */}
+      <PosUploadModal 
+        isOpen={isPosModalOpen} 
+        onClose={() => setIsPosModalOpen(false)} 
+        locationId={effectiveLocationId}
+      />
     </div>
   );
 };

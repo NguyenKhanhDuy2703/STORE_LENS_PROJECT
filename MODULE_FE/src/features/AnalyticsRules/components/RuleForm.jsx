@@ -117,7 +117,7 @@ const RuleForm = ({
         {/* Category selector — chỉ hiện khi có nhiều category */}
         {normalizedCategories.length > 1 && (
           <div>
-            <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">Nhóm quy tắc</label>
+            <label className="block label-mono mb-1.5">Nhóm quy tắc</label>
             <select
               className={inputClass}
               value={formData.category}
@@ -133,7 +133,7 @@ const RuleForm = ({
 
         {/* Tên quy tắc */}
         <div>
-          <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">Tên quy tắc</label>
+          <label className="block label-mono mb-1.5">Tên quy tắc</label>
           <input
             type="text"
             className={inputClass}
@@ -145,7 +145,7 @@ const RuleForm = ({
 
         {/* Metric */}
         <div>
-          <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">Chỉ số đánh giá</label>
+          <label className="block label-mono mb-1.5">Chỉ số đánh giá</label>
           <select
             className={inputClass}
             value={formData.metricName}
@@ -161,7 +161,7 @@ const RuleForm = ({
         {/* Operator + Threshold */}
         <div className="grid grid-cols-12 gap-2">
           <div className="col-span-4">
-            <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">So sánh</label>
+            <label className="block label-mono mb-1.5">So sánh</label>
             <select
               className={inputClass}
               value={formData.operator}
@@ -173,7 +173,7 @@ const RuleForm = ({
             </select>
           </div>
           <div className="col-span-8">
-            <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">
+            <label className="block label-mono mb-1.5">
               Ngưỡng {selectedMetric ? `(${selectedMetric.unit})` : ""}
             </label>
             <input
@@ -190,7 +190,7 @@ const RuleForm = ({
         {/* Zone — dùng zones từ DB */}
         {showZoneField && (
           <div>
-            <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">
+            <label className="block label-mono mb-1.5">
               Khu vực {requireZoneField ? "*" : ""}
             </label>
             <select
@@ -211,7 +211,7 @@ const RuleForm = ({
 
         {/* Hành động — input tự do thay vì dropdown hardcode */}
         <div>
-          <label className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-1.5">Hành động</label>
+          <label className="block label-mono mb-1.5">Hành động</label>
           <input
             type="text"
             className={inputClass}

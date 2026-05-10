@@ -31,6 +31,7 @@ const realtimeStatWorker = {
     );
 
     // Upsert vào LocationStats.realtime (persist)
+    let actualTotalInStore = totalInStore;
     try {
       const { startDate: today } = dateUtil({ type: "today" });
 
@@ -39,19 +40,38 @@ const realtimeStatWorker = {
         zoneCountsSet[`realtime.zone_counts.${zoneId}`] = Number(count) || 0;
       }
 
-      await locationStatsSchema.updateOne(
+      const cameraCountsSet = {};
+      if (infor.camera_id) {
+        cameraCountsSet[`realtime.camera_counts.${infor.camera_id}`] = totalInStore;
+      }
+
+      const updatedDoc = await locationStatsSchema.findOneAndUpdate(
         { location_id, date: today },
         {
           $set: {
-            "realtime.people_current": totalInStore,
             ...zoneCountsSet,
+            ...cameraCountsSet,
           },
           $setOnInsert: {
             location_id,
             date: today,
           },
         },
-        { upsert: true },
+        { upsert: true, new: true }
+      );
+
+      // Sum all camera counts to get the actual total in store
+      if (updatedDoc && updatedDoc.realtime && updatedDoc.realtime.camera_counts) {
+        actualTotalInStore = 0;
+        for (const count of updatedDoc.realtime.camera_counts.values()) {
+          actualTotalInStore += count;
+        }
+      }
+
+      // Update the people_current field with the correct sum
+      await locationStatsSchema.updateOne(
+        { _id: updatedDoc._id },
+        { $set: { "realtime.people_current": actualTotalInStore } }
       );
     } catch (err) {
       logger.error(`[realtimeStat] DB upsert failed: ${err.message}`);
@@ -61,7 +81,7 @@ const realtimeStatWorker = {
     if (io) {
       io.to(location_id).emit("realtime_people_count", {
         location_id,
-        people_current: totalInStore,
+        people_current: actualTotalInStore,
         zone_counts: zoneCounts,
       });
     }

@@ -2,6 +2,7 @@ const exportReportService = require("../service/exportReport.service");
 const catchAsync = require("../utils/catchAsync");
 const { error } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
+const moment = require('moment-timezone');
 
 const exportAttendanceReportController = catchAsync(async (req, res) => {
     const { locationId } = req.params;
@@ -14,7 +15,8 @@ const exportAttendanceReportController = catchAsync(async (req, res) => {
     // GỌI SERVICE TỔNG HỢP với params
     const workbook = await exportReportService.exportComprehensiveReportService(locationId, { type, startCustom, endCustom, months, year });
 
-    const fileName = `Bao_Cao_Tong_Hop_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const vietDate = moment().tz('Asia/Ho_Chi_Minh').format('YYYY-MM-DD');
+    const fileName = `Bao_Cao_Tong_Hop_${vietDate}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
 

@@ -37,6 +37,7 @@ class DwellTimeAnalysis:
             "dwell_time": round(obj_dwell_time["dwell_time"], 2),
             "pos_x": int(obj_dwell_time["last_pos"][0]), 
             "pos_y": int(obj_dwell_time["last_pos"][1]),
+            "zone_id": obj_dwell_time.get("current_zone"),  # zone đúng của track này
             "timestamp": time.time()
         }
         
@@ -99,3 +100,11 @@ class DwellTimeAnalysis:
         for track_id in to_delete:
             del self.dwell_times[track_id]
             ZoneAnalysis().cleanup_event_person_zone(track_id)
+
+    def flush_all_active(self):
+        """Gọi finalize_stop_event cho tất cả track đang tích lũy dwell_time.
+        Dùng khi stream kết thúc để không mất data của người đứng yên đến cuối video."""
+        for track_id in list(self.dwell_times.keys()):
+            obj = self.dwell_times.get(track_id)
+            if obj and obj["dwell_time"] >= self.time_threshold:
+                self.finalize_stop_event(track_id)

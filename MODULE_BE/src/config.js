@@ -41,7 +41,7 @@ class setting {
     },
     this.socketIo = {
       cors: {
-        origin: ["http://localhost:5173", "http://172.20.176.1:5173"],
+        origin: ["http://localhost:5173","http://172.20.176.1:5173","https://space-lens-project.vercel.app"],
         methods: ["GET", "POST"],
         credentials: true,
       }

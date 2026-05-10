@@ -1,9 +1,10 @@
 const BusinessEvent = require('../schemas/businessEvent.schema');
 
 const upsertBusinessEvent = async (data) => {
+    const { event_code, ...updateFields } = data;
     const result = await BusinessEvent.findOneAndUpdate(
-        { event_code: data.event_code },
-        data,
+        { event_code },
+        { $set: updateFields },
         { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
     return result;

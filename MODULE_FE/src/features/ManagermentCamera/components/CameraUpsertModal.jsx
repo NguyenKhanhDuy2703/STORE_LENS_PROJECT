@@ -179,7 +179,7 @@ export const CameraUpsertModal = ({
               { label: 'URL ảnh chụp', field: 'snapshotUrl', placeholder: 'https://camera.local/snapshot.jpg', span: 'xl:col-span-2' },
             ].map(({ label, field, readOnly, placeholder, span }) => (
               <label key={field} className={`space-y-1.5 ${span}`}>
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+                <span className="label-mono">{label}</span>
                 <input
                   value={formData[field]}
                   onChange={handleChange(field)}
@@ -191,7 +191,7 @@ export const CameraUpsertModal = ({
             ))}
 
             <label className="space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Trạng thái</span>
+              <span className="label-mono">Trạng thái</span>
               <select
                 value={formData.status}
                 onChange={handleChange('status')}
@@ -204,7 +204,7 @@ export const CameraUpsertModal = ({
             </label>
 
             <label className="space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Ngày lắp đặt</span>
+              <span className="label-mono">Ngày lắp đặt</span>
               <input
                 type="datetime-local"
                 value={formData.installationDate}
@@ -214,7 +214,7 @@ export const CameraUpsertModal = ({
             </label>
 
             <label className="space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Độ phân giải tối đa</span>
+              <span className="label-mono">Độ phân giải tối đa</span>
               <input
                 value={formData.maxResolution}
                 onChange={handleChange('maxResolution')}
@@ -224,7 +224,7 @@ export const CameraUpsertModal = ({
             </label>
 
             <label className="space-y-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Độ phân giải hiện tại</span>
+              <span className="label-mono">Độ phân giải hiện tại</span>
               <input
                 value={formData.currentResolution}
                 onChange={handleChange('currentResolution')}

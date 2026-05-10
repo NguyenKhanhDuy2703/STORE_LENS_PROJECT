@@ -31,6 +31,8 @@ const ManagermentCameraPage = () => {
   const [isUpsertModalOpen, setIsUpsertModalOpen] = useState(false);
   const [editingCamera, setEditingCamera] = useState(null);
   const [isUpsertSubmitting, setIsUpsertSubmitting] = useState(false);
+  // Giữ disable button Power suốt quá trình toggle + re-fetch dashboard
+  const [togglingCodeLock, setTogglingCodeLock] = useState(null);
 
   useEffect(() => {
     if (effectiveLocationId) {
@@ -144,6 +146,8 @@ const ManagermentCameraPage = () => {
       return;
     }
 
+    // Lock button ngay lập tức, giữ đến khi cả toggle + re-fetch hoàn tất
+    setTogglingCodeLock(cameraCode);
     try {
       if (isCameraRunning) {
         await dispatch(turnOffCameraThunk({ cameraCode, urlRtsp })).unwrap();
@@ -152,8 +156,10 @@ const ManagermentCameraPage = () => {
       }
 
       showCompactSuccessAlert({
-        title: isCameraRunning ? 'Đã tắt phân tích' : 'Đã bật phân tích',
-        text: `Camera ${cameraCode} đã được ${isCameraRunning ? 'tắt' : 'bật'} thành công.`,
+        title: isCameraRunning ? 'Đang tắt phân tích...' : 'Đã bật phân tích',
+        text: isCameraRunning
+          ? `Camera ${cameraCode} đang được tắt, vui lòng chờ.`
+          : `Camera ${cameraCode} đã được bật thành công.`,
       });
 
       await dispatch(fetchCameraDashboardThunk(effectiveLocationId));
@@ -162,6 +168,8 @@ const ManagermentCameraPage = () => {
         title: isCameraRunning ? 'Tắt camera thất bại' : 'Bật camera thất bại',
         text: toggleError || 'Không thể thay đổi trạng thái camera.',
       });
+    } finally {
+      setTogglingCodeLock(null);
     }
   };
 
@@ -208,7 +216,7 @@ const ManagermentCameraPage = () => {
           onDelete={handleDeleteCamera}
           onEdit={openEditModal}
           onTogglePower={handleToggleCameraPower}
-          togglingCameraCode={togglingCameraCode}
+          togglingCameraCode={togglingCodeLock || togglingCameraCode}
         />
 
         <CameraUpsertModal

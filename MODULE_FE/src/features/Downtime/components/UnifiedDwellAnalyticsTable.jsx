@@ -31,7 +31,7 @@ const STATUS_CONFIG = {
   },
   NORMAL: {
     label: 'Ổn định',
-    color: 'bg-slate-100 text-slate-700 border-slate-200',
+    color: 'bg-muted text-muted-foreground border-border',
     icon: CheckCircle,
   },
 };
@@ -43,8 +43,8 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
 
   if (isLoading) {
     return (
-      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-8 py-10 text-center text-sm text-slate-500">Đang tải dữ liệu dwell time...</div>
+      <section className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-8 py-10 text-center text-sm text-muted-foreground">Đang tải dữ liệu dwell time...</div>
       </section>
     );
   }
@@ -60,12 +60,12 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
         <table className="w-full min-w-[980px] text-left border-collapse">
           <thead className="border-b border-border">
             <tr>
-              <th className="px-8 py-4">Khu vực</th>
-              <th className="px-8 py-4 text-center">Lượng khách</th>
-              <th className="px-8 py-4 text-center">Lượt dừng</th>
-              <th className="px-8 py-4">TG Dừng TB</th>
-              <th className="px-8 py-4">Doanh thu</th>
-              <th className="px-8 py-4">Đánh giá</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Khu vực</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Lượng khách</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-center">Lượt dừng</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">TG Dừng TB</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Doanh thu</th>
+              <th className="px-8 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Đánh giá</th>
             </tr>
           </thead>
 
@@ -78,41 +78,41 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
 
               return (
                 <tr key={row.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-8 py-5 font-semibold text-foreground">{row.categoryName}</td>
+                  <td className="px-8 py-4 text-sm font-semibold text-foreground">{row.categoryName}</td>
 
-                  <td className="px-8 py-5 text-center">
-                    <span className="font-semibold text-foreground tabular-nums">{row.peopleCount.toLocaleString('vi-VN')}</span>
+                  <td className="px-8 py-4 text-center">
+                    <span className="text-sm font-semibold text-foreground tabular-nums">{row.peopleCount.toLocaleString('vi-VN')}</span>
                   </td>
 
-                  <td className="px-8 py-5 text-center">
-                    <span className="font-semibold text-foreground tabular-nums">{row.stopCount.toLocaleString('vi-VN')}</span>
+                  <td className="px-8 py-4 text-center">
+                    <span className="text-sm font-semibold text-foreground tabular-nums">{row.stopCount.toLocaleString('vi-VN')}</span>
                   </td>
 
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4 min-w-60">
-                      <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                  <td className="px-8 py-4">
+                    <div className="flex items-center gap-3 min-w-52">
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-orange-500 rounded-full" style={{ width: `${timePercent}%` }} />
                       </div>
-                      <span className="font-semibold text-foreground min-w-[88px] tabular-nums">
+                      <span className="text-sm font-semibold text-foreground min-w-[80px] tabular-nums">
                         {formatSeconds(row.avgTime)}
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4 min-w-[290px]">
-                      <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                  <td className="px-8 py-4">
+                    <div className="flex items-center gap-3 min-w-[260px]">
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                         <div className="h-full bg-teal-500 rounded-full" style={{ width: `${salesPercent}%` }} />
                       </div>
-                      <span className="font-semibold text-foreground min-w-40 text-right tabular-nums">
+                      <span className="text-sm font-semibold text-foreground min-w-36 text-right tabular-nums">
                         {formatCurrencyVND(row.totalSales)}
                       </span>
                     </div>
                   </td>
 
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full font-semibold border ${status.color}`}>
-                      <StatusIcon size={14} strokeWidth={2.2} />
+                  <td className="px-8 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${status.color}`}>
+                      <StatusIcon size={12} strokeWidth={2.2} />
                       {status.label}
                     </span>
                   </td>

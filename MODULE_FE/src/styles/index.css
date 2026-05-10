@@ -234,6 +234,16 @@
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));
 }
 
+/* Monospace label — dùng cho form labels, badges, section headers dạng uppercase */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted-foreground);
+}
+
 /* Gradient border effect — wrap content với class này */
 .gradient-border {
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-secondary));

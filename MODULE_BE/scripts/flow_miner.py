@@ -25,11 +25,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-# ─────────────────────────────────────────────
-# Shared: kết nối DB và fetch dữ liệu chung
-# ─────────────────────────────────────────────
-
 class ZoneDataFetcher:
     """Kết nối MongoDB và fetch zone_sequence từ sessions."""
 
@@ -47,7 +42,6 @@ class ZoneDataFetcher:
         self.zones = db["zones"]
 
     def _build_zone_name_map(self) -> dict:
-        """Build map zone_id → zone_name từ zones collection."""
         zone_docs = self.zones.find(
             {"location_id": self.location_id},
             {"zone_id": 1, "zone_name": 1}
@@ -55,11 +49,6 @@ class ZoneDataFetcher:
         return {z["zone_id"]: z["zone_name"] for z in zone_docs if z.get("zone_id") and z.get("zone_name")}
 
     def fetch_sequences(self) -> list:
-        """
-        Query sessions theo location_id.
-        Trả về list các zone_name sequences đã sort theo entry_time.
-        Lọc bỏ session có ít hơn 2 zones.
-        """
         zone_name_map = self._build_zone_name_map()
 
         cursor = self.sessions.find(
@@ -73,7 +62,6 @@ class ZoneDataFetcher:
                 [z for z in zones if z.get("zone_id")],
                 key=lambda z: z.get("entry_time") or 0
             )
-            # Dùng zone_name nếu có, fallback về zone_id (bỏ dấu _ cho dễ đọc)
             zone_labels = [
                 zone_name_map.get(z["zone_id"], z["zone_id"].replace("_", " "))
                 for z in sorted_zones
@@ -97,7 +85,6 @@ class FPGrowthMiner:
         self.min_lift = min_lift
 
     def _preprocess(self, sequences: list) -> pd.DataFrame:
-        """Encode sequences thành DataFrame boolean (bỏ thứ tự)."""
         te = TransactionEncoder()
         te_array = te.fit(sequences).transform(sequences)
         return pd.DataFrame(te_array, columns=te.columns_)
@@ -127,8 +114,8 @@ class FPGrowthMiner:
             for _, row in rules.iterrows():
                 patterns.append({
                     "pattern_type": "association_rule",
-                    "antecedent_zones": list(row["antecedents"]),  # frozenset → list
-                    "consequent_zones": list(row["consequents"]),  # frozenset → list
+                    "antecedent_zones": list(row["antecedents"]),  
+                    "consequent_zones": list(row["consequents"]),  
                     "support_score": float(row["support"]),
                     "confidence_score": float(row["confidence"]),
                     "lift_score": float(row["lift"])
@@ -152,27 +139,20 @@ class PrefixSpanMiner:
         self.min_confidence = min_confidence
 
     def _is_subsequence(self, sub: list, seq: list) -> bool:
-        """Kiểm tra sub có xuất hiện theo đúng thứ tự trong seq không."""
         it = iter(seq)
         return all(item in it for item in sub)
 
     def _generate_rules(self, freq_patterns: list, sequences: list) -> list:
-        """
-        Sinh sequential rules từ frequent patterns.
-        Rule: [prefix] ⇒ [suffix] với confidence = P(full | prefix)
-        """
         total = len(sequences)
         rules = []
 
         for count, pattern in freq_patterns:
             if len(pattern) < 2:
                 continue
-            # Thử tất cả cách chia pattern thành prefix → suffix
             for split in range(1, len(pattern)):
                 prefix = pattern[:split]
                 suffix = pattern[split:]
 
-                # Đếm số sequence chứa prefix
                 prefix_count = sum(
                     1 for seq in sequences if self._is_subsequence(prefix, seq)
                 )
@@ -185,12 +165,12 @@ class PrefixSpanMiner:
 
                 rules.append({
                     "pattern_type": "sequential_rule",
-                    "antecedent_zones": prefix,   # zones đã đi qua
-                    "consequent_zones": suffix,   # zones sẽ đi tiếp
+                    "antecedent_zones": prefix,   
+                    "consequent_zones": suffix,   
                     "support_score": round(count / total, 4),
                     "support_count": count,
                     "confidence_score": round(confidence, 4),
-                    "lift_score": None            # PrefixSpan không tính lift
+                    "lift_score": None          
                 })
         return rules
 
@@ -201,7 +181,6 @@ class PrefixSpanMiner:
                 return {"algorithm": "prefixspan", "patterns": [], "error": None}
 
             total = len(sequences)
-            # min_support của PrefixSpan là số lần xuất hiện tối thiểu (int)
             min_count = max(2, int(total * self.min_support))
 
             ps = PrefixSpan(sequences)
@@ -210,9 +189,6 @@ class PrefixSpanMiner:
             if not freq_patterns:
                 return {"algorithm": "prefixspan", "patterns": [], "error": None}
 
-            # Tách thành 2 loại output:
-            # 1. frequent_sequence: chuỗi phổ biến (pattern đơn thuần)
-            # 2. sequential_rule: rule có antecedent → consequent + confidence
             freq_seqs = []
             for count, pattern in freq_patterns:
                 if len(pattern) >= 2:
@@ -227,17 +203,11 @@ class PrefixSpanMiner:
 
             seq_rules = self._generate_rules(freq_patterns, sequences)
 
-            # Gộp cả 2 loại vào patterns
             patterns = freq_seqs + seq_rules
             return {"algorithm": "prefixspan", "patterns": patterns, "error": None}
 
         except Exception as e:
             return {"algorithm": "prefixspan", "patterns": [], "error": str(e)}
-
-
-# ─────────────────────────────────────────────
-# CLI entry point
-# ─────────────────────────────────────────────
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Zone Flow Pattern Miner")
@@ -255,7 +225,6 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    # Fix encoding trên Windows — stdout mặc định dùng cp1252, không hỗ trợ tiếng Việt
     if sys.stdout.encoding != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
 

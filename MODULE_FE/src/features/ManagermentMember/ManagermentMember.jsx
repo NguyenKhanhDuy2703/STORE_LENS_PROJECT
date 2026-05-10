@@ -10,6 +10,9 @@ import StatsCard from "./components/StatsCard";
 import { MemberTable } from "./components/MemberTable";
 import { MemberDetailPanel } from "./components/MemberDetailPanel";
 import { MemberForm } from "./components/MemberForm";
+import Pagination from "../../components/common/Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function ManagermentMember() {
     const dispatch = useDispatch();
@@ -21,6 +24,7 @@ export default function ManagermentMember() {
     const [showForm, setShowForm] = useState(false);
     const [editingMember, setEditingMember] = useState(null);
     const [search, setSearch] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Load danh sách khi vào trang hoặc đổi location
     useEffect(() => {
@@ -36,6 +40,11 @@ export default function ManagermentMember() {
         }, 400);
         return () => clearTimeout(timer);
     }, [search, dispatch, effectiveLocationId]);
+
+    // Reset về trang 1 khi search thay đổi
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
 
     const handleSelectMember = (member) => {
         setSelectedCode(member.code);
@@ -91,8 +100,11 @@ export default function ManagermentMember() {
         });
     };
 
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    const pagedList = list.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
     return (
-        <div className="min-h-screen bg-slate-50 pb-12">
+        <div className="min-h-screen bg-background pb-12">
             <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
                 {/* Stats */}
@@ -120,13 +132,13 @@ export default function ManagermentMember() {
                 {/* Toolbar */}
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1 max-w-sm">
-                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Tìm theo tên, mã, số điện thoại..."
-                            className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2 text-sm focus:border-teal-400 focus:outline-none"
+                            className="w-full rounded-xl border border-border bg-card pl-9 pr-4 py-2 text-sm focus:border-teal-400 focus:outline-none"
                         />
                     </div>
                     <button
@@ -147,17 +159,26 @@ export default function ManagermentMember() {
 
                 {/* Table */}
                 {loading ? (
-                    <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-                        <p className="text-sm text-slate-500">Đang tải dữ liệu...</p>
+                    <div className="bg-card rounded-2xl border border-border p-12 text-center">
+                        <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
                     </div>
                 ) : (
-                    <MemberTable
-                        members={list}
-                        selectedCode={selectedCode}
-                        onSelectMember={handleSelectMember}
-                        onEdit={handleOpenEdit}
-                        onDelete={handleDelete}
-                    />
+                    <>
+                        <MemberTable
+                            members={pagedList}
+                            selectedCode={selectedCode}
+                            onSelectMember={handleSelectMember}
+                            onEdit={handleOpenEdit}
+                            onDelete={handleDelete}
+                        />
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            totalItems={list.length}
+                            pageSize={PAGE_SIZE}
+                        />
+                    </>
                 )}
             </div>
 

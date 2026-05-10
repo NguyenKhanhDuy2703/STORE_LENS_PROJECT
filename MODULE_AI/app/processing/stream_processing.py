@@ -143,6 +143,9 @@ class StreamProcessor:
                             frame_w=frame_w,
                             frame_h=frame_h,
                         )
+                        # Lưu zone_id của đúng track vào dwell_times để finalize_stop_event dùng
+                        if final_track_id in self.dwell_time_analyzer.dwell_times:
+                            self.dwell_time_analyzer.dwell_times[final_track_id]["current_zone"] = hit_zone[0] if hit_zone else None
                         for zone in current_frame_counts.keys():
                             if zone in hit_zone:
                                 current_frame_counts[zone] += 1
@@ -207,14 +210,11 @@ class StreamProcessor:
                         ]
                     )
                 if len(self.dwell_time_analyzer.finished_events) > 0:
-                    for event in self.dwell_time_analyzer.finished_events:
-                        event["zone_id"] = hit_zone[0] if hit_zone else "unknown"
                     self.pack_communication.dispatch_payload(
                     [
                         {
                             "type":"dwell_time",
-                            "data": self.dwell_time_analyzer.finished_events,
-                            "zone_id": "",
+                            "data": list(self.dwell_time_analyzer.finished_events),  # copy trước khi clear
                             "info":{
                                 "camera_id": self.camera_id,
                                 "location_id": location_id
@@ -246,6 +246,20 @@ class StreamProcessor:
             logging.exception(f"Critical error in process_stream")
             raise Exception(f"Error processing stream {url_rtsp}: {str(e)}")            
         finally:
+            # Flush data còn lại trước khi shutdown (tránh mất data người đứng yên đến cuối video)
+            self.dwell_time_analyzer.flush_all_active()
+            if len(self.dwell_time_analyzer.finished_events) > 0:
+                self.pack_communication.dispatch_payload(
+                    [{
+                        "type": "dwell_time",
+                        "data": list(self.dwell_time_analyzer.finished_events),
+                        "info": {
+                            "camera_id": self.camera_id,
+                            "location_id": location_id
+                        }
+                    }]
+                )
+                self.dwell_time_analyzer.finished_events.clear()
             stop_event.set()
             for _ in range(5):
                 cv2.waitKey(1)

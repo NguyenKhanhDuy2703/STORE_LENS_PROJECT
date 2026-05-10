@@ -38,8 +38,8 @@ const Downtime = () => {
 
   const chartData = (dwellTimeState.performanceInteract || []).map((item) => ({
     name: item.hour,
-    traffic: Number(item.vistors || 0),
-    dwellTime: Number(item.Time_stop || 0),
+    traffic: Math.round(Number(item.vistors || 0)),
+    dwellTime: Math.round(Number(item.Time_stop || 0)),
   }));
 
   const tableRows = (dwellTimeState.analysisDwellTime || []).map((item, index) => ({
@@ -58,15 +58,15 @@ const Downtime = () => {
 
   if (isLoadingKPI) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
+      <div className="h-screen flex flex-col items-center justify-center bg-background">
         <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-slate-600 font-medium tracking-tight text-xs">Đang tải dữ liệu phân tích...</p>
+          <p className="mt-4 text-muted-foreground font-medium tracking-tight text-xs">Đang tải dữ liệu phân tích...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-8 md:px-8 md:py-10 pb-20">
+    <div className="min-h-screen bg-background px-6 py-8 md:px-8 md:py-10 pb-20">
       {/* KPI CARDS SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <StatCard 
@@ -93,10 +93,8 @@ const Downtime = () => {
       </div>
 
       {/* Biểu đồ giữ nguyên để theo dõi xu hướng trực quan */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow mb-10">
-        <div className="h-[420px] md:h-[480px]">
-          <BarLineChart data={chartData} isLoading={isLoadingChart} />
-        </div>
+      <div className="mb-10">
+        <BarLineChart data={chartData} isLoading={isLoadingChart} />
       </div>
 
       {/* Bảng hợp nhất để giảm trùng lặp thông tin */}

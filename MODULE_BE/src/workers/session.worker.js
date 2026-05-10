@@ -23,11 +23,13 @@ const sessionWorker = {
       camera_id,
       location_id,
     });
-    for (const sessionData of inforSessions) {
-       const currentTrackId = sessionData.split('_').pop();
-       const userData = data.filter(item => String(item.track_id) === currentTrackId);
-       await sessionWorker.processInteraction({ session_uuid : sessionData, location_id, data: userData });
-       await sessionWorker.updateSessionDwellTime({ session_uuid : sessionData, location_id });
+    for (const sessionInfo of inforSessions) {
+       const { session_uuid, track_id } = sessionInfo;
+       const userData = data.filter(item => String(item.track_id) === track_id);
+       // Cộng dwell_time trực tiếp từ payload (không phụ thuộc asset/zone)
+       await sessionWorker.addDwellTimeToSession({ session_uuid, location_id, data: userData });
+       // Lưu interactionLog để track tương tác với asset (nếu zone có asset)
+       await sessionWorker.processInteraction({ session_uuid, location_id, data: userData });
     }
     
   },
@@ -44,7 +46,6 @@ const sessionWorker = {
           {
             $setOnInsert: {
               entry_time: getCurrnetDateVN(),
-              camera_id: camera_id,
               location_id: location_id,
               session_uuid: sessionUUID,
               total_dwell_time_seconds: 0,
@@ -55,7 +56,7 @@ const sessionWorker = {
             new: true,
           },
         );
-        inforSessions.push(sessionData.session_uuid);
+        inforSessions.push({ session_uuid: sessionData.session_uuid, track_id: String(item.track_id) });
       }
       return inforSessions;
     } catch (error) {
@@ -78,7 +79,7 @@ const sessionWorker = {
             session_uuid: session_uuid,
             location_id: location_id,
             zone_id: item.zone_id,
-            asset_id: assetInZone.asset_id,
+            asset_id: assetInZone,
             event_type: item.event_type,
             start_time: item.timestamp,
             last_heartbeat: getCurrnetDateVN(),
@@ -124,6 +125,25 @@ const sessionWorker = {
   async processZoneEvent({ data, infor }) {
     return this.updateZoneSequence({ data, infor });
   },
+  /**
+   * Cộng dwell_time từ AI payload trực tiếp vào session — không phụ thuộc interactionLog hay asset.
+   * Đảm bảo tính đủ thời gian dừng kể cả ngoài zone hoặc zone chưa gán asset.
+   */
+  async addDwellTimeToSession({ session_uuid, location_id, data }) {
+    try {
+      if (!Array.isArray(data) || data.length === 0) return;
+      const totalDwell = data
+        .filter(item => item.event_type === "stop" && item.dwell_time > 0)
+        .reduce((sum, item) => sum + item.dwell_time, 0);
+      if (totalDwell <= 0) return;
+      await sessionSchema.findOneAndUpdate(
+        { session_uuid, location_id },
+        { $inc: { total_dwell_time_seconds: totalDwell } }
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
   async updateZoneSequence(payload = {}) {
     if (!payload || typeof payload !== "object") {
       logger.warn("Skipping zone sequence update because payload is missing or malformed.");
@@ -151,7 +171,11 @@ const sessionWorker = {
                             exit_time: null,
                             dwell_time_seconds: 0
                         } 
-                    } 
+                    },
+                    $setOnInsert: {
+                        entry_time: getCurrnetDateVN(),
+                        total_dwell_time_seconds: 0
+                    }
                 },
                 { upsert: true }
             );
