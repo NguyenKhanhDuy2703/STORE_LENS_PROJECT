@@ -7,11 +7,16 @@ const config = require("./config");
 const logger = require("./utils/logging");
 const handleException = require("./utils/exceptions");
 const worker = require("./worker");
+const scheduler = require("./utils/scheduler");
+const cameraHealthWorker = require("./workers/cameraHealth.worker");
 const http = require("http")
 const {port , corsOption , name} = config.getConfig().app;
 const { socketIo: socketOptions } = config.getConfig();
 const app = express();
 const server = http.createServer(app)
+
+// Disable ETag generation to prevent 304 Not Modified responses on GET requests
+app.disable('etag');
 const connection = require("./config/databaseMonogo");
 const socketIo = require("socket.io")
 const io = socketIo(server, socketOptions)
@@ -27,6 +32,15 @@ const startWorker = async () => {
         const io = app.get("io")
         await worker.connection(io);
         await connection();
+        
+        // ── Setup background jobs ─────────────────────────────────────────────
+        // Check camera health mỗi 30 giây
+        scheduler.addJob(
+            'camera-health-check',
+            () => cameraHealthWorker.checkAllActiveCameras(),
+            30 * 1000  // 30 seconds
+        );
+        
     } catch (error) {
         logger.error(`Error starting worker: ${error.message}`);
         throw error;

@@ -86,7 +86,7 @@ export const turnOffCameraThunk = createAsyncThunk(
 	'camera/turnOff',
 	async ({ cameraCode, urlRtsp }, { rejectWithValue }) => {
 		try {
-			const response = await turnOffCamera(urlRtsp);
+			const response = await turnOffCamera(urlRtsp, cameraCode);
 			return {
 				cameraCode,
 				result: response?.data || response,

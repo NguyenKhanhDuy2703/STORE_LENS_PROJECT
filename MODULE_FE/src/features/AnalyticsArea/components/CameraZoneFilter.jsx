@@ -10,17 +10,17 @@ const CameraZoneFilter = ({
   handleSelectCamera,
 }) => {
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+    <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
-          <label htmlFor="camera-filter" className="text-sm font-semibold text-slate-600">
+          <label htmlFor="camera-filter" className="text-sm font-semibold text-muted-foreground">
             Camera
           </label>
           <select
             id="camera-filter"
             value={selectedCamera}
             onChange={(event) => handleSelectCamera(event.target.value)}
-            className="h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="h-11 px-3 rounded-xl border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="all_cameras">Tất cả Camera</option>
             {cameraOptions.map((camera) => (
@@ -32,7 +32,7 @@ const CameraZoneFilter = ({
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="zone-filter" className="text-sm font-semibold text-slate-600">
+          <label htmlFor="zone-filter" className="text-sm font-semibold text-muted-foreground">
             Khu vực (Zone)
           </label>
           <select
@@ -40,7 +40,7 @@ const CameraZoneFilter = ({
             value={selectedZone}
             onChange={(event) => setSelectedZone(event.target.value)}
             disabled={zonesLoading}
-            className="h-11 px-3 rounded-xl border border-slate-300 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            className="h-11 px-3 rounded-xl border border-border bg-card text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="all_zones">Tất cả Khu vực</option>
             {availableZoneOptions.map((zone) => (

@@ -55,9 +55,9 @@ export const turnOnCamera = async ({ cameraCode, urlRtsp, locationId }) => {
 };
 
 // Tắt module phân tích AI cho camera
-export const turnOffCamera = async (urlRtsp) => {
+export const turnOffCamera = async (urlRtsp, cameraCode) => {
   const response = await axiosInstance.get(`${BASE_URL}/turn-off`, {
-    params: { urlRtsp },
+    params: { urlRtsp, cameraCode },
   });
   return response.data;
 };

@@ -15,18 +15,14 @@ const AlgorithmSelector = ({ onAnalyze, analyzing }) => {
     };
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-border bg-card shadow-sm">
             {/* Main bar */}
             <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span className="text-xs text-slate-500">
-                    Phân tích khu vực liên quan và lộ trình di chuyển cùng lúc
-                </span>
-
                 {/* Advanced toggle */}
                 <button
                     type="button"
                     onClick={() => setShowAdvanced((v) => !v)}
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-muted-foreground transition-colors"
                 >
                     {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     Tùy chỉnh
@@ -55,42 +51,42 @@ const AlgorithmSelector = ({ onAnalyze, analyzing }) => {
 
             {/* Advanced params */}
             {showAdvanced && (
-                <div className="border-t border-slate-100 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50/60">
+                <div className="border-t border-border px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-4 bg-muted/60">
                     <div>
-                        <label className="block text-[10px] font-medium text-slate-500 mb-1">
+                        <label className="block text-[10px] font-medium text-muted-foreground mb-1">
                             Độ phổ biến tối thiểu
                         </label>
                         <input
                             type="number" min="0.01" max="1" step="0.05"
                             value={params.minSupport}
                             onChange={(e) => handleParam("minSupport", e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-teal-400 focus:outline-none"
+                            className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:border-teal-400 focus:outline-none"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Mặc định: 10% khách</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Mặc định: 10% khách</p>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-medium text-slate-500 mb-1">
+                        <label className="block text-[10px] font-medium text-muted-foreground mb-1">
                             Độ chắc chắn tối thiểu
                         </label>
                         <input
                             type="number" min="0.1" max="1" step="0.05"
                             value={params.minConfidence}
                             onChange={(e) => handleParam("minConfidence", e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-teal-400 focus:outline-none"
+                            className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:border-teal-400 focus:outline-none"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Mặc định: 50%</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Mặc định: 50%</p>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-medium text-slate-500 mb-1">
+                        <label className="block text-[10px] font-medium text-muted-foreground mb-1">
                             Mức độ liên quan
                         </label>
                         <input
                             type="number" min="1" max="5" step="0.1"
                             value={params.minLift}
                             onChange={(e) => handleParam("minLift", e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-teal-400 focus:outline-none"
+                            className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground focus:border-teal-400 focus:outline-none"
                         />
-                        <p className="text-[10px] text-slate-400 mt-0.5">Mặc định: 1.0</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Mặc định: 1.0</p>
                     </div>
                 </div>
             )}

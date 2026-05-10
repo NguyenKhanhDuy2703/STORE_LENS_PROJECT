@@ -89,6 +89,7 @@ const deleteZoneController = catchAsync(async (req, res) => {
         data: result,
     })
 });
+
 module.exports = {
     getListZoneController,
     createAndUpdateZoneController,

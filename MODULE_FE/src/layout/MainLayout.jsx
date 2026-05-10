@@ -96,9 +96,9 @@ export const MainLayout = () => {
 
       <div className="flex flex-col flex-1">
         {/* Breadcrumb bar */}
-        <div className="bg-white/80 backdrop-blur-md border-b border-border px-8 py-2 shadow-sm">
+        <div className="bg-card/80 backdrop-blur-md border-b border-border px-8 py-2 shadow-sm">
           <div className="mx-auto w-full max-w-[1760px]">
-            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground flex items-center gap-2">
+            <div className="label-mono flex items-center gap-2">
               <span className="hover:text-accent cursor-pointer transition-colors duration-200">SpaceLens</span>
               <span className="text-border">/</span>
               <span className="text-foreground/60">

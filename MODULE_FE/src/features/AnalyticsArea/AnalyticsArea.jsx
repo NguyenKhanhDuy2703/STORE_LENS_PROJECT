@@ -156,7 +156,7 @@ const AnalyticsArea = () => {
     errors.performanceDetails || errors.hourlyTraffic || errors.kpis;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <GlobalFilter />
       <main className="p-6 md:p-8 max-w-[1760px] mx-auto space-y-6">
         <CameraZoneFilter
@@ -207,9 +207,9 @@ const AnalyticsArea = () => {
 
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center gap-3">
+          <div className="bg-card p-8 rounded-2xl border border-border shadow-sm flex items-center justify-center gap-3">
             <Loader size={20} className="text-teal-600 animate-spin" />
-            <span className="text-base text-slate-600">
+            <span className="text-base text-muted-foreground">
               Đang tải dữ liệu...
             </span>
           </div>

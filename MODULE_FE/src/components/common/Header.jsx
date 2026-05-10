@@ -184,7 +184,7 @@ export const Header = () => {
             {/* Live badge */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse-dot" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-emerald-700">Trực tuyến</span>
+              <span className="label-mono text-emerald-700">Trực tuyến</span>
             </div>
 
             {/* Profile */}
@@ -206,7 +206,7 @@ export const Header = () => {
                     className="absolute top-full mt-2 right-0 w-56 bg-card border border-border rounded-xl shadow-lg py-1.5 z-[130]">
                     <div className="px-4 py-3 border-b border-border">
                       <p className="text-sm font-semibold text-foreground">{user?.fullname}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-[0.1em]">{user?.role}</p>
+                      <p className="label-mono mt-1">{user?.role}</p>
                     </div>
 
                     {(user?.role === 'ADMIN' || user?.role === 'ADMIN_SUPER') && (

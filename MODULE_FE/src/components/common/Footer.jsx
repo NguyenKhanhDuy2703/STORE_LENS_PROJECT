@@ -18,7 +18,7 @@ export const Footer = () => {
           <div className="flex items-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-accent/20 bg-accent/5 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-dot" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-accent">
+              <span className="label-mono text-accent">
                 Edge AI &amp; OpenVINO · v2.0.1
               </span>
             </div>

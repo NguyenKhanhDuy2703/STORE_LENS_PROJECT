@@ -71,29 +71,76 @@ async def process_tracking(request: TrackingRequest):
         logging.exception(error_data)
         return error_data
 
+@router_tracking.get("/status")
+def get_stream_status(url_rtsp: Optional[str] = None):
+    """Query status of active streams"""
+    with stream_lock:
+        if url_rtsp:
+            clean_url = str(url_rtsp).strip().strip('"').strip("'")
+            if clean_url in active_processes:
+                p = active_processes[clean_url]
+                return {
+                    "url": clean_url,
+                    "is_running": p.is_alive(),
+                    "status": "running" if p.is_alive() else "stopped"
+                }
+            return {"url": clean_url, "is_running": False, "status": "not_started"}
+        
+        # Return all active streams
+        return {
+            "active_streams": len(active_processes),
+            "streams": [
+                {
+                    "url": url,
+                    "is_running": p.is_alive(),
+                    "status": "running" if p.is_alive() else "stopped"
+                }
+                for url, p in active_processes.items()
+            ]
+        }
+
+def _cleanup_process(p, event, clean_url: str) -> None:
+    """Background thread: gracefully stop process sau khi endpoint đã trả về."""
+    try:
+        if event is not None:
+            event.set()
+        if p.is_alive():
+            p.join(timeout=10)
+        if p.is_alive():
+            logging.warning(f"[stop_tracking] Terminating hung process: {clean_url}")
+            p.terminate()
+            p.join(timeout=3)
+        if p.is_alive():
+            logging.error(f"[stop_tracking] Force-killing process: {clean_url}")
+            p.kill()
+            p.join(timeout=2)
+        logging.info(f"[stop_tracking] Process cleaned up: {clean_url}")
+    except Exception as exc:
+        logging.error(f"[stop_tracking] Cleanup error for {clean_url}: {exc}")
+
+
 @router_tracking.get("/stopped")
 def stop_tracking(url_rtsp: str):
     clean_url = str(url_rtsp).strip().strip('"').strip("'")
-    
+
+    # Lấy process + event, đồng thời xóa khỏi registry NGAY để chặn duplicate call
     with stream_lock:
-        if clean_url in active_processes:
-            p = active_processes[clean_url]
-            
-            if p.is_alive():
-                stop_signals[clean_url].set()
-                p.join(timeout=5)
-                if p.is_alive():
-                    logging.warning(f"Process {clean_url} hung. Terminating forcibly.")
-                    p.terminate()
-        
-            del active_processes[clean_url]
-            if clean_url in stop_signals:
-                del stop_signals[clean_url]
-                
-            return {
-                "status_code": status.HTTP_200_OK,  
-                "message": f"Stream processing stopped for {clean_url}",
-                "active_streams": list(active_processes.keys())
-            }
-    
-    return {"status": "not found", "url": clean_url}
+        if clean_url not in active_processes:
+            return {"status": "already_stopped", "url": clean_url}
+        p = active_processes.pop(clean_url)
+        event = stop_signals.pop(clean_url, None)
+        remaining = list(active_processes.keys())
+
+    # Signal ngay để vòng while trong process thoát sớm nhất có thể
+    if event is not None:
+        event.set()
+
+    # Cleanup chạy background — endpoint không chờ, trả về ngay
+    t = threading.Thread(target=_cleanup_process, args=(p, event, clean_url), daemon=True)
+    t.start()
+
+    return {
+        "status_code": status.HTTP_200_OK,
+        "message": f"Stop signal sent for {clean_url}",
+        "active_streams": remaining,
+    }

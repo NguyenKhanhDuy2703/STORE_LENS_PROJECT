@@ -15,7 +15,7 @@ const FilterSelect = ({ label, value, onChange, options = [], disabled = false, 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
+        <label className="label-mono whitespace-nowrap">
           {label}
         </label>
       )}

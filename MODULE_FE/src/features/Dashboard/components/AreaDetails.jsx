@@ -1,7 +1,7 @@
 import { Clock3, Minus, TrendingDown, TrendingUp, Users, Loader, Radio } from 'lucide-react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchZoneAnalyticsDashboard } from '../dashboard.thunk';
+import { fetchZoneAnalyticsDashboard, fetchMonthlyZoneAnalytics } from '../dashboard.thunk';
 
 const formatLastUpdated = (value) => {
   const timestamp = value ? new Date(value) : new Date();
@@ -54,30 +54,34 @@ const getCurrentBadgeStyle = (count) => {
   if (count >= 5) return 'bg-rose-50 text-rose-700 border-rose-200';
   if (count >= 2) return 'bg-amber-50 text-amber-700 border-amber-200';
   if (count >= 1) return 'bg-teal-50 text-teal-700 border-teal-200';
-  return 'bg-slate-50 text-slate-400 border-slate-200';
+  return 'bg-muted text-muted-foreground border-border';
 };
 
-const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDate = null } = {}) => {
+const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
   const dispatch = useDispatch();
-  const { zoneAnalytics, zoneAnalyticsLoading, zoneAnalyticsError, kpiMetrics } = useSelector(state => state.dashboard);
+  const { monthlyZoneAnalytics, monthlyZoneLoading, monthlyZoneError, monthlyKPIMetrics } = useSelector(state => state.dashboard);
   const { locationId, userLocationId } = useSelector(state => state.filter);
   const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
 
-  const zoneCounts = kpiMetrics?.zone_counts ?? {};
+  const zoneCounts = monthlyKPIMetrics?.zone_counts ?? {};
+
+  // Label theo tháng
+  const periodLabel = `Tháng ${month}/${year}`;
+  const isLive = isCurrentMonth;
 
   useEffect(() => {
-    if (effectiveLocationId) {
-      dispatch(fetchZoneAnalyticsDashboard({
+    if (effectiveLocationId && year && month) {
+      dispatch(fetchMonthlyZoneAnalytics({
         locationId: effectiveLocationId,
-        type: filterType,
-        startCustom: startDate,
-        endCustom: endDate,
+        year,
+        month,
       }));
     }
-  }, [dispatch, effectiveLocationId, filterType, startDate, endDate]);
+  }, [dispatch, effectiveLocationId, year, month]);
 
-  const zones = Array.isArray(zoneAnalytics?.zones) ? zoneAnalytics.zones : [];
-  const performance = Array.isArray(zoneAnalytics?.performance) ? zoneAnalytics.performance : [];
+  const zoneData = monthlyZoneAnalytics || { zones: [], performance: [] };
+  const zones = Array.isArray(zoneData?.zones) ? zoneData.zones : [];
+  const performance = Array.isArray(zoneData?.performance) ? zoneData.performance : [];
   const performanceMap = new Map(performance.map((item) => [item.zone_id || item._id, item]));
 
   const mergedRows = zones.map((zone) => {
@@ -94,24 +98,24 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
     };
   });
 
-  if (zoneAnalyticsLoading) {
+  if (monthlyZoneLoading) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-center h-48">
           <div className="flex flex-col items-center gap-2">
-            <Loader size={28} className="text-slate-400 animate-spin" />
-            <p className="text-sm text-slate-500">Đang tải dữ liệu khu vực...</p>
+            <Loader size={28} className="text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground">Đang tải dữ liệu khu vực...</p>
           </div>
         </div>
       </section>
     );
   }
 
-  if (zoneAnalyticsError) {
+  if (monthlyZoneError) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="rounded-xl border border-dashed border-rose-200 p-8 text-center">
-          <p className="text-sm text-rose-600 font-medium">Lỗi: {zoneAnalyticsError}</p>
+          <p className="text-sm text-rose-600 font-medium">Lỗi: {monthlyZoneError}</p>
           <p className="text-xs text-rose-500 mt-1">Vui lòng kiểm tra kết nối và thử lại</p>
         </div>
       </section>
@@ -119,32 +123,34 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b border-slate-100">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b border-border">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-slate-900">Phân Tích Hiệu Suất Khu Vực</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Dữ liệu hôm nay · Thời gian thực từ camera AI</p>
+          <h3 className="text-base font-semibold tracking-tight text-foreground">Phân Tích Hiệu Suất Khu Vực</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isLive ? 'Dữ liệu hôm nay · Thời gian thực từ camera AI' : `Dữ liệu ${periodLabel}`}
+          </p>
         </div>
-        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-          Cập nhật lúc: {formatLastUpdated(zoneAnalytics?.lastUpdated)}
+        <span className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          Cập nhật lúc: {formatLastUpdated(monthlyZoneAnalytics?.lastUpdated)}
         </span>
       </div>
 
       {/* Column headers */}
       {mergedRows.length > 0 && (
-        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-2 bg-muted border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div className="md:col-span-1">#</div>
           <div className="md:col-span-2">Khu vực</div>
-          <div className="md:col-span-2 flex items-center gap-1"><Users size={10} /> Hôm nay</div>
-          <div className="md:col-span-2 flex items-center gap-1"><Radio size={10} /> Hiện tại</div>
+          <div className="md:col-span-2 flex items-center gap-1"><Users size={10} /> {periodLabel}</div>
+          <div className="md:col-span-2 flex items-center gap-1"><Radio size={10} /> {isLive ? 'Hiện tại' : '—'}</div>
           <div className="md:col-span-2 flex items-center gap-1"><Clock3 size={10} /> Thời gian dừng</div>
           <div className="md:col-span-3">Tỷ lệ chuyển đổi</div>
         </div>
       )}
 
       {/* Rows */}
-      <div className="divide-y divide-slate-50">
+      <div className="divide-y divide-border">
         {mergedRows.map((row, index) => {
           const styles = getConversionStyle(row.conversion_rate);
           const TrendIcon = getTrendIcon(row.conversion_rate);
@@ -153,22 +159,22 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
           return (
             <div
               key={row.zone_id}
-              className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-slate-50/70 transition-colors"
+              className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-muted/70 transition-colors"
             >
               {/* Rank */}
               <div className="md:col-span-1">
-                <span className="text-sm font-semibold text-slate-400">#{index + 1}</span>
+                <span className="text-sm font-semibold text-muted-foreground">#{index + 1}</span>
               </div>
 
               {/* Zone name */}
               <div className="md:col-span-2 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">{row.zone_name}</p>
+                <p className="text-sm font-semibold text-foreground truncate">{row.zone_name}</p>
               </div>
 
               {/* Tổng hôm nay */}
               <div className="md:col-span-2 flex items-center gap-1.5">
-                <Users size={14} className="text-slate-400 shrink-0" />
-                <span className="text-sm font-semibold text-slate-800 tabular-nums">{row.people_count}</span>
+                <Users size={14} className="text-muted-foreground shrink-0" />
+                <span className="text-sm font-semibold text-foreground tabular-nums">{row.people_count}</span>
                 <TrendIcon
                   size={13}
                   className={
@@ -179,18 +185,22 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
                 />
               </div>
 
-              {/* Hiện tại — realtime */}
+              {/* Hiện tại — chỉ hiển thị khi xem hôm nay */}
               <div className="md:col-span-2">
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums ${currentBadge}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${row.current_count > 0 ? 'bg-teal-500 animate-pulse' : 'bg-slate-300'}`} />
-                  {row.current_count} người
-                </span>
+                {isLive ? (
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums ${currentBadge}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${row.current_count > 0 ? 'bg-teal-500 animate-pulse' : 'bg-slate-300'}`} />
+                    {row.current_count} người
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
               </div>
 
               {/* Dwell time */}
               <div className="md:col-span-2 flex items-center gap-1.5">
-                <Clock3 size={14} className="text-slate-400 shrink-0" />
-                <span className="text-sm text-slate-600">{formatDwellTime(row.avg_dwell_time)}</span>
+                <Clock3 size={14} className="text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground">{formatDwellTime(row.avg_dwell_time)}</span>
               </div>
 
               {/* Conversion rate */}
@@ -200,10 +210,10 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
                     {row.conversion_rate.toFixed(0)}%
                   </span>
                   {typeof row.peak_hour === 'number' && (
-                    <span className="text-[10px] text-slate-400">Giờ cao điểm {row.peak_hour}:00</span>
+                    <span className="text-[10px] text-muted-foreground">Giờ cao điểm {row.peak_hour}:00</span>
                   )}
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${styles.bar}`}
                     style={{ width: `${Math.min(Math.max(row.conversion_rate, 0), 100)}%` }}
@@ -219,7 +229,7 @@ const ZoneAnalyticsDashboard = ({ filterType = 'today', startDate = null, endDat
 
         {mergedRows.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-slate-500">Không có dữ liệu khu vực trong khoảng thời gian đã chọn.</p>
+            <p className="text-sm text-muted-foreground">Không có dữ liệu khu vực trong khoảng thời gian đã chọn.</p>
           </div>
         )}
       </div>

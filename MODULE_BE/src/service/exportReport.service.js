@@ -8,7 +8,9 @@ const TIMEZONE = 'Asia/Ho_Chi_Minh';
 const exportComprehensiveReportService = async (locationId) => {
     // 1. LẤY DỮ LIỆU GỐC
     const customers = await Customer.find({ locationId }).lean();
-    const activeRules = await CustomerCareRule.find({ location_id: locationId, is_active: true }).lean();
+    const activeRules = await CustomerCareRule.find({ location_id: locationId, is_active: true })
+        .sort({ 'logic.threshold': 1 })  // sort tăng dần để rule nhỏ nhất match trước
+        .lean();
 
     const workbook = new ExcelJS.Workbook();
 

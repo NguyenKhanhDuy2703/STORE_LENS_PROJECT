@@ -52,7 +52,7 @@ const NotificationItem = ({ notification, onRead }) => {
                     <div className="space-y-1 min-w-0">
                         {/* Type badge + location */}
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-[0.1em] border ${typeInfo.className}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full label-mono border ${typeInfo.className}`}>
                                 {typeInfo.label}
                             </span>
                             <span className="flex items-center gap-1 text-muted-foreground">

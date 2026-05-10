@@ -88,7 +88,7 @@ const StatCard = ({
     <div className="rounded-2xl border border-border bg-card p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{title}</p>
+          <p className="label-mono">{title}</p>
           <p className="mt-2.5 text-4xl font-semibold tracking-tight text-foreground tabular-nums">{value}</p>
         </div>
         <div className={`rounded-xl p-3 ${gradient} ${shadowClass} transition-all duration-300 group-hover:scale-110`}>

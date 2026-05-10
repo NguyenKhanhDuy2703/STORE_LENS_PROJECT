@@ -1256,6 +1256,153 @@ async function seed() {
         }
     ]);
 
+    // ── Attendance seed — 50 khách hàng với history đầy đủ từ tháng 1 đến tháng 5/2026 ──
+    // Mục đích: cung cấp dữ liệu hoàn chỉnh cho exportReport.service.js
+    //   Sheet 1: Tần suất tập luyện — lấy history theo month/year, chia tuần 1-7/8-14/15-21/22-cuối
+    //   Sheet 2: Kế hoạch chăm sóc — lấy history trong 30 ngày gần nhất (tính từ now)
+    //
+    // Ngày hiện tại: 5/5/2026 → 30 ngày gần nhất = 5/4/2026 → 5/5/2026
+    // → Cần seed đủ ngày trong tháng 4 (1-30) và tháng 5 (1-5) để Sheet 2 có data
+    // → Tháng 1-3 cần đủ 4 tuần để Sheet 1 hiển thị đầy đủ cột
+
+    const ATTENDANCE_YEAR = 2026;
+
+    // Số ngày thực tế trong mỗi tháng (tháng 5 chỉ đến ngày 5 vì hôm nay là 5/5)
+    const MONTH_MAX_DAYS = { 1: 31, 2: 28, 3: 31, 4: 30, 5: 5 };
+
+    // Helper tạo visit tại ngày cụ thể
+    const makeAttendVisit = (year, month, day, locId) => {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const visitDate = new Date(`${dateStr}T18:00:00+07:00`);
+        if (isNaN(visitDate.getTime())) return null;
+        return {
+            date: visitDate,
+            check_in: visitDate,
+            check_out: new Date(visitDate.getTime() + 90 * 60 * 1000),
+            locationId: locId
+        };
+    };
+
+    // Helper tạo danh sách ngày tập trong 1 tuần của 1 tháng
+    // weekNum: 1-4, sessionsCount: số buổi muốn tập, maxDay: ngày cuối tháng
+    const makeWeekVisits = (year, month, weekNum, sessionsCount, maxDay, locId) => {
+        const dayStart = (weekNum - 1) * 7 + 1;
+        const dayEnd = weekNum === 4 ? maxDay : weekNum * 7;
+        if (dayStart > maxDay) return []; // tuần này không có ngày hợp lệ
+
+        // Chọn ngày tập phân bổ đều trong tuần, không trùng nhau
+        const availableDays = [];
+        for (let d = dayStart; d <= Math.min(dayEnd, maxDay); d++) availableDays.push(d);
+        if (availableDays.length === 0) return [];
+
+        // Shuffle và lấy đúng số buổi cần
+        const shuffled = availableDays.sort(() => Math.random() - 0.5);
+        const selectedDays = shuffled.slice(0, Math.min(sessionsCount, shuffled.length));
+
+        return selectedDays
+            .map(day => makeAttendVisit(year, month, day, locId))
+            .filter(Boolean);
+    };
+
+    const attendanceNames = [
+        "Nguyễn Văn An", "Trần Thị Bích", "Lê Hoàng Long", "Phạm Minh Tuấn", "Vũ Thị Hà",
+        "Đặng Đức Hùng", "Bùi Thị Thanh", "Ngô Gia Bảo", "Trịnh Công Sơn", "Đỗ Thị Quyên",
+        "Lý Minh Triết", "Hoàng Anh Thư", "Võ Văn Kiệt", "Mai Phương Thúy", "Cao Văn Tiến",
+        "Đinh Tiến Dũng", "Quách Ngọc Ngoan", "Trương Mỹ Nhân", "Hồ Quang Hiếu", "Phan Mạnh Quỳnh",
+        "Dương Quá", "Tiểu Long Nữ", "Lệnh Hồ Xung", "Nhậm Doanh Doanh", "Quách Tĩnh",
+        "Hoàng Dung", "Trần Huyền Trang", "Tôn Ngộ Không", "Trương Vô Kỵ", "Triệu Mẫn",
+        "Chu Chỉ Nhược", "Tiêu Phong", "Đoàn Dự", "Hư Trúc", "Vương Ngữ Yên",
+        "Nguyễn Du", "Hồ Xuân Hương", "Bà Huyện Thanh Quan", "Trần Hưng Đạo", "Lý Thường Kiệt",
+        "Nguyễn Huệ", "Lê Lợi", "Ngô Quyền", "Đinh Bộ Lĩnh", "Phan Bội Châu",
+        "Phan Chu Trinh", "Võ Nguyên Giáp", "Phạm Văn Đồng", "Tôn Đức Thắng", "Lê Hồng Phong"
+    ];
+
+    const attendanceCustomers = [];
+    for (let i = 0; i < attendanceNames.length; i++) {
+        const history = [];
+        // 4 nhóm hành vi tập luyện:
+        //   0 = VIP: tập 5-7 buổi/tuần đều đặn cả năm → Sheet 2: "Tập luyện tốt"
+        //   1 = Nghỉ tập: tháng 1-3 tập đều, tháng 4-5 nghỉ hẳn → status INACTIVE
+        //   2 = Lười: 0-1 buổi/tuần → Sheet 2: "Nguy cơ bỏ tập" (≤2 buổi/30 ngày)
+        //   3 = Bình thường: 2-3 buổi/tuần → Sheet 2: "Tần suất thấp" (≤6 buổi/30 ngày)
+        const memberType = i % 4;
+
+        [1, 2, 3, 4, 5].forEach(month => {
+            const maxDay = MONTH_MAX_DAYS[month];
+            for (let week = 1; week <= 4; week++) {
+                let sessionsPerWeek = 0;
+
+                if (memberType === 0) {
+                    // VIP: 5-7 buổi/tuần — tháng 5 tuần 1 chỉ có 5 ngày nên tối đa 5
+                    sessionsPerWeek = month === 5 ? randomInt(1, 2) : randomInt(5, 7);
+                } else if (memberType === 1) {
+                    // Nghỉ từ tháng 4: tháng 1-3 tập 3-5 buổi/tuần, tháng 4-5 = 0
+                    sessionsPerWeek = month <= 3 ? randomInt(3, 5) : 0;
+                } else if (memberType === 2) {
+                    // Lười: 0-1 buổi/tuần (tháng 5 tuần 1 có thể 0)
+                    sessionsPerWeek = randomInt(0, 1);
+                } else {
+                    // Bình thường: 2-3 buổi/tuần
+                    sessionsPerWeek = month === 5 ? randomInt(1, 2) : randomInt(2, 3);
+                }
+
+                const weekVisits = makeWeekVisits(ATTENDANCE_YEAR, month, week, sessionsPerWeek, maxDay, locationId);
+                history.push(...weekVisits);
+            }
+        });
+
+        // Sắp xếp history theo ngày tăng dần
+        history.sort((a, b) => a.date - b.date);
+
+        attendanceCustomers.push({
+            locationId,
+            code: `ATT_${uniqueSuffix}_${String(i + 1).padStart(3, '0')}`,
+            name: attendanceNames[i],
+            phone: `08${uniqueSuffix}${String(i).padStart(2, '0')}`,
+            birthday: new Date('1995-01-01'),
+            joinDate: new Date('2025-12-01'),
+            status: memberType === 1 ? 'INACTIVE' : 'ACTIVE',
+            totalSessions: history.length,
+            lastVisit: history.length > 0 ? history[history.length - 1].date : null,
+            note: memberType === 0 ? 'Khách VIP bền bỉ' :
+                  memberType === 1 ? 'Đã nghỉ tập từ tháng 4' :
+                  memberType === 2 ? 'Tập không đều, cần theo dõi' : '',
+            history  // ← fix: đưa history vào document để Sheet 1 & Sheet 2 có dữ liệu
+        });
+    }
+
+    await Customer.insertMany(attendanceCustomers);
+    console.log(`[seed] attendance customers=${attendanceCustomers.length} (VIP:${attendanceCustomers.filter((_, i) => i % 4 === 0).length}, Nghỉ:${attendanceCustomers.filter((_, i) => i % 4 === 1).length}, Lười:${attendanceCustomers.filter((_, i) => i % 4 === 2).length}, Bình thường:${attendanceCustomers.filter((_, i) => i % 4 === 3).length})`);
+
+    // CustomerCareRule cho exportReport Sheet 2
+    // Service dùng: activeRules.find(r => sessions30 <= r.logic.threshold)
+    // Cần sort threshold tăng dần để rule nhỏ nhất match trước
+    // Nhóm 2 (Lười): ~0-4 buổi/30 ngày → match CRITICAL (≤4)
+    // Nhóm 3 (Bình thường): ~8-12 buổi/30 ngày → match WARNING (≤12)
+    // Nhóm 0 (VIP): ~20+ buổi/30 ngày → không match → "Tập luyện tốt"
+    // Nhóm 1 (Nghỉ): status INACTIVE → "Đang tạm nghỉ"
+    await CustomerCareRule.insertMany([
+        {
+            location_id: locationId,
+            category: 'retention',
+            rule_id: `ATTEND_CRITICAL_${uniqueSuffix}`,
+            rule_name: 'Nguy cơ bỏ tập',
+            logic: { metric_name: 'sessions_last_30_days', operator: '<=', threshold: 4, unit: 'buổi' },
+            action: 'Gọi điện hỏi thăm và mời quay lại ngay',
+            is_active: true
+        },
+        {
+            location_id: locationId,
+            category: 'retention',
+            rule_id: `ATTEND_WARNING_${uniqueSuffix}`,
+            rule_name: 'Tần suất thấp cần chú ý',
+            logic: { metric_name: 'sessions_last_30_days', operator: '<=', threshold: 12, unit: 'buổi' },
+            action: 'Gửi tin nhắn động viên và nhắc lịch tập',
+            is_active: true
+        }
+    ]);
+    console.log(`[seed] attendance CustomerCareRules=2 (critical ≤4 buổi, warning ≤12 buổi)`);
+
     console.log('[seed] Done');
     console.log(`[seed] location_code=${locationId}`);
     console.log(`[seed] secondary_location_code=${secondaryLocation.location_code}`);

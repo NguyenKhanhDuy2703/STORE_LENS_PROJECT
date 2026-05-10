@@ -348,14 +348,14 @@ const CameraZoneManager = () => {
     }
   };
   return (
-    <div className="min-h-screen w-full bg-gray-50 px-1 py-3 sm:px-2 lg:px-3">
+    <div className="min-h-screen w-full bg-background px-1 py-3 sm:px-2 lg:px-3">
       <div className="mx-auto w-full max-w-[1860px] grid grid-cols-12 gap-3 md:gap-4">
         {/* Sidebar */}
         <div className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
             <div className="mb-4">
-              <div className="text-sm uppercase tracking-[0.2em] text-gray-500 font-semibold">Thanh bên Camera</div>
-              <div className="mt-1 text-lg font-semibold text-gray-900">Danh sách camera</div>
+              <div className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-semibold">Thanh bên Camera</div>
+              <div className="mt-1 text-lg font-semibold text-foreground">Danh sách camera</div>
             </div>
             <div className="space-y-2 max-h-[38vh] overflow-y-auto pr-1 lg:max-h-[74vh]">
               {cameraOptions.map((camera) => (
@@ -365,19 +365,19 @@ const CameraZoneManager = () => {
                   className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
                     selectedCameraCode === camera.cameraCode
                       ? "border-purple-500 bg-purple-600 text-white"
-                      : "border-gray-200 bg-gray-50 text-gray-800 hover:border-purple-300 hover:bg-purple-50"
+                      : "border-border bg-background text-foreground hover:border-purple-300 hover:bg-purple-50"
                   }`}
                 >
                   <div>
                     <div className="font-semibold">{camera.cameraName}</div>
                   </div>
-                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-purple-600 shadow-sm">
+                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card text-purple-600 shadow-sm">
                     <Camera size={16} />
                   </div>
                 </button>
               ))}
               {cameraOptions.length === 0 && (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                <div className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
                   Chưa có camera cho cơ sở này.
                 </div>
               )}
@@ -387,16 +387,16 @@ const CameraZoneManager = () => {
 
         {/* Main Content */}
         <div className="col-span-12 lg:col-span-9 xl:col-span-10 space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 md:p-5 lg:p-6 shadow-sm">
-            <div className="flex flex-col gap-4 border-b border-gray-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="rounded-lg border border-border bg-card p-4 md:p-5 lg:p-6 shadow-sm">
+            <div className="flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">{selectedCamera?.cameraName || "Chọn camera"}</h1>
-                <p className="mt-1 text-sm text-gray-500">Khu vực thiết lập vùng quản lý (Zones)</p>
+                <h1 className="text-xl font-semibold text-foreground">{selectedCamera?.cameraName || "Chọn camera"}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Khu vực thiết lập vùng quản lý (Zones)</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <button
                   onClick={() => {}}
-                  className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
                 >
                   <HelpCircle size={16} /> Hướng dẫn
                 </button>
@@ -417,7 +417,7 @@ const CameraZoneManager = () => {
                   <>
                     <button
                       onClick={removeLastPoint}
-                      className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
                     >
                       <Trash2 size={16} /> Xóa điểm cuối
                     </button>
@@ -434,9 +434,9 @@ const CameraZoneManager = () => {
 
             <div className="mt-5 grid grid-cols-12 gap-3 lg:gap-4">
               <div className="col-span-12 xl:col-span-9 space-y-4">
-                <div className="relative flex h-[620px] xl:h-[700px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-slate-50 overflow-hidden">
+                <div className="relative flex h-[620px] xl:h-[700px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted overflow-hidden">
                   {previewImageUrl && imageSize.width > 0 && imageSize.height > 0 ? (
-                    <Stage width={stageDisplaySize.width} height={stageDisplaySize.height} className="bg-white" onClick={handleStageClick}>
+                    <Stage width={stageDisplaySize.width} height={stageDisplaySize.height} className="bg-card" onClick={handleStageClick}>
                       <Layer>
                         <KonvaImage image={loadedImage} width={stageDisplaySize.width} height={stageDisplaySize.height} />
                         <ZoneRenderer
@@ -453,8 +453,8 @@ const CameraZoneManager = () => {
                       </Layer>
                     </Stage>
                   ) : (
-                    <div className="text-center text-slate-500">
-                      <div className="mb-4 inline-flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 text-slate-400">
+                    <div className="text-center text-muted-foreground">
+                      <div className="mb-4 inline-flex h-24 w-24 items-center justify-center rounded-full bg-muted text-muted-foreground">
                         <Camera size={40} />
                       </div>
                       <div className="font-medium uppercase tracking-wider">Bản đồ vùng Camera</div>
@@ -462,7 +462,7 @@ const CameraZoneManager = () => {
                     </div>
                   )}
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <div className="rounded-2xl border border-border bg-card p-4">
                   {(isEditing || currentPoints.length >= 8) ? (
                     <ZoneForm
                       zone={draftZone}
@@ -481,7 +481,7 @@ const CameraZoneManager = () => {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         onClick={removeLastPoint}
-                        className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
                       >
                         Xóa điểm cuối
                       </button>
@@ -498,8 +498,8 @@ const CameraZoneManager = () => {
 
               {/* Zone List */}
               <div className="col-span-12 xl:col-span-3">
-                <div className="flex h-[380px] xl:h-[700px] flex-col rounded-2xl border border-gray-200 bg-white p-4">
-                  <h2 className="text-sm font-semibold text-gray-900">Danh sách vùng</h2>
+                <div className="flex h-[380px] xl:h-[700px] flex-col rounded-2xl border border-border bg-card p-4">
+                  <h2 className="text-sm font-semibold text-foreground">Danh sách vùng</h2>
                   <div className="mt-4 flex-1 overflow-y-auto">
                     <ZonesList
                       zones={selectedCameraState?.zones?.zones || []}

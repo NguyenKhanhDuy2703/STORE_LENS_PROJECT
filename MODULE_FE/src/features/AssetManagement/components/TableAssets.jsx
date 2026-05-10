@@ -16,26 +16,26 @@ const TableAssets = ({
   onGoToPage,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-medium text-slate-500 tracking-tight">
-              <th className="text-left py-2 px-3 border-r border-slate-200">Mã SP</th>
-              <th className="text-left py-2 px-3 border-r border-slate-200">Tên sản phẩm</th>
-              <th className="text-left py-2 px-3 border-r border-slate-200">Danh mục</th>
-              <th className="text-left py-2 px-3 border-r border-slate-200">Vùng</th>
-              <th className="text-left py-2 px-3 border-r border-slate-200">Thương hiệu</th>
-              <th className="text-right py-2 px-3 border-r border-slate-200">Giá bán</th>
-              <th className="text-center py-2 px-3 border-r border-slate-200">Tồn kho</th>
-              <th className="text-center py-2 px-3 border-r border-slate-200">Trạng thái</th>
+            <tr className="bg-muted border-b border-border text-[10px] font-medium text-muted-foreground tracking-tight">
+              <th className="text-left py-2 px-3 border-r border-border">Mã SP</th>
+              <th className="text-left py-2 px-3 border-r border-border">Tên sản phẩm</th>
+              <th className="text-left py-2 px-3 border-r border-border">Danh mục</th>
+              <th className="text-left py-2 px-3 border-r border-border">Vùng</th>
+              <th className="text-left py-2 px-3 border-r border-border">Thương hiệu</th>
+              <th className="text-right py-2 px-3 border-r border-border">Giá bán</th>
+              <th className="text-center py-2 px-3 border-r border-border">Tồn kho</th>
+              <th className="text-center py-2 px-3 border-r border-border">Trạng thái</th>
               <th className="text-center py-2 px-3">Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {pagedProducts.length > 0 ? (
               pagedProducts.map((product) => (
-                <tr key={product.product_id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                <tr key={product.product_id} className="border-b border-border hover:bg-muted/50 transition-colors">
                   <td className="py-2 px-3">
                     <span className="text-xs text-teal-600 font-medium tracking-tight tabular-nums bg-teal-50 px-2 py-0.5 rounded">
                       {product.product_id}
@@ -47,8 +47,8 @@ const TableAssets = ({
                         <Package className="w-4 h-4 text-teal-600" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-sm text-slate-900 truncate tracking-tight">{product.name_product}</p>
-                        <p className="text-xs text-slate-500">{product.unit}</p>
+                        <p className="font-medium text-sm text-foreground truncate tracking-tight">{product.name_product}</p>
+                        <p className="text-xs text-muted-foreground">{product.unit}</p>
                       </div>
                     </div>
                   </td>
@@ -63,14 +63,14 @@ const TableAssets = ({
                     </span>
                   </td>
                   <td className="py-2 px-3">
-                    <span className="text-sm text-slate-700 font-medium tracking-tight">{product.brand}</span>
+                    <span className="text-sm text-foreground font-medium tracking-tight">{product.brand}</span>
                   </td>
                   <td className="py-2 px-3 text-right">
-                    <span className="font-medium text-sm text-slate-900 tracking-tight tabular-nums">{formatCurrency(product.price)}</span>
+                    <span className="font-medium text-sm text-foreground tracking-tight tabular-nums">{formatCurrency(product.price)}</span>
                   </td>
                   <td className="py-2 px-3 text-center">
                     <span
-                      className={`font-medium text-base tracking-tight tabular-nums ${
+                      className={`font-semibold text-sm tracking-tight tabular-nums ${
                         product.stock_quantity === 0
                           ? 'text-red-600'
                           : product.stock_quantity < 100
@@ -86,7 +86,7 @@ const TableAssets = ({
                       className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${
                         product.status
                           ? 'bg-green-50 text-green-700 border-green-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-300'
+                          : 'bg-muted text-muted-foreground border-border'
                       }`}
                     >
                       {product.status ? '✓ Đang bán' : '⊗ Ngưng'}
@@ -108,10 +108,10 @@ const TableAssets = ({
               <tr>
                 <td colSpan="9" className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                      <Package className="w-6 h-6 text-slate-400" />
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                      <Package className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-slate-500 tracking-tight">
+                    <p className="text-sm text-muted-foreground tracking-tight">
                       {searchTerm || selectedCategory !== 'all' || selectedZone !== 'all'
                         ? 'Không tìm thấy sản phẩm phù hợp'
                         : 'Chưa có sản phẩm'}

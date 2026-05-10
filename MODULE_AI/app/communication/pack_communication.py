@@ -27,9 +27,9 @@ class PackCommunication:
                 case "tracking":
                     pass
                 case "dwell_time":
-                    if now - self.last_sent["dwell_time"] >= self.time_send_payload["dwell_time"]:
-                        self.redis_publisher.publish("dwell_time_channel", message= {"data": data["data"] ,"infor": data["info"]})
-                        self.last_sent["dwell_time"] = now
+                    # Không throttle — finished_events chỉ xuất hiện khi người dừng xong,
+                    # không spam như heatmap. Throttle sẽ làm mất data do clear() sau dispatch.
+                    self.redis_publisher.publish("dwell_time_channel", message={"data": data["data"], "infor": data["info"]})
                 case "heatmap":
                     if now - self.last_sent["heatmap"] >= self.time_send_payload["heatmap"]:
                         self.redis_publisher.publish("heatmap_channel", message= {"data": data["data"]() ,"infor": data["info"]})
@@ -37,10 +37,11 @@ class PackCommunication:
                 case "zone_analysis":
                     if now - self.last_sent["zone_analysis"] >= self.time_send_payload["zone_analysis"]:
                         self.redis_publisher.publish("zone_analysis_channel", message= {"data": data["data"] ,"infor": data["info"]})
+                        self.last_sent["zone_analysis"] = now
                 case "zone_analysis_event":
-                    if now - self.last_sent["zone_analysis_event"] >= self.time_send_payload["zone_analysis_event"]:
-                        self.redis_publisher.publish("zone_analysis_event_channel", message= {"data": data["data"] ,"infor": data["info"]})
-                        self.last_sent["zone_analysis_event"] = now
+                    # Không throttle — Đây là sự kiện độc lập khi người dùng vào/ra/chuyển zone.
+                    # Throttle sẽ làm mất event ENTRY -> không tạo Session -> Total Visitors bị đếm thiếu trầm trọng.
+                    self.redis_publisher.publish("zone_analysis_event_channel", message={"data": data["data"], "infor": data["info"]})
                 case "dwell_time_realtime":
                     self.redis_publisher.publish("dwell_time_realtime_channel",message= {"data": data["data"] ,"infor": data["info"]})
                 case _:

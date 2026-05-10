@@ -18,7 +18,7 @@ export const CameraFilters = ({
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
           <div>
-            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <label className="mb-1.5 block label-mono">
               Tìm kiếm camera
             </label>
             <SearchInput
@@ -29,7 +29,7 @@ export const CameraFilters = ({
           </div>
 
           <div>
-            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <label className="mb-1.5 block label-mono">
               Cửa hàng
             </label>
             <select
@@ -45,7 +45,7 @@ export const CameraFilters = ({
           </div>
 
           <div>
-            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <label className="mb-1.5 block label-mono">
               Trạng thái
             </label>
             <select

@@ -102,7 +102,7 @@ const getAreaHourlyTraffic = async ({ locationId, zoneId, type = 'today' } = {})
             { $unwind: "$zone_sequence" },
             ...(zoneId ? [{ $match: { "zone_sequence.zone_id": zoneId } }] : []),
             { $group: {
-                _id: { $hour: { date: "$zone_sequence.entry_time", timezone: "+07:00" } },
+                _id: { $hour: { date: "$zone_sequence.entry_time", timezone: "Asia/Ho_Chi_Minh" } },
                 count: { $sum: 1 }
             }},
             { $sort: { "_id": 1 } }
