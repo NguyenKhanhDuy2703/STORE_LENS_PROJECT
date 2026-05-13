@@ -15,7 +15,6 @@ const { socketIo: socketOptions } = config.getConfig();
 const app = express();
 const server = http.createServer(app)
 
-// Disable ETag generation to prevent 304 Not Modified responses on GET requests
 app.disable('etag');
 const connection = require("./config/databaseMonogo");
 const socketIo = require("socket.io")
@@ -25,16 +24,13 @@ app.use(morganMiddleware)
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: true  , limit: '50mb'}));
 app.use(cors(corsOption));
-app.options('*', cors(corsOption)); // handle preflight cho tất cả routes
+app.options('*', cors(corsOption)); 
 app.use(cookieParser());
 const startWorker = async () => {
     try {
         const io = app.get("io")
         await worker.connection(io);
         await connection();
-        
-        // ── Setup background jobs ─────────────────────────────────────────────
-        // Check camera health mỗi 30 giây
         scheduler.addJob(
             'camera-health-check',
             () => cameraHealthWorker.checkAllActiveCameras(),

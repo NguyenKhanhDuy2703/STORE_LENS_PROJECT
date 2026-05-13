@@ -120,8 +120,8 @@ const Heatmap = () => {
               isLoading={isLoading}
               heatmapVisible={heatmapVisible}
               zoneOverlay={zoneOverlay}
-              opacity={0.8}
-              heatRadius={15}
+              opacity={0.95}
+              heatRadius={28}
             />
           </div>
         </div>

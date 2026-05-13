@@ -11,7 +11,16 @@ const heatmapSchema = new Schema({
     grid_size: { type: Number, required: true },
     frame_width: { type: Number, required: true },
     frame_height: { type: Number, required: true },
-    heatmap_matrix: [[Number]]
+    heatmap_matrix: [[Number]],
+    letterbox: {
+        original_w: { type: Number },
+        original_h: { type: Number },
+        target_w: { type: Number },
+        target_h: { type: Number },
+        scale: { type: Number },
+        pad_left: { type: Number },
+        pad_top: { type: Number },
+    },
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

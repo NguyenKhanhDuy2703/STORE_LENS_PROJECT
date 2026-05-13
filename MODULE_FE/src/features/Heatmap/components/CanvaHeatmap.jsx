@@ -20,15 +20,20 @@ export const HeatmapGrid = ({
   matrix,
   frameWidth,
   frameHeight,
+  matrixFrameWidth,
+  matrixFrameHeight,
+  letterbox,
   opacity,
   heatRadius = 24,
-  blurRadius = 70,
+  blurRadius = 40,
 }) => {
   const groupRef = useRef(null);
   const rows = matrix?.length || 0;
   const cols = matrix?.[0]?.length || 0;
-  const cellWidth = cols > 0 ? frameWidth / cols : 0;
-  const cellHeight = rows > 0 ? frameHeight / rows : 0;
+  const baseWidth = Number.isFinite(matrixFrameWidth) ? matrixFrameWidth : frameWidth;
+  const baseHeight = Number.isFinite(matrixFrameHeight) ? matrixFrameHeight : frameHeight;
+  const cellWidth = cols > 0 ? baseWidth / cols : 0;
+  const cellHeight = rows > 0 ? baseHeight / rows : 0;
 
   const colorScale = useMemo(() => {
     if (!matrix || matrix.length === 0) return null;
@@ -39,6 +44,13 @@ export const HeatmapGrid = ({
     if (minValue === maxValue) return () => "rgba(0,0,255,0)";
     return scaleSequential(interpolateTurbo).domain([minValue, maxValue]);
   }, [matrix]);
+
+  const scaleFactor = useMemo(() => {
+    if (letterbox && Number.isFinite(letterbox.scale) && letterbox.scale > 0) {
+      return 1 / letterbox.scale;
+    }
+    return 1;
+  }, [letterbox]);
 
   useEffect(() => {
     const node = groupRef.current;
@@ -69,16 +81,37 @@ export const HeatmapGrid = ({
     <Group
       ref={groupRef}
       filters={[Konva.Filters.Blur]}
-      blurRadius={blurRadius}
+      blurRadius={blurRadius * scaleFactor}
       globalCompositeOperation="screen"
     >
       {matrix.map((row, rowIdx) =>
         row.map((value, colIdx) => {
           if (value === 0) return null;
 
-          const x = colIdx * cellWidth + cellWidth / 2;
-          const y = rowIdx * cellHeight + cellHeight / 2;
-          const radius = Math.max(heatRadius, Math.min(cellWidth, cellHeight) * 0.55);
+          const xLb = colIdx * cellWidth + cellWidth / 2;
+          const yLb = rowIdx * cellHeight + cellHeight / 2;
+          let x = xLb;
+          let y = yLb;
+
+          if (letterbox && Number.isFinite(letterbox.scale) && letterbox.scale > 0) {
+            x = (xLb - (letterbox.pad_left || 0)) / letterbox.scale;
+            y = (yLb - (letterbox.pad_top || 0)) / letterbox.scale;
+
+            if (
+              !Number.isFinite(x) ||
+              !Number.isFinite(y) ||
+              x < 0 ||
+              y < 0 ||
+              x > (letterbox.original_w || 0) ||
+              y > (letterbox.original_h || 0)
+            ) {
+              return null;
+            }
+          }
+          const radius = Math.max(
+            heatRadius * scaleFactor,
+            Math.min(cellWidth, cellHeight) * 0.55 * scaleFactor
+          );
           const fillColor = colorScale(value);
 
           return (
@@ -88,7 +121,7 @@ export const HeatmapGrid = ({
               y={y}
               radius={radius}
               fill={fillColor}
-              opacity={Math.max(0.08, opacity)}
+              opacity={Math.max(0.2, opacity)}
               shadowBlur={24}
               shadowColor={fillColor}
             />
