@@ -1,17 +1,3 @@
-"""
-flow_miner.py — Zone Flow Pattern Mining
-Khai phá mẫu di chuyển khách hàng qua các zone với 2 thuật toán:
-  - fpgrowth   : Tìm tổ hợp zone thường xuất hiện cùng nhau (không quan tâm thứ tự)
-  - prefixspan : Tìm chuỗi di chuyển có thứ tự thực tế (A → B → C)
-
-Usage:
-    python flow_miner.py <location_id> fpgrowth   [min_support] [min_confidence] [min_lift]
-    python flow_miner.py <location_id> prefixspan [min_support] [min_confidence]
-
-Output (stdout):
-    JSON: { "algorithm": "...", "patterns": [...], "error": null }
-"""
-
 import json
 import argparse
 import os
@@ -26,8 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ZoneDataFetcher:
-    """Kết nối MongoDB và fetch zone_sequence từ sessions."""
-
     def __init__(self, location_id: str):
         self.location_id = location_id
         uri = os.getenv("MONGODB_URI") or os.getenv("URI_MONGODB")
@@ -69,13 +53,6 @@ class ZoneDataFetcher:
             if len(zone_labels) >= 2:
                 sequences.append(zone_labels)
         return sequences
-
-
-# ─────────────────────────────────────────────
-# Thuật toán 1: FP-Growth
-# Câu hỏi: "Zone nào thường được ghé cùng nhau?"
-# ─────────────────────────────────────────────
-
 class FPGrowthMiner:
     def __init__(self, location_id: str, min_support: float = 0.1,
                  min_confidence: float = 0.5, min_lift: float = 1.0):
@@ -124,13 +101,6 @@ class FPGrowthMiner:
 
         except Exception as e:
             return {"algorithm": "fpgrowth", "patterns": [], "error": str(e)}
-
-
-# ─────────────────────────────────────────────
-# Thuật toán 2: PrefixSpan
-# Câu hỏi: "Khách thường đi theo lộ trình nào?"
-# ─────────────────────────────────────────────
-
 class PrefixSpanMiner:
     def __init__(self, location_id: str, min_support: float = 0.1,
                  min_confidence: float = 0.5):

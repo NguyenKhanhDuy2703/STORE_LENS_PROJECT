@@ -49,8 +49,11 @@ const HeatmapCanvas = ({
   const cameraImageSrc = activeData?.backgroundImage || backgroundImage || "";
 
   // --- [CỤM 3]: LOGIC HÌNH HỌC (STAGE GEOMETRY) ---
-  const frameWidth = activeData?.frameWidth || 1280;
-  const frameHeight = activeData?.frameHeight || 720;
+  const matrixFrameWidth = activeData?.frameWidth || 1280;
+  const matrixFrameHeight = activeData?.frameHeight || 720;
+  const letterbox = activeData?.letterbox || null;
+  const frameWidth = letterbox?.original_w || matrixFrameWidth;
+  const frameHeight = letterbox?.original_h || matrixFrameHeight;
 
   // Khống chế kích thước Stage (Trừ buffer 10px để tránh Loop)
   const finalWidth = useMemo(() => Math.floor((stageBounds.width || 0) - 10), [stageBounds.width]);
@@ -95,6 +98,9 @@ const HeatmapCanvas = ({
                     matrix={activeData.heatmapMatrix} 
                     frameWidth={frameWidth} 
                     frameHeight={frameHeight} 
+                    matrixFrameWidth={matrixFrameWidth}
+                    matrixFrameHeight={matrixFrameHeight}
+                    letterbox={letterbox}
                     opacity={opacity} 
                     heatRadius={heatRadius} 
                   />

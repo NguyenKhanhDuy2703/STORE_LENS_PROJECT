@@ -32,7 +32,8 @@ class PackCommunication:
                     self.redis_publisher.publish("dwell_time_channel", message={"data": data["data"], "infor": data["info"]})
                 case "heatmap":
                     if now - self.last_sent["heatmap"] >= self.time_send_payload["heatmap"]:
-                        self.redis_publisher.publish("heatmap_channel", message= {"data": data["data"]() ,"infor": data["info"]})
+                        payload_data = data["data"]() if callable(data["data"]) else data["data"]
+                        self.redis_publisher.publish("heatmap_channel", message={"data": payload_data, "infor": data["info"]})
                         self.last_sent["heatmap"] = now
                 case "zone_analysis":
                     if now - self.last_sent["zone_analysis"] >= self.time_send_payload["zone_analysis"]:

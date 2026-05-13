@@ -26,7 +26,8 @@ const heatmapWorker = {
             height_matrix: data.grid_width,
             width_matrix: data.grid_height,
             heatmap_matrix: data.heatmap_matrix,
-            time_stamp: currentTime
+            time_stamp: currentTime,
+            letterbox: data.letterbox || undefined,
           });
 
           await heatmapData.save();

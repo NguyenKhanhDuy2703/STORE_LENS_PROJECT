@@ -26,6 +26,80 @@ class StreamProcessor:
         self.old_current_frame_counts = {}
         self.old_total_in_store = -1
         self.re_id = Re_ID()
+
+    def _preprocess_frame(self, frame, target_size=(640, 640), pad_value=114):
+        if frame is None:
+            return None, None
+
+        target_w, target_h = target_size
+        frame_h, frame_w = frame.shape[:2]
+        if frame_w == 0 or frame_h == 0:
+            return None, None
+
+        scale = min(target_w / frame_w, target_h / frame_h)
+        new_w = max(1, int(frame_w * scale))
+        new_h = max(1, int(frame_h * scale))
+
+        resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        pad_w = target_w - new_w
+        pad_h = target_h - new_h
+        pad_left = pad_w // 2
+        pad_right = pad_w - pad_left
+        pad_top = pad_h // 2
+        pad_bottom = pad_h - pad_top
+
+        processed = cv2.copyMakeBorder(
+            resized,
+            pad_top,
+            pad_bottom,
+            pad_left,
+            pad_right,
+            borderType=cv2.BORDER_CONSTANT,
+            value=(pad_value, pad_value, pad_value),
+        )
+
+        meta = {
+            "original_w": frame_w,
+            "original_h": frame_h,
+            "target_w": target_w,
+            "target_h": target_h,
+            "scale": scale,
+            "pad_left": pad_left,
+            "pad_top": pad_top,
+        }
+        return processed, meta
+
+    def _map_zone_points_to_letterbox(self, list_zone, meta):
+        if not list_zone or not meta:
+            return list_zone
+
+        original_w = meta["original_w"]
+        original_h = meta["original_h"]
+        scale = meta["scale"]
+        pad_left = meta["pad_left"]
+        pad_top = meta["pad_top"]
+
+        mapped_zones = []
+        for zone in list_zone:
+            points = zone.get("points") if isinstance(zone, dict) else getattr(zone, "points", None)
+            zone_id = zone.get("zone_id", "unknown") if isinstance(zone, dict) else getattr(zone, "zone_id", "unknown")
+            if not points:
+                mapped_zones.append({"zone_id": zone_id, "points": []})
+                continue
+
+            flat = [v for pair in points for v in pair]
+            is_normalized = all(0.0 <= v <= 1.0 for v in flat)
+            mapped_points = []
+            for x, y in points:
+                px = x * original_w if is_normalized else x
+                py = y * original_h if is_normalized else y
+                mapped_points.append([
+                    int(px * scale + pad_left),
+                    int(py * scale + pad_top),
+                ])
+
+            mapped_zones.append({"zone_id": zone_id, "points": mapped_points})
+        return mapped_zones
     def _read_frames(self, url_rtsp , stop_event : threading.Event):
 
         input_source = source_video if url_rtsp.split("-")[0] == 'test' else url_rtsp
@@ -42,8 +116,11 @@ class StreamProcessor:
                 ret, frame = cap.read()
                 if not ret:
                     break
-                
-                self.frame_queue.append(frame)
+                processed_frame, _ = self._preprocess_frame(frame)
+                if processed_frame is None:
+                    continue
+
+                self.frame_queue.append(processed_frame)
 
         except Exception as e:
             raise Exception(f"Error reading stream {input_source}: {str(e)}")
@@ -84,8 +161,16 @@ class StreamProcessor:
                raise ValueError(f"Failed to open stream: {url_rtsp}")
             
             ret_first, frame_first = cap.read()
-            frame_h, frame_w = frame_first.shape[0], frame_first.shape[1]
+            if not ret_first:
+                raise ValueError(f"Failed to read first frame: {url_rtsp}")
+            processed_first, meta = self._preprocess_frame(frame_first)
+            if processed_first is None or meta is None:
+                raise ValueError(f"Failed to preprocess first frame: {url_rtsp}")
+
+            frame_h, frame_w = processed_first.shape[0], processed_first.shape[1]
             self.heatmap_analysis = heatmap_analysis.HeatmapAnalysis(frame_w, frame_h)
+            list_zone_letterbox = self._map_zone_points_to_letterbox(list_zone, meta)
+            self.letterbox_meta = meta
 
             windown_name = f"AI Tracking - {url_rtsp}"
             read_thread = threading.Thread(target=self._read_frames, args=(url_rtsp,stop_event))
@@ -138,7 +223,7 @@ class StreamProcessor:
                         foot = y2
                         hit_zone , zone_event = self.zone_analyzer.analyze(
                             point=(center, foot),
-                            list_zones=list_zone,
+                            list_zones=list_zone_letterbox,
                             track_id=final_track_id,
                             frame_w=frame_w,
                             frame_h=frame_h,
@@ -225,18 +310,22 @@ class StreamProcessor:
                     self.dwell_time_analyzer.finished_events.clear()
                 self.dwell_time_analyzer.cleanup_old_tracks()
                 
+                heatmap_payload = self.heatmap_analysis.get_payload_heatmap()
+                if self.letterbox_meta is not None:
+                    heatmap_payload["letterbox"] = self.letterbox_meta
+
                 self.pack_communication.dispatch_payload(
                     [ {
                             "type":"heatmap",
-                            "data": self.heatmap_analysis.get_payload_heatmap,
+                            "data": heatmap_payload,
                             "info":{
                                 "camera_id": self.camera_id,
                                 "location_id": location_id
                             }
                         }]
                 )
-                if list_zone is not None:
-                    heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone, frame_w, frame_h)
+                if list_zone_letterbox is not None:
+                    heatmap_overlay = self.zone_analyzer.draw_zones(heatmap_overlay, list_zone_letterbox, frame_w, frame_h)
                 cv2.imshow(windown_name, heatmap_overlay)
                 
                 if cv2.waitKey(25) & 0xFF == ord('q'):

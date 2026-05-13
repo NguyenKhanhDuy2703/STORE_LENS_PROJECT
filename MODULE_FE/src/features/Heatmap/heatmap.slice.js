@@ -12,6 +12,7 @@ const heatmapHelper = (item, backgroundImage) => {
     frameHeight: item.frame_height,
     widthMatrix: item.width_matrix,
     heightMatrix: item.height_matrix,
+    letterbox: item.letterbox || null,
     zones: item.zones || [],
     backgroundImage: item.background_image || backgroundImage || "",
   };
