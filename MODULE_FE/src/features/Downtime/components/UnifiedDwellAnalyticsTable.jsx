@@ -78,7 +78,10 @@ const UnifiedDwellAnalyticsTable = ({ rows = [], isLoading = false }) => {
 
               return (
                 <tr key={row.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-8 py-4 text-sm font-semibold text-foreground">{row.categoryName}</td>
+                  <td className="px-8 py-4">
+                    <div className="font-semibold text-sm text-foreground">{row.zoneName}</div>
+                    <div className="text-[11px] font-medium text-muted-foreground mt-0.5">{row.categoryName}</div>
+                  </td>
 
                   <td className="px-8 py-4 text-center">
                     <span className="text-sm font-semibold text-foreground tabular-nums">{row.peopleCount.toLocaleString('vi-VN')}</span>

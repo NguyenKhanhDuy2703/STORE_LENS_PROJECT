@@ -32,6 +32,9 @@ const upsertBusinessEvent = catchAsync(async (req, res) => {
     }
 
     if (event_details !== undefined) {
+        if (!Array.isArray(event_details)) {
+            return error({ message: 'event_details must be an array', code: StatusCodes.BAD_REQUEST });
+        }
         for (const item of event_details) {
             if (item.quantity < 0) {
                 return error({ message: 'event_details[].quantity must be >= 0', code: StatusCodes.BAD_REQUEST });

@@ -11,6 +11,7 @@ import {
   fetchPerformanceInteract,
 } from './dwellTime.thunk';
 import formatDuration from '../../utils/formatDuration';
+import { MapPin } from 'lucide-react';
 
 const Downtime = () => {
   const dispatch = useDispatch();
@@ -31,20 +32,21 @@ const Downtime = () => {
 
   const metrics = dwellTimeState.metrics || { max_time: 0, min_time: 0, avg_time: 0 };
   const kpis = {
-    max: { value: metrics.max_time, zone: 'Khu vực có thời gian dừng dài nhất', change: 0 },
-    min: { value: metrics.min_time, zone: 'Khu vực có thời gian dừng ngắn nhất', change: 0 },
+    max: { value: metrics.max_time, zone: metrics.max_zone_name || 'Khu vực chưa xác định', change: 0 },
+    min: { value: metrics.min_time, zone: metrics.min_zone_name || 'Khu vực chưa xác định', change: 0 },
     avg: { value: metrics.avg_time, zone: 'Trung bình toàn cửa hàng', change: 0 },
   };
 
   const chartData = (dwellTimeState.performanceInteract || []).map((item) => ({
     name: item.hour,
-    traffic: Math.round(Number(item.vistors || 0)),
+    traffic: Math.round(Number(item.visitors || 0)),
     dwellTime: Math.round(Number(item.Time_stop || 0)),
   }));
 
   const tableRows = (dwellTimeState.analysisDwellTime || []).map((item, index) => ({
     id: `${item.zone_name || 'zone'}-${index}`,
-    categoryName: item.category_name || 'Unknown Category',
+    zoneName: item.zone_name || 'Khu vực chưa đặt tên',
+    categoryName: item.category_name || 'Chưa phân loại',
     peopleCount: Number(item.people_count || 0),
     stopCount: Number(item.total_stop_events || 0),
     avgTime: Number(item.avg_dwell_time || 0),
@@ -59,46 +61,66 @@ const Downtime = () => {
   if (isLoadingKPI) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-background">
-        <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-muted-foreground font-medium tracking-tight text-xs">Đang tải dữ liệu phân tích...</p>
+        <div className="relative">
+          <div className="w-12 h-12 border-4 border-emerald-500/20 rounded-full"></div>
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+        </div>
+        <p className="mt-4 text-emerald-600 font-medium tracking-tight text-sm animate-pulse">Đang tải dữ liệu phân tích thời gian dừng...</p>
+      </div>
+    );
+  }
+
+  if (!effectiveLocationId) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <div className="bg-card border border-border p-8 rounded-3xl shadow-sm text-center max-w-md w-full relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+          <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+            <MapPin size={28} />
+          </div>
+          <h3 className="text-lg font-bold text-foreground mb-2">Chưa chọn cơ sở</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Để xem báo cáo Phân tích Thời gian lưu lại, vui lòng chọn một cơ sở cụ thể ở thanh công cụ phía trên.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8 md:px-8 md:py-10 pb-20">
+    <div className="min-h-screen bg-background px-6 py-8 md:px-8 md:py-10 pb-20 max-w-[1600px] mx-auto">
       {/* KPI CARDS SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard 
-          title="TG DỪNG TB LẦU NHẤT" 
+          title="TG DỪNG LÂU NHẤT" 
           value={formatDuration(kpis.max.value)} 
-          subtitle={kpis.max.zone} 
+          subtitle={kpis.max.zone || "Chưa có dữ liệu"} 
           change={kpis.max.change} 
           icon={<Clock className="w-6 h-6" />} 
         />
         <StatCard 
-          title="TG DỪNG TB NGẮN NHẤT" 
+          title="TG DỪNG NGẮN NHẤT" 
           value={formatDuration(kpis.min.value)} 
-          subtitle={kpis.min.zone} 
+          subtitle={kpis.min.zone || "Chưa có dữ liệu"} 
           change={kpis.min.change} 
           icon={<Zap className="w-6 h-6" />} 
         />
         <StatCard 
-          title="TB TOÀN CỬA HÀNG" 
+          title="TRUNG BÌNH TOÀN CỬA HÀNG" 
           value={formatDuration(kpis.avg.value)} 
-          subtitle={kpis.avg.zone} 
+          subtitle="Tất cả các khu vực" 
           change={kpis.avg.change} 
           icon={<BarChart3 className="w-6 h-6" />} 
         />
       </div>
 
       {/* Biểu đồ giữ nguyên để theo dõi xu hướng trực quan */}
-      <div className="mb-10">
+      <div className="mb-8">
         <BarLineChart data={chartData} isLoading={isLoadingChart} />
       </div>
 
       {/* Bảng hợp nhất để giảm trùng lặp thông tin */}
-      <div className="shadow-sm hover:shadow-md transition-shadow">
+      <div className="shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl border border-border bg-card">
         <UnifiedDwellAnalyticsTable rows={tableRows} isLoading={isLoadingTable} />
       </div>
     </div>

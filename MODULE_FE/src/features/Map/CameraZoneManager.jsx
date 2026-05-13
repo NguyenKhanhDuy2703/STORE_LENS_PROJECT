@@ -1,6 +1,6 @@
-﻿import { useState, useRef, useEffect, useMemo } from "react";
-import { Camera, HelpCircle, Upload, Trash2, X } from "lucide-react";
-import { Stage, Layer, Image as KonvaImage } from "react-konva";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { Camera, HelpCircle, Upload, Trash2, X, Layers, Save } from "lucide-react";
+import { Stage, Layer, Image as KonvaImage, Line as KonvaLine } from "react-konva";
 import useImage from "use-image";
 import { processImageUpload } from "./map.helpers";
 import Swal from "sweetalert2";
@@ -14,9 +14,10 @@ import { DrawingPoints as ToolDrawZone } from "./components/ToolDrawZone";
 import { useZoneDrawing } from "../shared/zones/useZoneDrawing";
 import { denormalizePoints, getRelativePointer, normalizePoints } from "../../utils/coordinateUtils";
 import { getCameraWithZonesByLocationId } from "../../services/camera.api";
+import { uploadZoneImage } from "../../services/zone.api";
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_CANVAS_WIDTH = 1200;
-const MAX_CANVAS_HEIGHT = 700;
+const MAX_CANVAS_HEIGHT = 620;
 
 const pointsFlatToObjects = (flatPoints = []) => {
   if (!Array.isArray(flatPoints)) return [];
@@ -44,7 +45,10 @@ const CameraZoneManager = () => {
   const [cameraOptions, setCameraOptions] = useState([]);
   const [selectedCameraCode, setSelectedCameraCode] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const fileInputRef = useRef(null);
+  const canvasContainerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(MAX_CANVAS_WIDTH);
 
   const selectedCamera = cameraOptions.find((cam) => cam.cameraCode === selectedCameraCode);
   const cameraZonesState = useSelector((state) => state.cameraZones);
@@ -67,7 +71,7 @@ const CameraZoneManager = () => {
     }
 
     const ratio = Math.min(
-      MAX_CANVAS_WIDTH / imageSize.width,
+      containerWidth / imageSize.width,
       MAX_CANVAS_HEIGHT / imageSize.height,
       1,
     );
@@ -76,7 +80,7 @@ const CameraZoneManager = () => {
       width: Math.round(imageSize.width * ratio),
       height: Math.round(imageSize.height * ratio),
     };
-  }, [imageSize]);
+  }, [imageSize, containerWidth]);
 
   const {
     currentPoints,
@@ -174,7 +178,7 @@ const CameraZoneManager = () => {
           categoryName: draftZone.categoryName,
         },
       ],
-      imgUrl: null,
+      imgUrl: uploadedImageUrl || null,
     };
 
     try {
@@ -259,6 +263,7 @@ const CameraZoneManager = () => {
   useEffect(() => {
     if (selectedCameraCode && effectiveLocationId) {
       setImageUrl("");
+      setUploadedImageUrl("");
       dispatch(fetchListZone({ locationId: effectiveLocationId, cameraCode: selectedCameraCode }));
     }
   }, [dispatch, selectedCameraCode, effectiveLocationId]);
@@ -275,7 +280,17 @@ const CameraZoneManager = () => {
     }
   }, [loadedImage]);
 
-  const handleUploadImg = (e) => {
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerWidth(Math.floor(entry.contentRect.width));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleUploadImg = async (e) => {
     const file = e.target.files?.[0];
     const { url, error } = processImageUpload(file, MAX_IMAGE_SIZE_BYTES);
 
@@ -290,6 +305,40 @@ const CameraZoneManager = () => {
     }
 
     setImageUrl(url);
+    try {
+      const cloudUrl = await uploadZoneImage(file);
+      setUploadedImageUrl(cloudUrl);
+    } catch {
+      Swal.fire({
+        title: "Lỗi upload",
+        text: "Không thể tải ảnh lên server.",
+        icon: "error",
+        confirmButtonColor: "#7c3aed",
+      });
+      setImageUrl("");
+    }
+  };
+
+  const handleSaveImage = async () => {
+    if (!uploadedImageUrl || !effectiveLocationId) return;
+    try {
+      await dispatch(fetchCreateAndUpdateZone({
+        locationId: effectiveLocationId,
+        cameraCode: selectedCameraCode,
+        listZones: [],
+        imgUrl: uploadedImageUrl,
+      })).unwrap();
+      setImageUrl("");
+      setUploadedImageUrl("");
+      dispatch(fetchListZone({ locationId: effectiveLocationId, cameraCode: selectedCameraCode }));
+    } catch (error) {
+      Swal.fire({
+        title: "Lỗi lưu ảnh",
+        text: error || "Không thể lưu ảnh nền.",
+        icon: "error",
+        confirmButtonColor: "#7c3aed",
+      });
+    }
   };
 
   const handleStageClick = (e) => {
@@ -317,7 +366,7 @@ const CameraZoneManager = () => {
           categoryName: draftZone.categoryName,
         },
       ],
-      imgUrl: null,
+      imgUrl: uploadedImageUrl || null,
     };
 
     try {
@@ -362,16 +411,18 @@ const CameraZoneManager = () => {
                 <button
                   key={camera.cameraCode}
                   onClick={() => setSelectedCameraCode(camera.cameraCode)}
-                  className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all duration-200 ${
                     selectedCameraCode === camera.cameraCode
-                      ? "border-purple-500 bg-purple-600 text-white"
-                      : "border-border bg-background text-foreground hover:border-purple-300 hover:bg-purple-50"
+                      ? "border-emerald-500 bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                      : "border-border bg-background text-foreground hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/10"
                   }`}
                 >
                   <div>
                     <div className="font-semibold">{camera.cameraName}</div>
                   </div>
-                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card text-purple-600 shadow-sm">
+                  <div className={`inline-flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-colors ${
+                    selectedCameraCode === camera.cameraCode ? "bg-white/20 text-white" : "bg-muted text-emerald-600 dark:text-emerald-400"
+                  }`}>
                     <Camera size={16} />
                   </div>
                 </button>
@@ -390,22 +441,32 @@ const CameraZoneManager = () => {
           <div className="rounded-lg border border-border bg-card p-4 md:p-5 lg:p-6 shadow-sm">
             <div className="flex flex-col gap-4 border-b border-border pb-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-foreground">{selectedCamera?.cameraName || "Chọn camera"}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Khu vực thiết lập vùng quản lý (Zones)</p>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-400 bg-clip-text text-transparent">
+                  {selectedCamera?.cameraName || "Chọn camera"}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">Khu vực thiết lập vùng phân tích (Zones)</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <button
                   onClick={() => {}}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
                 >
                   <HelpCircle size={16} /> Hướng dẫn
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-3 py-2 text-sm text-white hover:bg-purple-700 transition"
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 hover:shadow-emerald-500/25 transition-all duration-200 active:scale-95"
                 >
                   <Upload size={16} /> {imageUrl ? "Thay đổi ảnh" : "Thêm ảnh nền"}
                 </button>
+                {uploadedImageUrl && (
+                  <button
+                    onClick={handleSaveImage}
+                    className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 transition-all duration-200 active:scale-95"
+                  >
+                    <Save size={16} /> Lưu ảnh nền
+                  </button>
+                )}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -417,13 +478,13 @@ const CameraZoneManager = () => {
                   <>
                     <button
                       onClick={removeLastPoint}
-                      className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all duration-200"
                     >
-                      <Trash2 size={16} /> Xóa điểm cuối
+                      <Trash2 size={16} className="text-amber-500" /> Xóa điểm cuối
                     </button>
                     <button
                       onClick={handleCancelDrawing}
-                      className="inline-flex items-center gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 hover:border-rose-300 dark:bg-rose-500/10 dark:border-rose-500/20 dark:hover:bg-rose-500/20 transition-all duration-200"
                     >
                       <X size={16} /> Hủy vẽ
                     </button>
@@ -434,11 +495,32 @@ const CameraZoneManager = () => {
 
             <div className="mt-5 grid grid-cols-12 gap-3 lg:gap-4">
               <div className="col-span-12 xl:col-span-9 space-y-4">
-                <div className="relative flex h-[620px] xl:h-[700px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted overflow-hidden">
+                <div ref={canvasContainerRef} className="relative flex h-[620px] xl:h-[700px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted overflow-hidden">
                   {previewImageUrl && imageSize.width > 0 && imageSize.height > 0 ? (
                     <Stage width={stageDisplaySize.width} height={stageDisplaySize.height} className="bg-card" onClick={handleStageClick}>
                       <Layer>
                         <KonvaImage image={loadedImage} width={stageDisplaySize.width} height={stageDisplaySize.height} />
+                        
+                        {/* Lưới định vị (Grid lines) */}
+                        {Array.from({ length: Math.floor(stageDisplaySize.width / 50) }).map((_, i) => (
+                          <KonvaLine
+                            key={`v-${i}`}
+                            points={[i * 50, 0, i * 50, stageDisplaySize.height]}
+                            stroke="rgba(255, 255, 255, 0.35)"
+                            strokeWidth={1.5}
+                            dash={[5, 5]}
+                          />
+                        ))}
+                        {Array.from({ length: Math.floor(stageDisplaySize.height / 50) }).map((_, i) => (
+                          <KonvaLine
+                            key={`h-${i}`}
+                            points={[0, i * 50, stageDisplaySize.width, i * 50]}
+                            stroke="rgba(255, 255, 255, 0.35)"
+                            strokeWidth={1.5}
+                            dash={[5, 5]}
+                          />
+                        ))}
+
                         <ZoneRenderer
                           zones={selectedCameraState?.zones?.zones || []}
                           coordinateMode="auto"
@@ -453,12 +535,17 @@ const CameraZoneManager = () => {
                       </Layer>
                     </Stage>
                   ) : (
-                    <div className="text-center text-muted-foreground">
-                      <div className="mb-4 inline-flex h-24 w-24 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                        <Camera size={40} />
+                    <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                      <div className="relative mb-6">
+                        <div className="absolute -inset-4 rounded-full bg-emerald-500/20 animate-pulse blur-xl"></div>
+                        <div className="relative inline-flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          <Camera size={40} strokeWidth={1.5} />
+                        </div>
                       </div>
-                      <div className="font-medium uppercase tracking-wider">Bản đồ vùng Camera</div>
-                      <div className="mt-2 text-xs">Vui lòng thêm ảnh nền để bắt đầu vẽ</div>
+                      <div className="text-lg font-semibold text-foreground">Không gian Canvas Trống</div>
+                      <div className="mt-2 text-sm max-w-xs">
+                        Vui lòng thêm ảnh nền Camera để kích hoạt công cụ vẽ Zone
+                      </div>
                     </div>
                   )}
                 </div>
@@ -473,23 +560,26 @@ const CameraZoneManager = () => {
                       onCancel={handleCancelDrawing}
                     />
                   ) : (
-                    <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50 p-4 text-sm text-purple-700">
-                      Nhấn trực tiếp vào ảnh để vẽ 4 điểm cho zone. Sau khi đủ 4 điểm, form sẽ xuất hiện.
+                    <div className="rounded-xl border border-dashed border-emerald-300/50 bg-emerald-50/50 dark:bg-emerald-500/5 p-5 text-sm text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg shrink-0">
+                        <Layers size={20} className="text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      Nhấn trực tiếp vào ảnh để vẽ 4 điểm cho Zone. Bảng thiết lập sẽ xuất hiện khi đủ 4 điểm.
                     </div>
                   )}
                   {currentPoints.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-5 flex flex-wrap gap-3">
                       <button
                         onClick={removeLastPoint}
-                        className="flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted"
+                        className="flex-1 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted hover:border-foreground/20 transition-all duration-200 flex justify-center items-center gap-2"
                       >
-                        Xóa điểm cuối
+                        <Trash2 size={16} className="text-amber-500" /> Xóa điểm cuối
                       </button>
                       <button
                         onClick={handleCancelDrawing}
-                        className="flex-1 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                        className="flex-1 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-100 hover:border-rose-300 dark:bg-rose-500/10 dark:border-rose-500/20 dark:hover:bg-rose-500/20 transition-all duration-200 flex justify-center items-center gap-2"
                       >
-                        Hủy vẽ
+                        <X size={16} /> Hủy vẽ
                       </button>
                     </div>
                   )}

@@ -49,3 +49,16 @@ export const deleteZone = async ({ locationId, cameraCode, zoneId }) => {
     throw error;
   }
 };
+export const uploadZoneImage = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("url_img", file);
+    const response = await axiosInstance.post(`${API_BASE}/upload-image`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data.imgUrl;
+  } catch (error) {
+    console.error("Error uploading zone image:", error);
+    throw error;
+  }
+};

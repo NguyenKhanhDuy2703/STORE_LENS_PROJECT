@@ -4,8 +4,7 @@ const COLOR_PRESETS = [
 ];
 const ColorPicker = ({ selectedColor, onColorChange }) => (
   <div>
-    <label className="block text-sm font-medium mb-1">Màu sắc</label>
-    <div className="flex space-x-2">
+    <div className="flex flex-wrap gap-2">
       {COLOR_PRESETS.map(color => (
         <button
           key={color}

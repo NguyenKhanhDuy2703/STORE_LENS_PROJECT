@@ -2,7 +2,9 @@ const notificationService = require("../service/notification.service");
 const ruleCustomerWorker = require("../workers/ruleCustomer.worker");
 const catchAsync = require("../utils/catchAsync");
 const { success, error } = require("../utils/response");
-const { StatusCodes } = require("http-status-codes");const getNotificationsController = catchAsync(async (req, res) => {
+const { StatusCodes } = require("http-status-codes");
+
+const getNotificationsController = catchAsync(async (req, res) => {
     const location_id = req.query.locationId || req.query.location_id;
 
     if (!location_id) {
@@ -62,14 +64,8 @@ const markReadController = catchAsync(async (req, res) => {
     });
 });
 
-module.exports = {
-    getNotificationsController,
-    markReadController,
-    syncNotificationsController,
-};
-
 // Trigger worker thủ công — gọi khi cần đánh giá lại rule retention/revenue
-async function syncNotificationsController(req, res) {
+const syncNotificationsController = catchAsync(async (req, res) => {
     const location_id = req.query.locationId || req.query.location_id || req.body?.locationId;
     if (!location_id) {
         return error({ res, message: "location_id is required", code: StatusCodes.BAD_REQUEST });
@@ -78,4 +74,10 @@ async function syncNotificationsController(req, res) {
         console.error(`[notification] sync worker failed: ${err.message}`);
     });
     return success({ res, data: null, message: "Sync triggered", code: StatusCodes.OK });
-}
+});
+
+module.exports = {
+    getNotificationsController,
+    markReadController,
+    syncNotificationsController,
+};
