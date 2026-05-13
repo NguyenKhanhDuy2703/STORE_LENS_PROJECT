@@ -41,10 +41,10 @@ const createAndUpdateZoneController = catchAsync(async (req, res) => {
         })
     }   
     if(imgUrl){
-        await cameraService.updateCameraImage({cameraCode , locationId , imgUrl});
+        await cameraService.updateImgforCamera({cameraCode , locationId , urlImg: imgUrl});
     }
     const results = await Promise.allSettled(listZones.map( zone => {
-        const cordinates = zone.coordinates ? JSON.parse(zone.coordinates) : [];
+        const cordinates = typeof zone.coordinates === 'string' ? JSON.parse(zone.coordinates) : (zone.coordinates || []);
         return zoneService.createAndUpdateZone({
             locationId,
             cameraCode,
@@ -90,8 +90,17 @@ const deleteZoneController = catchAsync(async (req, res) => {
     })
 });
 
+const uploadZoneImageController = catchAsync(async (req, res) => {
+    const imgUrl = req.body.urlImg;
+    if (!imgUrl) {
+        return error({ res, message: "Upload ảnh thất bại", code: StatusCodes.BAD_REQUEST });
+    }
+    success({ res, message: "Upload ảnh thành công", code: StatusCodes.OK, data: { imgUrl } });
+});
+
 module.exports = {
     getListZoneController,
     createAndUpdateZoneController,
     deleteZoneController,
+    uploadZoneImageController,
 }

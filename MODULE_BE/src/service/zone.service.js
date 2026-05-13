@@ -37,15 +37,9 @@ const zoneService = {
         const listZones = await zoneSchema.find({ location_id: locationId, camera_id: cameraCode });
 
         const snapshotUrl = camera?.url_image_snapshot;
-        if(!snapshotUrl){
-            throw new Error("Background image not found for the specified camera");
-        }
-        if(!listZones || listZones.length === 0){
-            throw new Error("No zones found for the specified location and camera");
-        }
         return {
-            snapshot_url: snapshotUrl,
-            zones: listZones,
+            snapshot_url: snapshotUrl || null,
+            zones: listZones || [],
         };
     },
     async createAndUpdateZone({locationId , cameraCode , zoneName , zoneId , coordinates , categoryName  }){

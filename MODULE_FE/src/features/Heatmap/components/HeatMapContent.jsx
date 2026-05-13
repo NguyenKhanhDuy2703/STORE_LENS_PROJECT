@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layer, Stage, Group } from "react-konva";
 import { SkipBack, SkipForward, ZoomIn, ZoomOut, EyeOff } from "lucide-react";
 import useMeasure from "react-use-measure";
@@ -11,6 +11,7 @@ const HeatmapCanvas = ({
   heatmapFrames = [],
   backgroundImage = "",
   timeLine = [],
+  zones = [],
   isLoading = false,
   heatmapVisible = true,
   zoneOverlay = true,
@@ -20,6 +21,15 @@ const HeatmapCanvas = ({
 }) => {
   const [zoom, setZoom] = useState(1);
   const [currentFrameIdx, setCurrentFrameIdx] = useState(0);
+
+  // Luôn tự động nhảy về mốc thời gian mới nhất (hiện tại) khi load xong data
+  useEffect(() => {
+    if (heatmapFrames && heatmapFrames.length > 0) {
+      setCurrentFrameIdx(heatmapFrames.length - 1);
+    } else {
+      setCurrentFrameIdx(0);
+    }
+  }, [heatmapFrames]);
 
   const [stageRef, stageBounds] = useMeasure();
   const [timelineRef, timelineBounds] = useMeasure();
@@ -31,14 +41,11 @@ const HeatmapCanvas = ({
     const frame = frames[activeIndex] || currentHeatmap;
     if (!frame) return null;
 
-    const fallbackZones = Array.isArray(currentHeatmap?.zones) ? currentHeatmap.zones : [];
-    const zones = Array.isArray(frame.zones) && frame.zones.length > 0 ? frame.zones : fallbackZones;
-
     return {
       ...frame,
-      zones,
+      zones: zones || [], // Sử dụng zones từ prop
     };
-  }, [frames, activeIndex, currentHeatmap]);
+  }, [frames, activeIndex, currentHeatmap, zones]);
   const cameraImageSrc = activeData?.backgroundImage || backgroundImage || "";
 
   // --- [CỤM 3]: LOGIC HÌNH HỌC (STAGE GEOMETRY) ---
@@ -71,12 +78,12 @@ const HeatmapCanvas = ({
     if (onFrameChange && timeLine[idx]) onFrameChange(timeLine[idx]);
   };
 
-  if (isLoading) return <div className="h-full flex items-center justify-center text-slate-400 font-medium">Đang tải dữ liệu...</div>;
+  if (isLoading) return <div className="h-full flex items-center justify-center text-muted-foreground font-medium">Đang tải dữ liệu...</div>;
 
   return (
-    <div className="h-full flex flex-col bg-slate-900 overflow-hidden select-none">
+    <div className="h-full flex flex-col bg-background rounded-xl overflow-hidden select-none border border-border">
       
-      <div ref={stageRef} className="flex-1 w-full min-h-0 relative overflow-hidden bg-slate-950">
+      <div ref={stageRef} className="flex-1 w-full min-h-0 relative overflow-hidden bg-muted/30">
         {activeData && finalWidth > 0 && finalHeight > 0 ? (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Stage width={finalWidth} height={finalHeight}>
@@ -107,23 +114,25 @@ const HeatmapCanvas = ({
             </Stage>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 text-slate-500">
-            <EyeOff size={48} />
-            <span>Không tìm thấy dữ liệu camera</span>
+          <div className="flex flex-col items-center gap-3 text-muted-foreground h-full justify-center">
+            <div className="p-4 bg-muted rounded-full">
+              <EyeOff size={40} className="opacity-50" />
+            </div>
+            <span className="font-medium text-sm">Chưa có dữ liệu bản đồ nhiệt</span>
           </div>
         )}
       </div>
 
       {/* VÙNG ĐIỀU KHIỂN (CONTROLS BAR) */}
-      <div className="bg-slate-800 border-t border-slate-700 p-4 space-y-4 shadow-2xl z-20">
+      <div className="bg-card border-t border-border p-4 space-y-4 shadow-sm z-20">
         <div className="flex items-center gap-6">
           
           {/* Nút Skip Nav */}
-          <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
-            <button onClick={() => handleSliderChange(activeIndex - 1)} disabled={activeIndex === 0} className="p-2 hover:bg-slate-700 disabled:opacity-20 text-slate-300">
+          <div className="flex bg-muted/50 p-1 rounded-lg border border-border">
+            <button onClick={() => handleSliderChange(activeIndex - 1)} disabled={activeIndex === 0} className="p-2 hover:bg-background rounded-md disabled:opacity-30 text-muted-foreground hover:text-foreground transition-all">
               <SkipBack size={18} />
             </button>
-            <button onClick={() => handleSliderChange(activeIndex + 1)} disabled={activeIndex === timeLine.length - 1} className="p-2 hover:bg-slate-700 disabled:opacity-20 text-slate-300">
+            <button onClick={() => handleSliderChange(activeIndex + 1)} disabled={activeIndex === timeLine.length - 1} className="p-2 hover:bg-background rounded-md disabled:opacity-30 text-muted-foreground hover:text-foreground transition-all">
               <SkipForward size={18} />
             </button>
           </div>
@@ -139,10 +148,10 @@ const HeatmapCanvas = ({
           </div>
 
           {/* Cụm Zoom */}
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700">
-            <button onClick={() => setZoom(z => Math.max(0.3, z - 0.1))} className="text-slate-400 hover:text-white transition-colors"><ZoomOut size={16}/></button>
-            <span className="text-[10px] font-bold text-slate-300 w-10 text-center tabular-nums">{(zoom * 100).toFixed(0)}%</span>
-            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-slate-400 hover:text-white transition-colors"><ZoomIn size={16}/></button>
+          <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
+            <button onClick={() => setZoom(z => Math.max(0.3, z - 0.1))} className="text-muted-foreground hover:text-foreground transition-colors p-1"><ZoomOut size={16}/></button>
+            <span className="text-xs font-bold text-foreground w-12 text-center tabular-nums">{(zoom * 100).toFixed(0)}%</span>
+            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-muted-foreground hover:text-foreground transition-colors p-1"><ZoomIn size={16}/></button>
           </div>
         </div>
       </div>

@@ -1,86 +1,53 @@
-const interactionLogSchema = require("../schemas/interactionLog.schema");
+// SessionSchema removed — dwellTime service reads only from zoneStats (stable snapshots)
 const zoneStatsSchema = require("../schemas/zoneStats.schema");
 const { dateUtil } = require("../utils/date.util");
 
 const dwellTimeService = {
     async getMetrics({ locationId, date }) {
         if (!locationId) {
-            return {
-                max_time: 0,
-                min_time: 0,
-                avg_time: 0,
-            };
+            return { max_time: 0, min_time: 0, avg_time: 0 };
         }
 
-        // FE có thể gửi type (today/last7days...) hoặc ngày cụ thể (YYYY-MM-DD)
-        let startDate;
-        let endDate;
+        const { startDate, endDate } = dateUtil({ type: "today" });
 
-        if (!date) {
-            ({ startDate, endDate } = dateUtil({ type: "today" }));
-        } else {
-            try {
-                ({ startDate, endDate } = dateUtil({ type: date }));
-            } catch (error) {
-                ({ startDate, endDate } = dateUtil({
-                    type: "custom",
-                    startCustom: date,
-                    endCustom: date,
-                }));
-            }
-        }
-
-        const metrics = await interactionLogSchema.aggregate([
+        const metrics = await zoneStatsSchema.aggregate([
             {
                 $match: {
                     location_id: locationId,
-                    event_type: "stop",
-                    duration_seconds: { $gt: 0 },
-                    start_time: { $gte: startDate, $lte: endDate },
+                    date: { $gte: startDate, $lte: endDate },
+                    "performance.avg_dwell_time": { $gt: 0 },
                 },
             },
             {
-                $group: {
-                    _id: "$zone_id",
-                    zone_total_dwell_time: { $sum: "$duration_seconds" },
-                    total_stop_events: { $sum: 1 },
+                $lookup: {
+                    from: "zones",
+                    localField: "zone_id",
+                    foreignField: "zone_id",
+                    as: "zone_info",
                 },
             },
+            { $unwind: { path: "$zone_info", preserveNullAndEmptyArrays: true } },
             {
-                $sort: {
-                    zone_total_dwell_time: -1,
+                $project: {
+                    zone_name: { $ifNull: ["$zone_info.zone_name", "$zone_id"] },
+                    avg_dwell: "$performance.avg_dwell_time",
                 },
             },
+            { $sort: { avg_dwell: -1 } },
             {
                 $group: {
                     _id: null,
-                    max_time: { $first: "$zone_total_dwell_time" },
-                    min_time: { $last: "$zone_total_dwell_time" },
-                    total_dwell_time: { $sum: "$zone_total_dwell_time" },
-                    total_stop_events: { $sum: "$total_stop_events" },
+                    max_time: { $first: "$avg_dwell" },
+                    max_zone_name: { $first: "$zone_name" },
+                    min_time: { $last: "$avg_dwell" },
+                    min_zone_name: { $last: "$zone_name" },
+                    avg_time: { $avg: "$avg_dwell" },
                 },
             },
-            {
-                $project: {
-                    _id: 0,
-                    max_time: 1,
-                    min_time: 1,
-                    avg_time: {
-                        $cond: [
-                            { $gt: ["$total_stop_events", 0] },
-                            { $divide: ["$total_dwell_time", "$total_stop_events"] },
-                            0,
-                        ],
-                    },
-                },
-            },
+            { $project: { _id: 0, max_time: 1, max_zone_name: 1, min_time: 1, min_zone_name: 1, avg_time: 1 } },
         ]);
 
-        return metrics[0] || {
-            max_time: 0,
-            min_time: 0,
-            avg_time: 0,
-        };
+        return metrics[0] || { max_time: 0, max_zone_name: null, min_time: 0, min_zone_name: null, avg_time: 0 };
     },
 
     async getPerformanceInteract({ locationId, date }) {
@@ -88,95 +55,45 @@ const dwellTimeService = {
             return [];
         }
 
-        // FE có thể gửi type (today/last7days...) hoặc ngày cụ thể (YYYY-MM-DD)
-        let startDate;
-        let endDate;
+        const { startDate, endDate } = dateUtil({ type: "today" });
 
-        if (!date) {
-            ({ startDate, endDate } = dateUtil({ type: "today" }));
-        } else {
-            try {
-                ({ startDate, endDate } = dateUtil({ type: date }));
-            } catch (error) {
-                ({ startDate, endDate } = dateUtil({
-                    type: "custom",
-                    startCustom: date,
-                    endCustom: date,
-                }));
-            }
-        }
-
-        const hourlyData = await interactionLogSchema.aggregate([
+        // Đọc từ zoneStats — trả về per-zone với field names giữ nguyên cho FE
+        const zoneData = await zoneStatsSchema.aggregate([
             {
                 $match: {
                     location_id: locationId,
-                    event_type: "stop",
-                    duration_seconds: { $gt: 0 },
-                    start_time: { $gte: startDate, $lte: endDate },
+                    date: { $gte: startDate, $lte: endDate },
                 },
             },
             {
-                $group: {
-                    _id: {
-                        $hour: {
-                            date: "$start_time",
-                            timezone: "Asia/Ho_Chi_Minh",
-                        },
-                    },
-                    visitors_set: { $addToSet: "$session_uuid" },
-                    time_stop_total: { $sum: "$duration_seconds" },
+                $lookup: {
+                    from: "zones",
+                    localField: "zone_id",
+                    foreignField: "zone_id",
+                    as: "zone_info",
                 },
             },
+            { $unwind: { path: "$zone_info", preserveNullAndEmptyArrays: true } },
             {
                 $project: {
                     _id: 0,
-                    hour: {
-                        $concat: [
-                            {
-                                $cond: [
-                                    { $lt: ["$_id", 10] },
-                                    { $concat: ["0", { $toString: "$_id" }] },
-                                    { $toString: "$_id" },
-                                ],
-                            },
-                            ":00",
-                        ],
-                    },
-                    vistors: { $size: "$visitors_set" },
-                    Time_stop: "$time_stop_total",
+                    hour: { $ifNull: ["$zone_info.zone_name", "$zone_id"] },
+                    visitors: "$performance.people_count",
+                    Time_stop: "$performance.avg_dwell_time",
                 },
             },
-            {
-                $sort: {
-                    hour: 1,
-                },
-            },
+            { $sort: { visitors: -1 } },
         ]);
 
-        return hourlyData;
+        return zoneData;
     },
 
     getAnalysisDwellTime: async ({ location_id, date }) => {
         if (!location_id) {
             return [];
         }
-        let startDate;
-        let endDate;
-
-        if (!date) {
-            ({ startDate, endDate } = dateUtil({ type: "today" }));
-        } else {
-            try {
-                ({ startDate, endDate } = dateUtil({ type: date }));
-            } catch (error) {
-
-                ({ startDate, endDate } = dateUtil({
-                    type: "custom",
-                    startCustom: date,
-                    endCustom: date,
-                }));
-            }
-        }
+        // User request: Only use today's data for dwell time analysis
+        const { startDate, endDate } = dateUtil({ type: "today" });
 
         const zoneStats = await zoneStatsSchema.aggregate([
             {

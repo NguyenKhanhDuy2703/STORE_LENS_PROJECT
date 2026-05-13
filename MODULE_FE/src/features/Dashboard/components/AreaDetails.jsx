@@ -2,6 +2,7 @@ import { Clock3, Minus, TrendingDown, TrendingUp, Users, Loader, Radio } from 'l
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchZoneAnalyticsDashboard, fetchMonthlyZoneAnalytics } from '../dashboard.thunk';
+import formatDuration from '../../../utils/formatDuration';
 
 const formatLastUpdated = (value) => {
   const timestamp = value ? new Date(value) : new Date();
@@ -15,15 +16,7 @@ const formatLastUpdated = (value) => {
   });
 };
 
-const formatDwellTime = (milliseconds = 0) => {
-  const safeMs = Number.isFinite(milliseconds) ? Math.max(milliseconds, 0) : 0;
-  const totalSeconds = Math.floor(safeMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes === 0) return `${seconds}s`;
-  if (minutes < 10) return `${minutes}p ${seconds}s`;
-  return `${(safeMs / 60000).toFixed(1)}p`;
-};
+
 
 const getConversionStyle = (rate = 0) => {
   if (rate > 60) return {
@@ -49,13 +42,7 @@ const getTrendIcon = (rate = 0) => {
   return Minus;
 };
 
-// Badge số người hiện tại — màu theo mức độ
-const getCurrentBadgeStyle = (count) => {
-  if (count >= 5) return 'bg-rose-50 text-rose-700 border-rose-200';
-  if (count >= 2) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (count >= 1) return 'bg-teal-50 text-teal-700 border-teal-200';
-  return 'bg-muted text-muted-foreground border-border';
-};
+// Đã bỏ getCurrentBadgeStyle vì không còn dùng cột Hiện Tại
 
 const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
   const dispatch = useDispatch();
@@ -89,9 +76,8 @@ const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
     const perf = performanceMap.get(zoneId);
     return {
       zone_id: zoneId,
-      zone_name: zone.zone_name || perf?.zone_name || 'Khu vực',
+      zone_name: zone.zone_name || perf?.zone_name || zoneId,
       people_count: Number(zone.people_count || 0),
-      current_count: Number(zoneCounts[zoneId] ?? 0),
       conversion_rate: Number(zone.conversion_rate ?? perf?.conversion_rate ?? 0),
       avg_dwell_time: Number(perf?.avg_dwell_time || 0),
       peak_hour: zone.peak_hour,
@@ -129,7 +115,7 @@ const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
         <div>
           <h3 className="text-base font-semibold tracking-tight text-foreground">Phân Tích Hiệu Suất Khu Vực</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {isLive ? 'Dữ liệu hôm nay · Thời gian thực từ camera AI' : `Dữ liệu ${periodLabel}`}
+            {isLive ? 'Dữ liệu tháng hiện tại · Cập nhật từ camera AI' : `Dữ liệu ${periodLabel}`}
           </p>
         </div>
         <span className="inline-flex items-center rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -139,11 +125,10 @@ const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
 
       {/* Column headers */}
       {mergedRows.length > 0 && (
-        <div className="hidden md:grid md:grid-cols-12 gap-4 px-6 py-2 bg-muted border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+        <div className="hidden md:grid md:grid-cols-10 gap-4 px-6 py-2 bg-muted border-b border-border text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           <div className="md:col-span-1">#</div>
           <div className="md:col-span-2">Khu vực</div>
           <div className="md:col-span-2 flex items-center gap-1"><Users size={10} /> {periodLabel}</div>
-          <div className="md:col-span-2 flex items-center gap-1"><Radio size={10} /> {isLive ? 'Hiện tại' : '—'}</div>
           <div className="md:col-span-2 flex items-center gap-1"><Clock3 size={10} /> Thời gian dừng</div>
           <div className="md:col-span-3">Tỷ lệ chuyển đổi</div>
         </div>
@@ -154,12 +139,11 @@ const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
         {mergedRows.map((row, index) => {
           const styles = getConversionStyle(row.conversion_rate);
           const TrendIcon = getTrendIcon(row.conversion_rate);
-          const currentBadge = getCurrentBadgeStyle(row.current_count);
 
           return (
             <div
               key={row.zone_id}
-              className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-muted/70 transition-colors"
+              className="grid grid-cols-1 md:grid-cols-10 gap-4 items-center px-6 py-4 hover:bg-muted/70 transition-colors"
             >
               {/* Rank */}
               <div className="md:col-span-1">
@@ -185,22 +169,12 @@ const ZoneAnalyticsDashboard = ({ year, month, isCurrentMonth } = {}) => {
                 />
               </div>
 
-              {/* Hiện tại — chỉ hiển thị khi xem hôm nay */}
-              <div className="md:col-span-2">
-                {isLive ? (
-                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums ${currentBadge}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${row.current_count > 0 ? 'bg-teal-500 animate-pulse' : 'bg-slate-300'}`} />
-                    {row.current_count} người
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </div>
+              {/* Đã bỏ cột Hiện tại */}
 
               {/* Dwell time */}
               <div className="md:col-span-2 flex items-center gap-1.5">
                 <Clock3 size={14} className="text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{formatDwellTime(row.avg_dwell_time)}</span>
+                <span className="text-sm text-muted-foreground">{formatDuration(row.avg_dwell_time)}</span>
               </div>
 
               {/* Conversion rate */}

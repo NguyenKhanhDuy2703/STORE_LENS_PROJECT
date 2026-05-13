@@ -9,12 +9,14 @@ const heatmapWorker = {
     const currentTime = Date.now();
    
     if(!LIST_TIME_STAMP.has(`${infor.location_id}_${infor.camera_id}`)){
-        LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
+        // Khởi tạo là 0 để frame đầu tiên luôn được lưu ngay lập tức
+        LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, 0);
     }
     const lastTime = LIST_TIME_STAMP.get(`${infor.location_id}_${infor.camera_id}`);
     
     try {
-      const heatmapData = new heatmapModel({
+      if (currentTime - lastTime >= TIME_THRESHOLD) {
+          const heatmapData = new heatmapModel({
             location_id: infor.location_id,
             camera_id: infor.camera_id,
             date: getCurrnetDateVN(),
@@ -24,21 +26,14 @@ const heatmapWorker = {
             height_matrix: data.grid_width,
             width_matrix: data.grid_height,
             heatmap_matrix: data.heatmap_matrix,
+            time_stamp: currentTime
           });
-      if (currentTime - lastTime >= TIME_THRESHOLD) {
-         heatmapData.time_stamp = currentTime;
-         LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
-         await heatmapData.save();
-      }else{
-        heatmapData.time_stamp = currentTime;
-        LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
-        await heatmapData.updateOne(
-          { 
-            location_id: infor.location_id, 
-            camera_id: infor.camera_id 
-          }, 
-          heatmapData, { upsert: true });
+
+          await heatmapData.save();
+          // Chỉ cập nhật lại mốc thời gian sau khi đã ghi thành công
+          LIST_TIME_STAMP.set(`${infor.location_id}_${infor.camera_id}`, currentTime);
       }
+      // Bỏ nhánh else: Nếu chưa đủ 20s, đơn giản là drop (bỏ qua) frame này để tiết kiệm DB write.
     } catch (error) {
       logger.error(`Error saving heatmap data: ${error.message}`);
     }

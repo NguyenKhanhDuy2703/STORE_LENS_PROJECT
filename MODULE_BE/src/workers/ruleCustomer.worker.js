@@ -7,10 +7,20 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 // Cooldown 5 phút — tránh spam notification cho cùng 1 người tại cùng 1 zone
 // Lý do: AI gửi ping mỗi frame (~30fps), 5 phút đủ để staff xử lý
-const ZONE_ALERT_COOLDOWN_MS = 0.5 * 60 * 1000;
+const ZONE_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
 
 // In-memory cooldown store: key = "locationId:trackId:ruleId" → timestamp lần alert cuối
 const _zoneCooldownMap = new Map();
+
+// Tự động dọn rác (Garbage Collection) mỗi 5 phút để chống Memory Leak
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of _zoneCooldownMap.entries()) {
+        if (now - timestamp > ZONE_ALERT_COOLDOWN_MS) {
+            _zoneCooldownMap.delete(key);
+        }
+    }
+}, 5 * 60 * 1000);
 
 /**
  * Worker xử lý rule chăm sóc khách hàng theo location.

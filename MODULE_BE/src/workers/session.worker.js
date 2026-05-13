@@ -2,7 +2,9 @@ const logger = require("../utils/logging");
 const sessionSchema = require("../schemas/session.schema");
 const interactionLogSchema = require("../schemas/interactionLog.schema");
 const zoneSchema = require("../schemas/zone.schema");
-const {getCurrnetDateVN} = require("../utils/date.util");
+const { getCurrnetDateVN, dateUtil } = require("../utils/date.util");
+// Trả về chuỗi YYYY-MM-DD theo ngày VN hiện tại — dùng để tạo session_uuid theo ngày
+const getTodayStr = () => dateUtil({ type: "today" }).startDate.toISOString().slice(0, 10);
 const sessionWorker = {
   async save(payload = {}) {
     if (!payload || typeof payload !== "object") {
@@ -37,7 +39,7 @@ const sessionWorker = {
     try {
         const inforSessions = [];
       for (const item of data) {
-        const sessionUUID = `${location_id}_${camera_id}_${item.track_id}`;
+        const sessionUUID = `${location_id}_${camera_id}_${item.track_id}_${getTodayStr()}`;
         const sessionData = await sessionSchema.findOneAndUpdate(
           {
             session_uuid: sessionUUID,
@@ -158,7 +160,7 @@ const sessionWorker = {
 
     const { camera_id, location_id } = infor;
     const { track_id, event, zone_id, from_zone_id, to_zone_id } = data || {};
-    const sessionUUID = `${location_id}_${camera_id}_${track_id}`;
+    const sessionUUID = `${location_id}_${camera_id}_${track_id}_${getTodayStr()}`;
     switch (event) {
         case "ENTRY":
             await sessionSchema.findOneAndUpdate(

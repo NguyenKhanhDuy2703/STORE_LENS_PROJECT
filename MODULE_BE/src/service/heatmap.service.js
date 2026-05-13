@@ -1,4 +1,4 @@
-const heatmapSechma = require("../schemas/heatmap.schema");
+const heatmapSchema = require("../schemas/heatmap.schema");
 const { dateUtil } = require("../utils/date.util");
 const cameraSchema = require("../schemas/camera.schema");
 const heatmapService = {
@@ -12,7 +12,7 @@ const heatmapService = {
       endCustom: customEnd,
     });
 
-    const heatmapData = await heatmapSechma.find({
+    const heatmapData = await heatmapSchema.find({
       location_id: locationId,
       camera_id: cameraId,
       date: { $gte: startDate, $lte: endDate },

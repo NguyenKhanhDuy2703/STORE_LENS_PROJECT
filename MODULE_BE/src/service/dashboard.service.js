@@ -139,12 +139,21 @@ const getZonePerformanceDetails = async ({ locationId, type, startCustom, endCus
         const performance = await SessionSchema.aggregate([
             { $match: { location_id: locationId, entry_time: dateFilter } },
             { $unwind: "$zone_sequence" },
+            // Chỉ tính visits đã hoàn thành (có exit_time)
+            { $match: { "zone_sequence.exit_time": { $ne: null } } },
             {
                 $group: {
                     _id: "$zone_sequence.zone_id",
                     zone_name: { $first: "$zone_sequence.zone_name" },
-                    avg_dwell_time: { $avg: { $subtract: ["$zone_sequence.exit_time", "$zone_sequence.entry_time"] } },
-                    total_sessions: { $sum: 1 }
+                    avg_dwell_time: { $avg: "$zone_sequence.dwell_time_seconds" },
+                    unique_sessions: { $addToSet: "$_id" },
+                }
+            },
+            {
+                $project: {
+                    zone_name: 1,
+                    avg_dwell_time: 1,
+                    total_sessions: { $size: "$unique_sessions" },
                 }
             },
             { $sort: { total_sessions: -1 } }
@@ -299,7 +308,7 @@ const getMonthlyZoneAnalytics = async ({ locationId, year, month }) => {
                 {
                     $project: {
                         zone_id:           '$_id',
-                        zone_name:         { $ifNull: ['$zone_info.zone_name', '$_id'] },
+                        zone_name:         { $ifNull: ['$zone_info.zone_name', null] },
                         people_count:      1,
                         total_sales_value: 1,
                         conversion_rate: {
@@ -322,12 +331,20 @@ const getMonthlyZoneAnalytics = async ({ locationId, year, month }) => {
             SessionSchema.aggregate([
                 { $match: { location_id: locationId, entry_time: dateFilter } },
                 { $unwind: '$zone_sequence' },
+                { $match: { 'zone_sequence.exit_time': { $ne: null } } },
                 {
                     $group: {
                         _id:           '$zone_sequence.zone_id',
                         zone_name:     { $first: '$zone_sequence.zone_name' },
-                        avg_dwell_time: { $avg: { $subtract: ['$zone_sequence.exit_time', '$zone_sequence.entry_time'] } },
-                        total_sessions: { $sum: 1 }
+                        avg_dwell_time: { $avg: "$zone_sequence.dwell_time_seconds" },
+                        unique_sessions: { $addToSet: '$_id' }
+                    }
+                },
+                {
+                    $project: {
+                        zone_name:     1,
+                        avg_dwell_time: 1,
+                        total_sessions: { $size: '$unique_sessions' },
                     }
                 },
                 { $sort: { total_sessions: -1 } }

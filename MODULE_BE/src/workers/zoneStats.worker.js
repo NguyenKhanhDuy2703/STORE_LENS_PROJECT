@@ -220,32 +220,50 @@ const funcTracking = {
   async trackingAgg({ locationId, zoneId, today, nextDay }) {
     const trackingAgg = await sessionSchema.aggregate([
       {
+        // Lọc theo date ngay từ đầu — tránh scan toàn bộ sessions
         $match: {
           location_id: locationId,
+          entry_time: { $gte: today, $lte: nextDay },
         },
       },
+      { $unwind: "$zone_sequence" },
       {
-        $unwind: "$zone_sequence",
-      },
-      {
+        // Lọc đúng zone và trong ngày — KHÔNG lọc exit_time
+        // để người đang ở trong zone vẫn được tính vào people_count
         $match: {
           "zone_sequence.zone_id": zoneId,
           "zone_sequence.entry_time": { $gte: today, $lte: nextDay },
         },
       },
       {
+        // Chuyển dwell_time của entry đang active (exit_time=null) thành null.
+        // MongoDB $avg tự bỏ qua null → avg_dwell_time chỉ tính người đã EXIT
+        $project: {
+          session_id: "$_id",
+          dwell_for_avg: {
+            $cond: [
+              { $ne: ["$zone_sequence.exit_time", null] },
+              "$zone_sequence.dwell_time_seconds",
+              null,
+            ],
+          },
+        },
+      },
+      {
         $group: {
           _id: null,
-          people_count: { $sum: 1 },
-          avg_dwell_time: { $avg: "$zone_sequence.dwell_time_seconds" },
+          // Đếm người duy nhất đã VÀO zone (kể cả đang còn trong zone)
+          unique_sessions: { $addToSet: "$session_id" },
+          // $avg bỏ qua null → chỉ avg những người đã ra
+          avg_dwell_time: { $avg: "$dwell_for_avg" },
         },
       },
       {
         $project: {
           _id: 0,
           zone_id: { $literal: zoneId },
-          people_count: 1,
-          avg_dwell_time: 1,
+          people_count: { $size: "$unique_sessions" },
+          avg_dwell_time: { $ifNull: ["$avg_dwell_time", 0] },
         },
       },
     ]);
@@ -294,13 +312,15 @@ const funcTracking = {
     return peakHourAgg[0]?._id || null;
   },
   async totalStopEventsAgg({ locationId, zoneId, today, nextDay }) {
-    const totalStopEventsAgg = await interactionLogSchema.countDocuments({
+    // Đếm từ interactionLog — mỗi document = 1 lượt AI xác nhận người đứng yên ≥ 2s
+    // Chỉ ghi khi zone có asset_id; zone không có asset sẽ trả về 0
+    const total = await interactionLogSchema.countDocuments({
       location_id: locationId,
       zone_id: zoneId,
       event_type: "stop",
       start_time: { $gte: today, $lte: nextDay },
     });
-    return totalStopEventsAgg;
+    return total;
   },
 };
 module.exports = zoneStatsWorker;

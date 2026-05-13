@@ -112,7 +112,7 @@ const cameraZonesSlice = createSlice({
       })
       .addCase(fetchListZone.fulfilled, (state, action) => {
         const { snapshot_url, zones: fetchedZones } = action.payload;
-        const cameraCode = fetchedZones?.[0]?.camera_id || null;
+        const cameraCode = action.meta.arg?.cameraCode;
 
         state.zones = [
           {

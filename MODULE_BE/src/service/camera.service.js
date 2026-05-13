@@ -178,7 +178,7 @@ const cameraService = {
                 },
                 {
                     $set: {
-                        url_img: urlImg,
+                        url_image_snapshot: urlImg,
                         updated_at: new Date()
                     },
                 }

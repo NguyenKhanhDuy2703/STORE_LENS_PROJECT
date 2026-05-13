@@ -2,11 +2,11 @@ const heatmapService = require("../service/heatmap.service");
 const catchAsync = require("../utils/catchAsync");
 const { error, success } = require("../utils/response");
 const { StatusCodes } = require("http-status-codes");
-const getHeatmapCntroller = catchAsync(async (req , res) => {
+const getHeatmapController = catchAsync(async (req , res) => {
     const { locationId , cameraId } = req.params;
     const { type, startCustom, endCustom, date } = req.query;
     if(!locationId || !cameraId ){
-        error({
+        return error({
             res,
             message: "Missing required parameters",
             code: StatusCodes.BAD_REQUEST,
@@ -36,5 +36,5 @@ const getHeatmapCntroller = catchAsync(async (req , res) => {
     })
 })
 module.exports = {
-    getHeatmapCntroller,
+    getHeatmapController,
 }

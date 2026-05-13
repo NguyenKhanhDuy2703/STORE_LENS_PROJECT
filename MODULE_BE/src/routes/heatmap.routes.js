@@ -1,5 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const {getHeatmapCntroller} = require("../controllers/heatmap.controller")
-router.get("/:locationId/:cameraId" , getHeatmapCntroller);
+const {getHeatmapController} = require("../controllers/heatmap.controller")
+router.get("/:locationId/:cameraId" , getHeatmapController);
 module.exports = router;

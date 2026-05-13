@@ -18,6 +18,7 @@ const Heatmap = () => {
   const [zoneOverlay, setZoneOverlay] = useState(true);
  
   const [selectedCamera, setSelectedCamera] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const cameraOptions = Array.isArray(cameraList)
     ? cameraList.map((camera) => ({
@@ -43,15 +44,7 @@ const Heatmap = () => {
     })
     : [];
 
-  const frameZones = Array.isArray(currentHeatmap?.zones) ? currentHeatmap.zones : [];
-  const displayZones = selectedCameraZones.length > 0 ? selectedCameraZones : frameZones;
-
-  const displayHeatmap = currentHeatmap
-    ? {
-        ...currentHeatmap,
-        zones: displayZones,
-      }
-    : null;
+  const displayHeatmap = currentHeatmap ? { ...currentHeatmap } : null;
 
   const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
 
@@ -86,13 +79,13 @@ const Heatmap = () => {
       fetchMatrixHeatmap({
         locationId: effectiveLocationId,
         cameraId: selectedCamera,
-        date: new Date().toISOString().split('T')[0],
+        date: selectedDate,
       })
     );
-  }, [dispatch, selectedCamera, effectiveLocationId]);
+  }, [dispatch, selectedCamera, effectiveLocationId, selectedDate]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Global Filter */}
       <GlobalFilter />
 
@@ -104,6 +97,8 @@ const Heatmap = () => {
             cameraOptions={cameraOptions}
             selectedCamera={selectedCamera}
             setSelectedCamera={setSelectedCamera}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
             heatmapVisible={heatmapVisible}
             setHeatmapVisible={setHeatmapVisible}
             zoneOverlay={zoneOverlay}
@@ -114,13 +109,14 @@ const Heatmap = () => {
 
   
         <div className="flex-1 min-w-0">
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 h-full shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl p-4 h-full shadow-sm overflow-hidden">
             <HeatmapCanvas
               cameraCode={selectedCamera}
               currentHeatmap={displayHeatmap}
               heatmapFrames={infoHeatmapMatrix}
               backgroundImage={backgroundImage}
               timeLine={timeLine}
+              zones={selectedCameraZones}
               isLoading={isLoading}
               heatmapVisible={heatmapVisible}
               zoneOverlay={zoneOverlay}
