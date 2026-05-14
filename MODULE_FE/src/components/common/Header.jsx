@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../features/Authentication/auth.thunk';
+import logoSL from '../../../assets/logoSL.png';
 import {
   LayoutDashboard, BarChart3, MapPin,
   ChevronDown, Settings,
@@ -61,21 +62,37 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-[120] w-full h-16 border-b border-border bg-card shadow-sm overflow-visible">
-      <div className="mx-auto h-full px-4 lg:px-8">
+      <div className="mx-auto h-full px-3 lg:px-4">
         <div className="flex h-16 items-center justify-between">
 
           {/* LEFT: Logo & Nav */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
             {/* Logo */}
-            <Link to="/dashboard" className="flex items-center gap-2.5 group shrink-0">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-accent shadow-accent transition-all duration-200 group-hover:shadow-accent-lg group-hover:-translate-y-0.5">
-                <Flame className="text-white" size={17} />
-              </div>
-              <span className="text-sm font-semibold text-foreground tracking-tight">SpaceLens</span>
+            <Link to="/dashboard" className="shrink-0">
+              <motion.img
+                src={logoSL}
+                alt="SpaceLens"
+                className="h-16 w-auto object-contain cursor-pointer"
+                initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0,
+                  filter: "drop-shadow(0 0 0px rgba(0,82,255,0))",
+                }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 260, damping: 20 }}
+                whileHover={{
+                  scale: 1.12,
+                  y: -3,
+                  filter: "drop-shadow(0 4px 16px rgba(0,82,255,0.35))",
+                  transition: { type: "spring", stiffness: 400, damping: 12 },
+                }}
+                whileTap={{ scale: 0.92, transition: { duration: 0.1 } }}
+              />
             </Link>
 
             {/* Nav */}
-            <nav className="hidden lg:flex items-center gap-0.5 border-l border-border pl-6 relative z-[121]">
+            <nav className="hidden lg:flex items-center gap-0.5 border-l border-border pl-3 relative z-[121]">
               {navItems.map((item) => (
                 <Link
                   key={item.path}

@@ -96,7 +96,7 @@ export const MainLayout = () => {
 
       <div className="flex flex-col flex-1">
         {/* Breadcrumb bar */}
-        <div className="bg-card/80 backdrop-blur-md border-b border-border px-8 py-2 shadow-sm">
+        <div className="bg-card/80 backdrop-blur-md border-b border-border px-4 py-2 shadow-sm">
           <div className="mx-auto w-full max-w-[1760px]">
             <div className="label-mono flex items-center gap-2">
               <span className="hover:text-accent cursor-pointer transition-colors duration-200">SpaceLens</span>
@@ -110,7 +110,7 @@ export const MainLayout = () => {
 
         {showGlobalFilter && <GlobalFilter />}
 
-        <main className={`mx-auto w-full max-w-[1760px] px-6 pb-12 grow lg:px-10 2xl:px-14 ${!showGlobalFilter ? 'mt-6' : 'mt-4'}`}>
+        <main className={`mx-auto w-full max-w-[1760px] px-4 pb-12 grow lg:px-6 2xl:px-8 ${!showGlobalFilter ? 'mt-6' : 'mt-4'}`}>
           <Outlet />
         </main>
       </div>

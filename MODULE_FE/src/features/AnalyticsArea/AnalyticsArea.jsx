@@ -8,7 +8,6 @@ import {
   Loader,
 } from "lucide-react";
 import { GlobalFilter } from "@/components/functionComponent/GlobalFilter";
-
 import StatCard from "./components/StatCard";
 import AreaTrafficChart from "./components/AreaTrafficChart";
 import CameraZoneFilter from "./components/CameraZoneFilter";
@@ -31,10 +30,8 @@ const AnalyticsArea = () => {
   const { performanceDetails, hourlyTraffic, areaKPIs, cameras, zones, loading, errors } =
     useSelector((state) => state.areaAnalysis);
   const { locationId } = useSelector((state) => state.filter);
-  // Lấy current_visitors từ dashboard slice — được socket cập nhật realtime
   const realtimeCurrentVisitors = useSelector((state) => state.dashboard?.kpiMetrics?.current_visitors ?? null);
 
-  // Socket.IO — join room và lắng nghe realtime_people_count
   useEffect(() => {
     if (!locationId) return;
 
@@ -88,11 +85,21 @@ const AnalyticsArea = () => {
   useEffect(() => {
     if (!locationId) return;
 
-    const zoneId = selectedZone === "all_zones" ? undefined : selectedZone;
+    // Nếu chọn all_zones thì truyền cameraId, nếu chọn zone thì xác định cameraId của zone đó
+    let cameraId = undefined;
+    let zoneId = selectedZone === "all_zones" ? undefined : selectedZone;
 
-    dispatch(fetchAreaHourlyTraffic({ locationId, type: "today", zoneId }));
-    dispatch(fetchAreaKPIs({ locationId, type: "today", zoneId }));
-  }, [locationId, selectedZone, dispatch]);
+    if (selectedZone === "all_zones") {
+      cameraId = selectedCamera === "all_cameras" ? undefined : selectedCamera;
+    } else {
+      // Tìm cameraCode của zone đang chọn
+      const zoneObj = (Array.isArray(zones) ? zones : []).find(z => z.id === selectedZone);
+      cameraId = zoneObj?.cameraCode || (selectedCamera === "all_cameras" ? undefined : selectedCamera);
+    }
+
+    dispatch(fetchAreaHourlyTraffic({ locationId, type: "today", cameraId, zoneId }));
+    dispatch(fetchAreaKPIs({ locationId, type: "today", cameraId, zoneId }));
+  }, [locationId, selectedCamera, selectedZone, zones, dispatch]);
 
   useEffect(() => {
     if (!locationId) return;
@@ -117,9 +124,22 @@ const AnalyticsArea = () => {
       return [];
     }
 
+    // Support multiple possible key names from backend
     return source.map((item) => ({
-      time: item.hour || item.time || "",
-      value: item.count || item.value || 0,
+      time:
+        item.time_slot ||
+        item.hour_start ||
+        item.hour ||
+        item.time ||
+        item.time_begin ||
+        "",
+      value:
+        item.visitor_count ||
+        item.people_count ||
+        item.count ||
+        item.value ||
+        item.traffic ||
+        0,
     }));
   }, [hourlyTraffic]);
 
@@ -174,32 +194,24 @@ const AnalyticsArea = () => {
           <StatCard
             title="Tổng lưu lượng ngày"
             value={kpiStats.totalTraffic}
-            trend="+12%"
-            isUp
             icon={<Users className="text-teal-600" />}
             bgColor="bg-teal-50"
           />
           <StatCard
             title="Số khách hiện tại"
             value={kpiStats.currentCustomers}
-            trend="-2%"
-            isUp={false}
             icon={<UserCheck className="text-teal-600" />}
             bgColor="bg-teal-50"
           />
           <StatCard
             title="Thời gian dừng TB"
             value={kpiStats.avgDwellTime}
-            trend="-2%"
-            isUp={false}
             icon={<Clock className="text-orange-500" />}
             bgColor="bg-orange-50"
           />
           <StatCard
             title="Hiệu suất khu vực"
             value={kpiStats.performanceRate}
-            trend="+5.4%"
-            isUp
             icon={<Target className="text-indigo-600" />}
             bgColor="bg-indigo-50"
           />

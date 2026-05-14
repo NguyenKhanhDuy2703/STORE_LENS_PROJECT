@@ -144,12 +144,12 @@ export const GlobalFilter = () => {
 
   return (
     <div
-      className={`sticky top-16 z-20 px-6 transition-all duration-300 ease-in-out ${
+      className={`sticky top-16 z-20 px-4 lg:px-6 transition-all duration-300 ease-in-out ${
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
       <div className="mx-auto w-full max-w-[1760px]">
-        <div className="flex items-center justify-between gap-6 rounded-xl border border-border bg-card px-6 py-3">
+        <div className="flex items-center justify-between gap-6 rounded-xl border border-border bg-card px-4 lg:px-6 py-3">
 
           {/* LEFT: Selectors */}
           <div className="flex items-center gap-6">

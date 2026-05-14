@@ -50,6 +50,7 @@ const zoneStatsWorker = {
             top_asset_id: null,
             peak_hour: null,
           },
+          hourly_traffic: [],
         },
       },
       {
@@ -101,8 +102,9 @@ const zoneStatsWorker = {
       funcTracking.trackingAgg({ locationId, zoneId, today, nextDay }),
       funcTracking.peakHourAgg({ locationId, zoneId, today, nextDay }),
       funcTracking.totalStopEventsAgg({ locationId, zoneId, today, nextDay }),
+      funcTracking.hourlyTrafficAgg({ locationId, zoneId, today, nextDay }),
     ]);
-    const [trackingResult, peakHourResult, totalStopEventsResult] =
+    const [trackingResult, peakHourResult, totalStopEventsResult, hourlyTrafficResult] =
       resultsTracking;
     for (const result of resultsTracking) {
       if (result.status === "rejected") {
@@ -112,6 +114,7 @@ const zoneStatsWorker = {
     const trackingAgg = trackingResult.value || {};
     const peakHourAgg = peakHourResult.value || null;
     const totalStopEventsAgg = totalStopEventsResult.value || 0;
+    const hourlyTrafficAgg = hourlyTrafficResult.value || [];
     await zoneStatsSchema.updateOne(
       {
         location_id: locationId,
@@ -124,6 +127,7 @@ const zoneStatsWorker = {
           "performance.avg_dwell_time": trackingAgg.avg_dwell_time || 0,
           "performance.total_stop_events": totalStopEventsAgg || 0,
           "performance.peak_hour": peakHourAgg || null,
+          hourly_traffic: hourlyTrafficAgg,
         },
       },
     );
@@ -321,6 +325,51 @@ const funcTracking = {
       start_time: { $gte: today, $lte: nextDay },
     });
     return total;
+  },
+  async hourlyTrafficAgg({ locationId, zoneId, today, nextDay }) {
+    const hourlyAgg = await sessionSchema.aggregate([
+      {
+        $match: {
+          location_id: locationId,
+        },
+      },
+      {
+        $unwind: "$zone_sequence",
+      },
+      {
+        $match: {
+          "zone_sequence.zone_id": zoneId,
+          "zone_sequence.entry_time": { $gte: today, $lte: nextDay },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            hour: {
+              $hour: {
+                date: "$zone_sequence.entry_time",
+                timezone: "Asia/Ho_Chi_Minh",
+              },
+            },
+            session_id: "$_id",
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.hour",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    return hourlyAgg.map((item) => ({
+      hour: `${item._id}:00`,
+      count: item.count,
+    }));
   },
 };
 module.exports = zoneStatsWorker;

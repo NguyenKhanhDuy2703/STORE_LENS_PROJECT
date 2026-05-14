@@ -1,7 +1,32 @@
 const ZoneStatsSchema = require('../schemas/zoneStats.schema');
-const SessionSchema = require('../schemas/session.schema');
 const ZoneSchema = require('../schemas/zone.schema');
 const { dateUtil } = require('../utils/date.util');
+
+const parseHourNumber = (hour) => {
+    const normalized = String(hour ?? '').split(':')[0];
+    const value = Number.parseInt(normalized, 10);
+    return Number.isNaN(value) ? 0 : value;
+};
+
+const normalizeHourlyTraffic = (rows) => {
+    if (!Array.isArray(rows)) {
+        return [];
+    }
+
+    const hourMap = new Map();
+    rows.forEach((item) => {
+        if (!item) return;
+        const hourKey = String(item.hour ?? '').trim();
+        if (!hourKey) return;
+        const count = Number(item.count ?? 0);
+        const current = hourMap.get(hourKey) || 0;
+        hourMap.set(hourKey, current + (Number.isNaN(count) ? 0 : count));
+    });
+
+    return Array.from(hourMap.entries())
+        .map(([hour, count]) => ({ hour, count }))
+        .sort((a, b) => parseHourNumber(a.hour) - parseHourNumber(b.hour));
+};
 
 const getAreaManagementMetrics = async ({ locationId, zoneId, type = 'today' } = {}) => {
     try {
@@ -88,29 +113,33 @@ const getAreaHourlyTraffic = async ({ locationId, zoneId, type = 'today' } = {})
         const { startDate, endDate } = dateUtil({ type });
         const dateFilter = { $gte: startDate, $lte: endDate };
 
-        const matchStage = {
-            location_id: locationId,
-            entry_time: dateFilter,
-        };
-
         if (zoneId) {
-            matchStage["zone_sequence.zone_id"] = zoneId;
+            const stats = await ZoneStatsSchema.findOne({
+                location_id: locationId,
+                zone_id: zoneId,
+                date: dateFilter,
+            }).sort({ updated_at: -1 });
+
+            return {
+                hourly: normalizeHourlyTraffic(stats?.hourly_traffic || []),
+                lastUpdated: stats?.updated_at || new Date(),
+            };
         }
 
-        const hourlyFlow = await SessionSchema.aggregate([
-            { $match: matchStage },
-            { $unwind: "$zone_sequence" },
-            ...(zoneId ? [{ $match: { "zone_sequence.zone_id": zoneId } }] : []),
-            { $group: {
-                _id: { $hour: { date: "$zone_sequence.entry_time", timezone: "Asia/Ho_Chi_Minh" } },
-                count: { $sum: 1 }
-            }},
-            { $sort: { "_id": 1 } }
-        ]);
+        const statsList = await ZoneStatsSchema.find({
+            location_id: locationId,
+            date: dateFilter,
+        }).lean();
+
+        const hourlyRows = statsList.flatMap((item) => item.hourly_traffic || []);
+        const lastUpdated = statsList.reduce(
+            (latest, item) => (item.updated_at && item.updated_at > latest ? item.updated_at : latest),
+            new Date(0),
+        );
 
         return {
-            hourly: hourlyFlow.map(item => ({ hour: `${item._id}:00`, count: item.count })),
-            lastUpdated: new Date()
+            hourly: normalizeHourlyTraffic(hourlyRows),
+            lastUpdated: lastUpdated > new Date(0) ? lastUpdated : new Date(),
         };
     } catch (error) {
         throw error;

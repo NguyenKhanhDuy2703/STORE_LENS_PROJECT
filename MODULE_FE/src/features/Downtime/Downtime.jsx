@@ -73,7 +73,7 @@ const Downtime = () => {
   if (!effectiveLocationId) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-        <div className="bg-card border border-border p-8 rounded-3xl shadow-sm text-center max-w-md w-full relative overflow-hidden">
+      <div className="bg-card border border-border p-8 rounded-3xl shadow-sm text-center max-w-md w-full relative overflow-hidden">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
           <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
             <MapPin size={28} />
@@ -88,38 +88,44 @@ const Downtime = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8 md:px-8 md:py-10 pb-20 max-w-[1600px] mx-auto">
+    <div className="w-full py-6 md:py-8 pb-20">
       {/* KPI CARDS SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard 
-          title="TG DỪNG LÂU NHẤT" 
-          value={formatDuration(kpis.max.value)} 
-          subtitle={kpis.max.zone || "Chưa có dữ liệu"} 
-          change={kpis.max.change} 
-          icon={<Clock className="w-6 h-6" />} 
+        <StatCard
+          title="TG DỪNG LÂU NHẤT"
+          value={formatDuration(kpis.max.value)}
+          subtitle={kpis.max.zone || "Chưa có dữ liệu"}
+          icon={<Clock size={18} />}
+          iconBg="bg-rose-100"
+          iconColor="text-rose-600"
+          accent="bg-rose-500"
         />
-        <StatCard 
-          title="TG DỪNG NGẮN NHẤT" 
-          value={formatDuration(kpis.min.value)} 
-          subtitle={kpis.min.zone || "Chưa có dữ liệu"} 
-          change={kpis.min.change} 
-          icon={<Zap className="w-6 h-6" />} 
+        <StatCard
+          title="TG DỪNG NGẮN NHẤT"
+          value={formatDuration(kpis.min.value)}
+          subtitle={kpis.min.zone || "Chưa có dữ liệu"}
+          icon={<Zap size={18} />}
+          iconBg="bg-emerald-100"
+          iconColor="text-emerald-600"
+          accent="bg-emerald-500"
         />
-        <StatCard 
-          title="TRUNG BÌNH TOÀN CỬA HÀNG" 
-          value={formatDuration(kpis.avg.value)} 
-          subtitle="Tất cả các khu vực" 
-          change={kpis.avg.change} 
-          icon={<BarChart3 className="w-6 h-6" />} 
+        <StatCard
+          title="TRUNG BÌNH TOÀN CỬA HÀNG"
+          value={formatDuration(kpis.avg.value)}
+          subtitle="Tất cả các khu vực"
+          icon={<BarChart3 size={18} />}
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+          accent="bg-amber-500"
         />
       </div>
 
-      {/* Biểu đồ giữ nguyên để theo dõi xu hướng trực quan */}
+      {/* Biểu đồ */}
       <div className="mb-8">
         <BarLineChart data={chartData} isLoading={isLoadingChart} />
       </div>
 
-      {/* Bảng hợp nhất để giảm trùng lặp thông tin */}
+      {/* Bảng */}
       <div className="shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl border border-border bg-card">
         <UnifiedDwellAnalyticsTable rows={tableRows} isLoading={isLoadingTable} />
       </div>

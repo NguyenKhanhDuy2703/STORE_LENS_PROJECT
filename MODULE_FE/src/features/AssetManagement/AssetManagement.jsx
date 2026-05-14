@@ -278,8 +278,8 @@ const AssetManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-[96rem] mx-auto px-2 sm:px-3 py-4">
+    <div className="w-full">
+      <div className="mx-auto py-4">
         <MetricsAsset metric={metric} metricLoading={metricLoading} metricError={metricError} />
 
         <div className="bg-white rounded-xl p-3 mb-4 shadow-sm border border-slate-200">
