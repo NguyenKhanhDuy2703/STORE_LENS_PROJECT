@@ -26,7 +26,7 @@ const Dashboard = () => {
   }, [dispatch, effectiveLocationId, year, month]);
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-[1760px] mx-auto">
+    <div className="py-6 md:py-8 space-y-6 max-w-[1760px] mx-auto">
 
       {/* ── KPI Cards ──────────────────────────────────────────────────────── */}
       <StatsCards year={year} month={month} isCurrentMonth={isCurrentMonth} />

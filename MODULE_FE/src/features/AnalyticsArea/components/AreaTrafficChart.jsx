@@ -1,6 +1,6 @@
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -60,6 +60,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const AreaTrafficChart = ({ data }) => {
+  console.log("Chart data:", data); // Debug: Kiểm tra dữ liệu truyền vào biểu đồ
   return (
     <div className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col">
       <div className="flex items-start justify-between mb-2">
@@ -76,13 +77,7 @@ const AreaTrafficChart = ({ data }) => {
 
       <div className="h-[350px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 24, left: 12 }}>
-            <defs>
-              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+          <BarChart data={data} margin={{ top: 8, right: 12, bottom: 24, left: 12 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
             <XAxis
               dataKey="time"
@@ -114,16 +109,14 @@ const AreaTrafficChart = ({ data }) => {
               width={52}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
+            <Bar
               dataKey="value"
               name="Lượt khách"
-              stroke="#0d9488"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorValue)"
+              fill="#0d9488"
+              radius={[6, 6, 0, 0]}
+              maxBarSize={32}
             />
-          </AreaChart>
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>

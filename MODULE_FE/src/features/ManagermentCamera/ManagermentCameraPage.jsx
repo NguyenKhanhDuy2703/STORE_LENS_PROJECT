@@ -196,9 +196,8 @@ const ManagermentCameraPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-3 py-4 sm:px-4 lg:px-6">
-      <div className="mx-auto max-w-[1760px] space-y-5">
-        <CameraSummaryCards cameras={safeCameras} metrics={metrics} />
+    <div className="w-full py-4 space-y-5">
+      <CameraSummaryCards cameras={safeCameras} metrics={metrics} />
 
         <CameraFilters
           searchTerm={searchTerm}

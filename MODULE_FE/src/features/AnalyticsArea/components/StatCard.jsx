@@ -1,14 +1,13 @@
 import StatCard from '../../../components/common/StatCard';
 
-// Wrapper giữ backward compatible với props cũ (isUp, trend string)
-const AreaStatCard = ({ title, value, trend, isUp, icon, bgColor }) => (
+// Wrapper giữ layout KPI nhưng bỏ hiển thị tăng/giảm
+const AreaStatCard = ({ title, value, icon, className }) => (
   <StatCard
-    variant="trend"
+    variant="simple"
     title={title}
     value={value}
     icon={icon}
-    change={trend ? parseFloat(trend) : 0}
-    isUp={isUp}
+    className={className}
   />
 );
 

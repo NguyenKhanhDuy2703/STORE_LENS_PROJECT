@@ -1,47 +1,38 @@
-import React from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Clock, Zap, BarChart3 } from 'lucide-react';
 
-const StatCard = ({ title, value, subtitle, change, icon }) => {
-  let statusTheme = { 
-    container: "text-muted-foreground bg-muted border-border", 
-    Icon: Minus 
-  };
-
-  if (change > 0) {
-    statusTheme = { 
-      container: "text-teal-600 bg-teal-50 border-teal-100", 
-      Icon: TrendingUp 
-    };
-  } else if (change < 0) {
-    statusTheme = { 
-      container: "text-rose-600 bg-rose-50 border-rose-100", 
-      Icon: TrendingDown 
-    };
-  }
-
+/**
+ * StatCard — khớp với MetricCard pattern của Dashboard:
+ * - Accent bar trên cùng (màu theo loại)
+ * - Icon nằm góc phải với nền màu
+ * - Số liệu to, rõ
+ * - Hover: shadow + dịch lên nhẹ
+ */
+const StatCard = ({ title, value, subtitle, icon, iconBg, iconColor, accent }) => {
   return (
-    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border hover:shadow-md transition-all duration-300 group">
-      <div className="flex justify-between items-start mb-6">
-        <div className="p-3 bg-teal-50 text-teal-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-          {React.cloneElement(icon, { size: 22 })}
-        </div>
-        
-        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border tracking-tight ${statusTheme.container}`}>
-          <statusTheme.Icon size={12} strokeWidth={3} />
-          <span>{Math.abs(change)}%</span>
+    <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden relative">
+      {/* Accent bar trên cùng */}
+      <div className={`absolute top-0 left-0 right-0 h-0.5 ${accent}`} />
+
+      {/* Top row: label + icon */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {title}
+        </p>
+        <div className={`w-9 h-9 ${iconBg} rounded-xl flex items-center justify-center shrink-0`}>
+          <span className={iconColor}>{icon}</span>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-[10px] font-medium text-muted-foreground tracking-tight">
-          {title}
-        </h3>
-        <div className="text-4xl font-semibold text-foreground tabular-nums tracking-tight">
+      {/* Value */}
+      <div>
+        <h2 className="text-3xl font-bold text-foreground tabular-nums tracking-tight leading-none">
           {value}
-        </div>
-        <p className="text-[11px] font-medium text-muted-foreground pt-1 tracking-tight">
-          {subtitle || "Dữ liệu thời gian thực"}
-        </p>
+        </h2>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+            {subtitle}
+          </p>
+        )}
       </div>
     </div>
   );

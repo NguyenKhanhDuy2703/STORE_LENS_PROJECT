@@ -18,7 +18,13 @@ const zoneStatsSchema = new Schema({
     camera_code: { type: String, trim: true },
     date: { type: Date, required: true },
     trend: { type: String, trim: true },
-    performance: performanceSchema
+    performance: performanceSchema,
+    hourly_traffic: [
+        {
+            hour: { type: String, trim: true },
+            count: { type: Number, default: 0 }
+        }
+    ]
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

@@ -29,7 +29,6 @@ export const getAreaManagementHourlyTraffic = async ({ locationId, type, cameraI
     if (zoneId) params.zoneId = zoneId;
 
     const response = await axiosInstance.get(`${BASE_URL}/hourly-traffic`, { params });
-
     if (response.status !== 200) {
       throw new Error(`Failed to fetch hourly traffic: ${response.statusText}`);
     }

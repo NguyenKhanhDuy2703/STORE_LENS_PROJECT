@@ -90,7 +90,7 @@ const Heatmap = () => {
       <GlobalFilter />
 
       {/* Main Layout: Left Sidebar + Heatmap Canvas */}
-      <div className="flex-1 flex gap-6 p-6 max-w-[1760px] mx-auto w-full">
+      <div className="flex-1 flex gap-6 py-6 w-full">
       
         <div className="w-[250px] shrink-0">
           <LeftSidebar

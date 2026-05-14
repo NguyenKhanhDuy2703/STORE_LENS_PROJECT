@@ -1,53 +1,51 @@
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-
-const getDensityBadgeStyle = (currentPeople) => {
-  if (currentPeople <= 10) {
-    return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  }
-
-  if (currentPeople <= 20) {
-    return "bg-amber-100 text-amber-700 border-amber-200";
-  }
-
-  return "bg-rose-100 text-rose-700 border-rose-200";
-};
-
 const formatDwellMinutes = (minutes) => `${minutes.toFixed(1)} phút`;
 
 const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
   const rows = Array.isArray(performanceDetails) ? performanceDetails : [];
   return (
-    <div className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground">
-          Trạng thái chi tiết khu vực
-        </h3>
+    <div className="bg-white/90 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-mono uppercase tracking-[0.2em] text-slate-500">
+              Hiệu suất khu vực
+            </p>
+            <h3 className="text-lg md:text-xl font-semibold text-slate-900">
+              Trạng thái chi tiết khu vực
+            </h3>
+            <p className="text-sm text-slate-600">
+              Tổng hợp lượt ghé, thời gian dừng và tỷ lệ chuyển đổi theo từng khu vực.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 font-medium text-slate-600">
+              Số khu vực: {rows.length}
+            </span>
+            <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 font-medium text-orange-700">
+              Dừng lâu nhất: {formatDwellMinutes(maxDwellTime)}
+            </span>
+          </div>
+        </div>
       </div>
       <div className="overflow-auto max-h-[560px]">
-        <table className="w-full min-w-[1200px] text-left">
-          <thead className="bg-muted border-b border-border sticky top-0 z-10">
+        <table className="w-full min-w-[980px] text-left">
+          <thead className="bg-slate-50/80 border-b border-slate-200 sticky top-0 z-10 backdrop-blur">
             <tr>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-7 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em]">
                 Khu vực
               </th>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Khách hiện tại
-              </th>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-7 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em]">
                 Lượt ghé hôm nay
               </th>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-7 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em]">
                 Thời gian dừng TB
               </th>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <th className="px-7 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em]">
                 Hiệu suất chuyển đổi
-              </th>
-              <th className="px-7 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Biến động
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-slate-100">
             {rows.map((row) => {
               const dwellPercent = Math.min(
                 (row.avgDwellMinutes / maxDwellTime) * 100,
@@ -57,12 +55,11 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
                 row.conversionRate,
                 100,
               );
-              const isGrowthUp = row.growthRate >= 0;
 
               return (
                 <tr
                   key={row.zoneId}
-                  className="hover:bg-muted transition"
+                  className="hover:bg-slate-50/70 transition-colors"
                 >
                   <td className="px-7 py-4">
                     {/* font-bold kept intentionally: primary identifier cell in data row, not a heading */}
@@ -74,23 +71,15 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
                     </p>
                   </td>
 
-                  <td className="px-7 py-4">
-                    <span
-                      className={`inline-flex items-center justify-center w-9 h-9 rounded-full border text-sm font-semibold ${getDensityBadgeStyle(row.currentPeople)}`}
-                    >
-                      {row.currentPeople}
-                    </span>
-                  </td>
-
                   <td className="px-7 py-4 text-sm font-semibold text-foreground tabular-nums">
                     {row.visitsToday.toLocaleString("vi-VN")}
                   </td>
 
                   <td className="px-7 py-4 min-w-60">
                     <div className="flex items-center gap-3">
-                      <div className="w-full h-2 rounded-full bg-orange-100 overflow-hidden">
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-orange-500 rounded-full"
+                          className="h-full bg-gradient-to-r from-orange-400 to-amber-400 rounded-full"
                           style={{ width: `${dwellPercent}%` }}
                         />
                       </div>
@@ -102,9 +91,9 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
 
                   <td className="px-7 py-4 min-w-60">
                     <div className="flex items-center gap-3">
-                      <div className="w-full h-2 rounded-full bg-teal-100 overflow-hidden">
+                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-teal-500 rounded-full"
+                          className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full"
                           style={{ width: `${conversionPercent}%` }}
                         />
                       </div>
@@ -113,20 +102,6 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
                       </span>
                     </div>
                   </td>
-
-                  <td className="px-7 py-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-sm font-semibold tabular-nums ${isGrowthUp ? "text-emerald-600" : "text-rose-600"}`}
-                    >
-                      {isGrowthUp ? (
-                        <ArrowUpRight size={18} />
-                      ) : (
-                        <ArrowDownRight size={18} />
-                      )}
-                      {isGrowthUp ? "+" : ""}
-                      {row.growthRate.toFixed(1)}%
-                    </span>
-                  </td>
                 </tr>
               );
             })}
@@ -134,7 +109,7 @@ const AnalyticsTable = ({ performanceDetails, maxDwellTime }) => {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="4"
                   className="px-7 py-10 text-center text-sm text-muted-foreground"
                 >
                   Không có dữ liệu khu vực phù hợp với bộ lọc hiện tại.

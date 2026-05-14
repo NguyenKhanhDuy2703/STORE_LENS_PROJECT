@@ -1,28 +1,10 @@
 import { TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-
-/**
- * StatCard — card thống kê dùng chung toàn app
- *
- * Variants:
- *   "simple"   — title + value + icon + trend text (dùng ở ManagermentMember)
- *   "trend"    — title + value + icon + % change badge (dùng ở AnalyticsArea, Downtime)
- *   "summary"  — title + value + icon gradient (dùng ở CameraSummaryCards)
- *
- * Props chung:
- *   title     : string
- *   value     : string | number
- *   icon      : ReactNode (simple/trend) | ComponentType (summary)
- *
- * Props theo variant:
- *   simple  : trend (string)
- *   trend   : change (number), subtitle (string)
- *   summary : gradient (string — tailwind class), shadowClass (string)
- */
 const StatCard = ({
   variant = 'simple',
   title,
   value,
   icon,
+  className = '',
   // simple
   trend,
   // trend variant
@@ -37,7 +19,7 @@ const StatCard = ({
   // ── Simple variant ──────────────────────────────────────────────────────────
   if (variant === 'simple') {
     return (
-      <div className="bg-card rounded-2xl p-6 shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+      <div className={`bg-card rounded-2xl p-6 shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${className}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="text-muted-foreground">{title}</div>
           <div className="text-accent">{icon}</div>
@@ -63,7 +45,7 @@ const StatCard = ({
         : 'text-rose-600 bg-rose-50 border-rose-100';
 
     return (
-      <div className="bg-card p-6 rounded-2xl border border-border shadow-md hover:shadow-lg transition-all duration-300 group">
+      <div className={`bg-card p-6 rounded-2xl border border-border shadow-md hover:shadow-lg transition-all duration-300 group ${className}`}>
         <div className="flex justify-between items-start mb-5">
           <div className="p-3 bg-accent/10 text-accent rounded-xl group-hover:scale-110 transition-transform duration-300">
             {icon}
@@ -85,7 +67,7 @@ const StatCard = ({
   // ── Summary variant ─────────────────────────────────────────────────────────
   const Icon = icon;
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group">
+    <div className={`rounded-2xl border border-border bg-card p-5 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group ${className}`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="label-mono">{title}</p>

@@ -397,8 +397,8 @@ const CameraZoneManager = () => {
     }
   };
   return (
-    <div className="min-h-screen w-full bg-background px-1 py-3 sm:px-2 lg:px-3">
-      <div className="mx-auto w-full max-w-[1860px] grid grid-cols-12 gap-3 md:gap-4">
+    <div className="w-full py-3">
+      <div className="w-full grid grid-cols-12 gap-3 md:gap-4">
         {/* Sidebar */}
         <div className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-4">
           <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
