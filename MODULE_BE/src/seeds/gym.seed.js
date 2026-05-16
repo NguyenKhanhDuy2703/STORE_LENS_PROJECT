@@ -1,18 +1,3 @@
-/**
- * gym.seed.js — Seed dữ liệu cơ bản cho phòng gym
- *
- * Chỉ tạo:
- *   - Location (phòng gym)
- *   - Camera (các camera trong phòng gym)
- *   - User (owner, manager, staff)
- *
- * Không tạo bất kỳ dữ liệu phân tích hay kinh doanh nào.
- *
- * Usage:
- *   node src/seeds/gym.seed.js
- *   node src/seeds/gym.seed.js --clean   (xóa dữ liệu cũ trước khi seed)
- */
-
 require('dotenv').config();
 const mongoose = require('mongoose');
 
@@ -34,42 +19,42 @@ const CAMERAS = [
         camera_code: 'CAM_GYM_ENTRANCE_01',
         camera_name: 'Camera Lối Vào Chính',
         rtsp_url: 'rtsp://admin:admin@192.168.1.101:554/stream1',
-        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1765270843/uploads/s8jfq1zamsxmbaopoarm.png',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát khu vực cửa vào, đếm lượt ra/vào'
     },
     {
         camera_code: 'CAM_GYM_CARDIO_01',
         camera_name: 'Camera Khu Cardio',
         rtsp_url: 'rtsp://admin:admin@192.168.1.102:554/stream1',
-        url_image_snapshot: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát khu máy chạy bộ, xe đạp'
     },
     {
         camera_code: 'CAM_GYM_WEIGHT_01',
         camera_name: 'Camera Khu Tạ Tự Do',
         rtsp_url: 'rtsp://admin:admin@192.168.1.103:554/stream1',
-        url_image_snapshot: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát khu tạ tự do, barbell'
     },
     {
         camera_code: 'CAM_GYM_MACHINE_01',
         camera_name: 'Camera Khu Máy Tập',
         rtsp_url: 'rtsp://admin:admin@192.168.1.104:554/stream1',
-        url_image_snapshot: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát khu máy tập cơ định'
     },
     {
         camera_code: 'CAM_GYM_LOCKER_01',
         camera_name: 'Camera Khu Tủ Đồ',
         rtsp_url: 'rtsp://admin:admin@192.168.1.105:554/stream1',
-        url_image_snapshot: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát khu vực tủ đồ, thay đồ'
     },
     {
         camera_code: 'CAM_GYM_RECEPTION_01',
         camera_name: 'Camera Quầy Lễ Tân',
         rtsp_url: 'rtsp://admin:admin@192.168.1.106:554/stream1',
-        url_image_snapshot: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800',
+        url_image_snapshot: 'https://res.cloudinary.com/dospk2dnl/image/upload/v1778688223/spacelens/zones/zone_1778688215793.jpg',
         zone_note: 'Giám sát quầy lễ tân, check-in hội viên'
     }
 ];
