@@ -7,10 +7,9 @@
     "test": "jest --detectOpenHandles",
     "start": "nodemon --inspect src/server.js",
     "seed": "node src/seeds/fake.seed.js --clean",
-    "seed:gym": "node src/seeds/gym.seed.js",
-    "seed:gym:clean": "node src/seeds/gym.seed.js --clean",
+    "seed:gym": "node src/seeds/gym.seed.js --clean",
     "seed:test": "node src/seeds/test.seed.js",
-    "seed:test:clean": "node src/seeds/test.seed.js --clean",
+    "pos:gen": "node scripts/create_test_excel.js",
     "setup_py": "pip install -r scripts/requirements.txt"
   },
   "author": "khanhduy",

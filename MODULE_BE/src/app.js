@@ -50,6 +50,7 @@ io.on('connection' , (socket) => {
     });
 
     socket.on('join_location', (locationId) => {
+        logger.info(`[Socket] ✅ join_location RECEIVED | id=${socket.id} | locationId=${locationId} | timestamp=${new Date().toISOString()}`);
         socket.join(locationId);
         logger.info(`[Socket] Client joined room | id=${socket.id} | locationId=${locationId}`);
     });

@@ -17,16 +17,19 @@ const notificationSchema = new Schema({
         ref: 'Session', 
         default: null 
     },
+    // type = loại nguồn gốc notification: ZONE (dwell-time alert), RETENTION, REVENUE
     type: { 
         type: String, 
         required: true, 
         trim: true,
-        uppercase: true 
+        uppercase: true,
+        enum: ['ZONE', 'RETENTION', 'REVENUE']
     },
+    // title = mức độ ưu tiên: ALERT (khẩn cấp, zone) | NORMAL (chăm sóc, retention/revenue)
     title: { 
         type: String, 
         required: true, 
-        enum: ['NORMAL', 'ALERT'],
+        enum: ['ALERT', 'NORMAL'],
         trim: true 
     },
     message: { 

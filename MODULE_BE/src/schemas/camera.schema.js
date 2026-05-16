@@ -18,7 +18,7 @@ const cameraSchema = new Schema({
     camera_code: { type: String, required: true, unique: true, trim: true },
     rtsp_url: { type: String, required: true, trim: true },
     url_image_snapshot: { type: String, trim: true },
-    status: { type: String, trim: true },
+    status: { type: String, trim: true, default: 'inactive' }, // Default status set to 'inactive'
     last_heartbeat: { type: Date },
     installation_date: { type: Date },
     camera_spec: cameraSpecSchema,

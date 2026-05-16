@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Header } from '../components/common/Header';
 import { Footer } from '../components/common/Footer';
 import { GlobalFilter } from '../components/functionComponent/GlobalFilter';
 import Loading from '../components/common/Loading';
+import socket from '../services/socket';
+import { addRealtimeAlert } from '../features/Notification/notification.slice';
 
 export const MainLayout = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
   const previousPathRef = useRef(location.pathname);
   const [isRouteTransitioning, setIsRouteTransitioning] = useState(false);
+
+  const { locationId, userLocationId } = useSelector((state) => state.filter);
+  const effectiveLocationId = locationId !== 'loc_all' ? locationId : userLocationId;
 
   const dashboardLoading = useSelector((state) => {
     const dashboardState = state.dashboard || {};
@@ -81,6 +87,34 @@ export const MainLayout = () => {
   }, [isRouteTransitioning, isRouteDataLoading]);
 
   const shouldShowRouteLoading = isRouteTransitioning || isRouteDataLoading;
+
+  // Kết nối socket toàn cục tại layout — đảm bảo badge Thông báo cập nhật realtime
+  // dù user đang ở bất kỳ trang nào (không chỉ trang /notification)
+  useEffect(() => {
+    if (!effectiveLocationId) return;
+
+    const joinRoom = () => {
+      socket.emit('join_location', effectiveLocationId);
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    } else {
+      socket.connect();
+      socket.once('connect', joinRoom);
+    }
+
+    const handleNewAlert = (notification) => {
+      dispatch(addRealtimeAlert(notification));
+    };
+
+    socket.on('new_alert', handleNewAlert);
+
+    return () => {
+      socket.off('new_alert', handleNewAlert);
+      socket.off('connect', joinRoom);
+    };
+  }, [dispatch, effectiveLocationId]);
 
   const showGlobalFilter = location.pathname === '/' || 
                           location.pathname.includes('/dashboard') ||

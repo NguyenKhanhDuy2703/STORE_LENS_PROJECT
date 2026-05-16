@@ -227,7 +227,6 @@ const ManagermentCameraPage = () => {
           onSubmit={handleUpsertCamera}
           loading={isUpsertSubmitting}
         />
-      </div>
     </div>
   );
 };

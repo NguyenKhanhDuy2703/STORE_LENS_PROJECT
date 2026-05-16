@@ -1,9 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Loader } from "lucide-react";
 import { fetchNotifications, readNotification } from "./notification.thunk";
-import { addRealtimeAlert } from "./notification.slice";
-import socket from "../../services/socket";
 import Header from "./components/Header";
 import Tabs from "./components/Tabs";
 import NotificationList from "./components/NotificationList";
@@ -25,25 +23,21 @@ const Notification = () => {
         dispatch(fetchNotifications());
     }, [dispatch, effectiveLocationId]);
 
-    // Lắng nghe socket new_alert — thêm vào danh sách ngay lập tức
+    // Đếm số alert chưa đọc để hiển thị badge trên tab
+    const unreadAlertCount = useMemo(
+        () => data.filter((n) => n.title === "ALERT" && !n.is_read).length,
+        [data]
+    );
+
+    // Tự động chuyển sang tab "alert" khi có alert mới đến (unreadAlertCount tăng)
+    const prevUnreadAlertRef = useRef(unreadAlertCount);
     useEffect(() => {
-        if (!effectiveLocationId) return;
-
-        if (!socket.connected) socket.connect();
-        socket.emit("join_location", effectiveLocationId);
-
-        const handleNewAlert = (notification) => {
-            dispatch(addRealtimeAlert(notification));
-            // Tự động chuyển sang tab cảnh báo khi có alert mới
+        if (unreadAlertCount > prevUnreadAlertRef.current) {
             setActiveTab("alert");
-        };
-
-        socket.on("new_alert", handleNewAlert);
-
-        return () => {
-            socket.off("new_alert", handleNewAlert);
-        };
-    }, [dispatch, effectiveLocationId]);
+            setCurrentPage(1);
+        }
+        prevUnreadAlertRef.current = unreadAlertCount;
+    }, [unreadAlertCount]);
 
     // Filter theo tab — dùng title để phân loại mức độ
     const tabFiltered = useMemo(() => {
@@ -59,12 +53,6 @@ const Notification = () => {
             n.type?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [tabFiltered, searchQuery]);
-
-    // Đếm số alert chưa đọc để hiển thị badge trên tab
-    const unreadAlertCount = useMemo(
-        () => data.filter((n) => n.title === "ALERT" && !n.is_read).length,
-        [data]
-    );
 
     const totalPages = Math.ceil(searchedData.length / itemsPerPage);
 

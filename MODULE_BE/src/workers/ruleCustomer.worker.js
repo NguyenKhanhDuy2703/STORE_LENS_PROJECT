@@ -194,7 +194,7 @@ const ruleCustomerWorker = {
     // payload.info = { camera_id: "CAM_001", location_id: "LOC_001" }
     async checkZoneRules({ payload, io }) {
         const { data, infor } = payload;
-        logger.info(`[ruleCustomer] checkZoneRules received | event_type=${data?.event_type} | dwell=${data?.dwell_time} | zone=${data?.zone_id} | location=${infor?.location_id}`);
+        logger.info(`[ruleCustomer] ⚠️ checkZoneRules called | event_type=${data?.event_type} | dwell=${data?.dwell_time}s | zone=${data?.zone_id} | location=${infor?.location_id} | io=${io ? '✅' : '❌'}`);
         // Chỉ xử lý event ping — stop event không cần alert realtime
         if (!data || data.event_type !== "ping") return;
 
@@ -278,10 +278,14 @@ const ruleCustomerWorker = {
 
                 // Push realtime lên FE qua Socket.IO
                 if (io) {
+                    logger.info(`[ruleCustomer] 📨 Emitting new_alert via Socket.IO to room: ${location_id}`);
                     io.to(location_id).emit("new_alert", {
                         ...notification.toObject(),
                         location_id,
                     });
+                    logger.info(`[ruleCustomer] ✅ Emitted new_alert successfully`);
+                } else {
+                    logger.warn(`[ruleCustomer] ⚠️ io object is NULL - cannot emit new_alert`);
                 }
             } catch (err) {
                 logger.error(`[ruleCustomer] Failed to create zone alert: ${err.message}`);
